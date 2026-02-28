@@ -17,6 +17,21 @@ mkdir -p "$LOG_DIR"
 
 exec > >(tee -a "$LOG_FILE") 2>&1
 
+# Discord notification helper
+notify() {
+    local title="$1"
+    local desc="$2"
+    local color="${3:-3447003}"  # default blue
+    node -e "
+        const { sendEmbed } = require('./src/utils/discord');
+        sendEmbed({
+            title: $(printf '%s' "$title" | node -e "process.stdin.setEncoding('utf8');let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>console.log(JSON.stringify(d)))"),
+            description: $(printf '%s' "$desc" | node -e "process.stdin.setEncoding('utf8');let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>console.log(JSON.stringify(d)))"),
+            color: $color,
+        }).catch(()=>{});
+    " 2>/dev/null || true
+}
+
 echo "=============================="
 echo "Batch run: $TIMESTAMP"
 echo "=============================="
@@ -86,6 +101,9 @@ fi
 
 if [ "$ACTION" = "keep" ]; then
     echo "Claude chose KEEP. No changes needed."
+    CONFIDENCE=$(echo "$PARSE_RESULT" | node -e "process.stdin.setEncoding('utf8');let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const r=JSON.parse(d);console.log(r.decision.confidence||'N/A')})")
+    KEEP_REASON=$(echo "$PARSE_RESULT" | node -e "process.stdin.setEncoding('utf8');let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const r=JSON.parse(d);console.log(r.decision.reasoning||'')})")
+    notify "Batch: KEEP (변경 없음)" "현재 전략 유지\n신뢰도: ${CONFIDENCE}\n사유: ${KEEP_REASON}" 8421504
     echo "Batch complete."
     exit 0
 fi
@@ -154,6 +172,7 @@ if [ "$ACTION" = "modify" ]; then
     git add -A src/strategies/ 2>/dev/null || true
     git commit -m "batch: modify strategy parameters - $REASONING" 2>/dev/null || true
 
+    notify "Batch: MODIFY (파라미터 수정)" "파라미터 변경: ${PARAMS}\n사유: ${REASONING}" 15105570
     echo "Batch complete (parameters modified)."
     exit 0
 fi
@@ -201,6 +220,7 @@ echo "$COMPARISON"
 if [ "$PASS" != "true" ]; then
     echo "[Step 5] Backtest FAILED. Not deploying."
     rm -f "$TEMP_STRATEGY"
+    notify "Batch: REPLACE 실패 (백테스트 미통과)" "신규 전략이 백테스트 기준을 통과하지 못했습니다.\n${COMPARISON}" 15158332
     echo "Batch complete (backtest failed)."
     exit 0
 fi
@@ -223,6 +243,8 @@ node -e "
         process.exit(1);
     });
 "
+
+notify "Batch: REPLACE 성공 (전략 교체 배포)" "새 전략이 백테스트를 통과하여 배포되었습니다.\n수익률 개선: ${COMPARISON}\n사유: $(echo "$PARSE_RESULT" | node -e "process.stdin.setEncoding('utf8');let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const r=JSON.parse(d);console.log(r.decision.reasoning||'')})")" 3066993
 
 # Step 7: Git commit & push
 echo "[Step 7] Committing changes to git..."
