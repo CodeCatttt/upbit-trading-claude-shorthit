@@ -17,19 +17,9 @@ mkdir -p "$LOG_DIR"
 
 exec > >(tee -a "$LOG_FILE") 2>&1
 
-# Discord notification helper
-notify() {
-    local title="$1"
-    local desc="$2"
-    local color="${3:-3447003}"  # default blue
-    node -e "
-        const { sendEmbed } = require('./src/utils/discord');
-        sendEmbed({
-            title: $(printf '%s' "$title" | node -e "process.stdin.setEncoding('utf8');let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>console.log(JSON.stringify(d)))"),
-            description: $(printf '%s' "$desc" | node -e "process.stdin.setEncoding('utf8');let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>console.log(JSON.stringify(d)))"),
-            color: $color,
-        }).catch(()=>{});
-    " 2>/dev/null || true
+# Discord notification helper — pipes JSON to notify.js
+notify_batch() {
+    echo "$1" | node src/batch/notify.js 2>/dev/null || true
 }
 
 echo "=============================="
@@ -101,9 +91,15 @@ fi
 
 if [ "$ACTION" = "keep" ]; then
     echo "Claude chose KEEP. No changes needed."
-    CONFIDENCE=$(echo "$PARSE_RESULT" | node -e "process.stdin.setEncoding('utf8');let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const r=JSON.parse(d);console.log(r.decision.confidence||'N/A')})")
-    KEEP_REASON=$(echo "$PARSE_RESULT" | node -e "process.stdin.setEncoding('utf8');let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const r=JSON.parse(d);console.log(r.decision.reasoning||'')})")
-    notify "Batch: KEEP (변경 없음)" "현재 전략 유지\n신뢰도: ${CONFIDENCE}\n사유: ${KEEP_REASON}" 8421504
+    KEEP_JSON=$(echo "$PARSE_RESULT" | node -e "
+        process.stdin.setEncoding('utf8');let d='';
+        process.stdin.on('data',c=>d+=c);
+        process.stdin.on('end',()=>{
+            const r=JSON.parse(d).decision;
+            console.log(JSON.stringify({type:'keep',reasoning:r.reasoning||'',confidence:r.confidence||0}));
+        });
+    ")
+    notify_batch "$KEEP_JSON"
     echo "Batch complete."
     exit 0
 fi
@@ -172,7 +168,12 @@ if [ "$ACTION" = "modify" ]; then
     git add -A src/strategies/ 2>/dev/null || true
     git commit -m "batch: modify strategy parameters - $REASONING" 2>/dev/null || true
 
-    notify "Batch: MODIFY (파라미터 수정)" "파라미터 변경: ${PARAMS}\n사유: ${REASONING}" 15105570
+    MODIFY_JSON=$(node -e "
+        const p = $PARAMS;
+        const r = $(echo "$PARSE_RESULT" | node -e "process.stdin.setEncoding('utf8');let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>console.log(JSON.stringify(JSON.parse(d).decision)))");
+        console.log(JSON.stringify({type:'modify',reasoning:r.reasoning||'',confidence:r.confidence||0,parameters:p}));
+    ")
+    notify_batch "$MODIFY_JSON"
     echo "Batch complete (parameters modified)."
     exit 0
 fi
@@ -220,7 +221,12 @@ echo "$COMPARISON"
 if [ "$PASS" != "true" ]; then
     echo "[Step 5] Backtest FAILED. Not deploying."
     rm -f "$TEMP_STRATEGY"
-    notify "Batch: REPLACE 실패 (백테스트 미통과)" "신규 전략이 백테스트 기준을 통과하지 못했습니다.\n${COMPARISON}" 15158332
+    FAIL_JSON=$(node -e "
+        const comp = $COMPARISON;
+        const r = $(echo "$PARSE_RESULT" | node -e "process.stdin.setEncoding('utf8');let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>console.log(JSON.stringify(JSON.parse(d).decision)))");
+        console.log(JSON.stringify({type:'replace_fail',reasoning:r.reasoning||'',confidence:r.confidence||0,comparison:comp}));
+    ")
+    notify_batch "$FAIL_JSON"
     echo "Batch complete (backtest failed)."
     exit 0
 fi
@@ -244,7 +250,12 @@ node -e "
     });
 "
 
-notify "Batch: REPLACE 성공 (전략 교체 배포)" "새 전략이 백테스트를 통과하여 배포되었습니다.\n수익률 개선: ${COMPARISON}\n사유: $(echo "$PARSE_RESULT" | node -e "process.stdin.setEncoding('utf8');let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const r=JSON.parse(d);console.log(r.decision.reasoning||'')})")" 3066993
+SUCCESS_JSON=$(node -e "
+    const comp = $COMPARISON;
+    const r = $(echo "$PARSE_RESULT" | node -e "process.stdin.setEncoding('utf8');let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>console.log(JSON.stringify(JSON.parse(d).decision)))");
+    console.log(JSON.stringify({type:'replace_success',reasoning:r.reasoning||'',confidence:r.confidence||0,comparison:comp}));
+")
+notify_batch "$SUCCESS_JSON"
 
 # Step 7: Git commit & push
 echo "[Step 7] Committing changes to git..."
