@@ -1,0 +1,19 @@
+[
+  {
+    "timestamp": "2026-02-28T19:13:17.604Z",
+    "success": true,
+    "backupPath": "/home/kook/programming/upbit-trading-claude/backups/strategy-2026-02-28T19-12-46.js",
+    "backtestComparison": {
+      "pass": true,
+      "returnImprovement": 1.0213,
+      "drawdownWorsening": -2.6806,
+      "dailyTrades": 0.32,
+      "reasons": [
+        "PASSED",
+        "Return improvement: 1.02% (need >= 0.5%)",
+        "Drawdown worsening: -2.68% (need <= 2.0%)",
+        "Daily trades: 0.32 (need <= 4)"
+      ]
+    }
+  }
+]
