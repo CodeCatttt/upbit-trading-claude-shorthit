@@ -151,19 +151,20 @@ if (require.main === module) {
     const strategyPath = process.argv[2] || path.join(__dirname, '../strategies/current-strategy.js');
     const resolvedPath = path.resolve(strategyPath);
 
-    log.info(`Backtesting strategy: ${resolvedPath}`);
+    process.stderr.write(`[BACKTEST] Strategy: ${resolvedPath}\n`);
 
     const strategy = require(resolvedPath);
     const btcCandles = store.getCandles('KRW-BTC', 15);
     const ethCandles = store.getCandles('KRW-ETH', 15);
 
     if (btcCandles.length === 0 || ethCandles.length === 0) {
-        log.error('No candle data found. Run candle-fetcher.js first.');
+        process.stderr.write('[BACKTEST] No candle data found. Run candle-fetcher.js first.\n');
         process.exit(1);
     }
 
     const result = runBacktest(strategy, btcCandles, ethCandles, path.basename(resolvedPath));
-    console.log(JSON.stringify(result, null, 2));
+    // stdout: pure JSON only (for piping to other scripts)
+    console.log(JSON.stringify(result));
     saveResult(result);
 }
 

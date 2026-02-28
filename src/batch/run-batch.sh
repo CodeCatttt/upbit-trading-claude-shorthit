@@ -76,7 +76,7 @@ echo "[Step 2] Cooldown clear."
 echo "[Step 3] Building prompt and calling Claude..."
 PROMPT=$(node src/batch/build-prompt.js)
 
-CLAUDE_OUTPUT=$(echo "$PROMPT" | claude --model claude-opus-4-6 --allowedTools "WebSearch" -p --max-tokens 8192 2>/dev/null || true)
+CLAUDE_OUTPUT=$(echo "$PROMPT" | env -u CLAUDECODE claude --model claude-opus-4-6 --allowedTools "WebSearch" -p 2>/dev/null || true)
 
 if [ -z "$CLAUDE_OUTPUT" ]; then
     echo "[Step 3] ERROR: Claude returned empty output."

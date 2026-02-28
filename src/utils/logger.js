@@ -33,7 +33,7 @@ function createLogger(component, logFile = null) {
 
     function log(level, message, data) {
         const line = formatMsg(level, component, message, data);
-        console.log(line);
+        process.stderr.write(line + '\n');
         if (stream) {
             stream.write(line + '\n');
         }
