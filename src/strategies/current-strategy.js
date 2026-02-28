@@ -59,27 +59,27 @@ function calcRelativeValueScore(candles, allCandles, config) {
     return -deviation;
 }
 
-function onNewCandle(state, candlesByMarket, config = DEFAULT_CONFIG) {
+function onNewCandle(state, candleData, config = DEFAULT_CONFIG) {
     if (state.candlesSinceLastTrade === undefined) {
         state.candlesSinceLastTrade = 9999;
     }
     state.candlesSinceLastTrade++;
 
-    const markets = Object.keys(candlesByMarket);
+    const markets = Object.keys(candleData);
     if (markets.length < 2) {
         return { action: 'NONE', details: { reason: 'insufficient_markets' } };
     }
 
     const inCooldown = state.candlesSinceLastTrade < config.cooldownCandles;
 
-    // Score each market
+    // Score each market (using 15m candles)
     const scores = {};
     for (const market of markets) {
-        const candles = candlesByMarket[market];
+        const candles = candleData[market][15];
         if (!candles || candles.length < config.lookback) continue;
 
         const momentum = calcMomentumScore(candles, config);
-        const rv = calcRelativeValueScore(candles, candlesByMarket, config);
+        const rv = calcRelativeValueScore(candles, null, config);
 
         if (momentum === null || rv === null) continue;
 

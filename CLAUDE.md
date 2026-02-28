@@ -6,18 +6,25 @@ Upbit 멀티에셋 트레이딩 봇 with Claude-powered batch strategy analysis.
 
 - **Bot** (`src/bot.js`): PM2 process running 24/7, checks every 15 minutes
 - **Strategy** (`src/strategies/current-strategy.js`): Hot-swappable strategy file
+- **Custom Indicators** (`src/strategies/custom-indicators.js`): Claude-managed custom indicator functions
 - **Batch** (`src/batch/run-batch.sh`): 1-hour cron — collects metrics → calls Claude → backtests → deploys
+- **Batch Memory** (`data/batch-memory.json`): Decision history for cross-batch learning
 - **Config** (`trading-config.json`): Dynamic market list, updated by Claude at each batch
 
-## Strategy Interface (Multi-Asset)
+## Strategy Interface (Multi-Timeframe)
 
 All strategies must export:
 ```javascript
 module.exports = {
   DEFAULT_CONFIG,                      // Object with strategy parameters
   createStrategyState(),               // Returns { assetHeld: 'KRW-BTC' }
-  onNewCandle(state, candlesByMarket, config?)
-    // candlesByMarket: { 'KRW-BTC': [...], 'KRW-ETH': [...], ... }
+  onNewCandle(state, candleData, config?)
+    // candleData: {
+    //   'KRW-BTC': { 15: [candle, ...], 240: [candle, ...] },
+    //   'KRW-ETH': { 15: [candle, ...], 240: [candle, ...] },
+    // }
+    // Access: candleData['KRW-BTC'][15]  — 15m candles
+    //         candleData['KRW-BTC'][240] — 4h candles
     // Returns:
     //   { action: 'HOLD', details: { ... } }
     //   { action: 'NONE', details: { reason: '...' } }
@@ -33,6 +40,28 @@ module.exports = {
 - `SWITCH`: Sell current asset, buy `details.targetMarket`
 - `HOLD`: Keep current position
 - `NONE`: No action (insufficient data)
+
+### Available Imports
+- `require('../indicators')` — built-in technical indicators (EMA, RSI, ATR, Kalman, etc.)
+- `require('./custom-indicators')` — Claude-managed custom indicator functions
+- `require('../utils/adf-test')` — ADF stationarity test
+
+## Candle Data
+- Max candles stored: **10000** per market per interval (~104 days for 15m)
+- Intervals: 15m (primary), 240m (4h higher-timeframe context)
+- Backtest runs on 15m candles; 240m aligned by timestamp at each step
+
+## Batch Memory
+- File: `data/batch-memory.json`
+- Stores last 50 batch decisions with action, reasoning, outcome, notes
+- `strategicNotes`: accumulated strategic insights (Claude replaces each time)
+- Helper: `src/batch/update-memory.js` — auto-called by run-batch.sh after each decision
+
+## Custom Indicators
+- File: `src/strategies/custom-indicators.js`
+- Claude can define new indicator functions via ```custom-indicators code block
+- Backed up alongside strategy on deploy; rolled back together on failure
+- Strategy uses via `require('./custom-indicators')`
 
 ## Strategy Goals & Constraints
 
@@ -62,16 +91,20 @@ module.exports = {
 
 | File | Purpose |
 |------|---------|
-| `src/bot.js` | Main bot (PM2 24/7, multi-asset) |
+| `src/bot.js` | Main bot (PM2 24/7, multi-timeframe) |
 | `src/upbit-api.js` | Upbit API wrapper |
 | `src/indicators.js` | Technical indicators library |
 | `src/strategies/current-strategy.js` | Active strategy (replaced on deploy) |
+| `src/strategies/custom-indicators.js` | Custom indicator functions (Claude-managed) |
 | `src/batch/run-batch.sh` | Batch pipeline orchestrator |
-| `src/batch/backtest.js` | Multi-asset backtest engine with slippage |
+| `src/batch/backtest.js` | Multi-timeframe backtest engine with slippage |
 | `src/batch/collect-metrics.js` | Enhanced metrics (Sharpe, win rate, rolling returns) |
-| `src/batch/build-prompt.js` | Multi-asset prompt assembly |
-| `src/batch/deploy.js` | Safe deploy with rollback |
+| `src/batch/build-prompt.js` | Multi-timeframe prompt assembly |
+| `src/batch/deploy.js` | Safe deploy with rollback (strategy + custom indicators) |
+| `src/batch/update-memory.js` | Batch memory append helper |
+| `src/batch/parse-response.js` | Response parsing + custom-indicators extraction |
 | `trading-config.json` | Dynamic market list + intervals |
+| `data/batch-memory.json` | Batch decision history (max 50 entries) |
 | `bot-state.json` | Bot state (assetHeld as market code) |
 | `deploy-log.json` | Deploy history |
 
@@ -83,15 +116,22 @@ module.exports = {
   "reasoning": "한국어 사유",
   "confidence": 0.0~1.0,
   "parameters": {},
-  "markets": ["KRW-BTC", "KRW-ETH", "KRW-SOL"]
+  "markets": ["KRW-BTC", "KRW-ETH", "KRW-SOL"],
+  "notes": "다음 배치를 위한 메모 (선택사항)",
+  "strategicNotes": "전략적 인사이트 누적 (선택사항)"
 }
 ```
+
+For "replace" action, additional code blocks:
+- ```javascript — complete new strategy file
+- ```custom-indicators — custom indicator functions (optional)
 
 ## Safety
 
 - Backtest gate: +0.5% return, MDD ≤ 2% worse, ≤ 6 trades/day
 - Slippage model: 0.1% per trade (market order assumption)
-- Syntax + interface validation before deploy
-- Auto-rollback on PM2 crash after deploy
+- Syntax + interface validation before deploy (strategy + custom indicators)
+- Auto-rollback on PM2 crash after deploy (strategy + custom indicators)
 - Atomic state file writes (crash-safe)
 - Market removal safety: 보유 종목은 자동으로 관심 리스트에 유지
+- Batch memory: 최근 50개 결정 기록으로 학습 패턴 추적

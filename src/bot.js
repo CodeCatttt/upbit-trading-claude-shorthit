@@ -84,18 +84,21 @@ function getCurrencyFromMarket(market) {
     return market.replace('KRW-', '');
 }
 
-async function fetchCandlesByMarket(markets) {
-    const candlesByMarket = {};
+async function fetchCandleData(markets, intervals) {
+    const candleData = {};
     for (const market of markets) {
-        try {
-            const candles = await api.getCandles(market, 15, 100);
-            candlesByMarket[market] = candles;
-        } catch (e) {
-            log.warn(`Failed to fetch candles for ${market}: ${e.message}`);
-            candlesByMarket[market] = [];
+        candleData[market] = {};
+        for (const unit of intervals) {
+            try {
+                const candles = await api.getCandles(market, unit, 100);
+                candleData[market][unit] = candles;
+            } catch (e) {
+                log.warn(`Failed to fetch candles for ${market} ${unit}m: ${e.message}`);
+                candleData[market][unit] = [];
+            }
         }
     }
-    return candlesByMarket;
+    return candleData;
 }
 
 async function runStrategyBoundary() {
@@ -112,13 +115,14 @@ async function runStrategyBoundary() {
             effectiveMarkets = [state.assetHeld, ...markets];
         }
 
-        log.info(`Strategy check - Held: ${state.assetHeld}, Markets: ${effectiveMarkets.join(', ')}`);
+        const intervals = config.candleIntervals || [15, 240];
+        log.info(`Strategy check - Held: ${state.assetHeld}, Markets: ${effectiveMarkets.join(', ')}, Intervals: ${intervals.join(', ')}`);
 
-        const candlesByMarket = await fetchCandlesByMarket(effectiveMarkets);
+        const candleData = await fetchCandleData(effectiveMarkets, intervals);
 
-        // Verify we have sufficient data for at least some markets
-        const marketsWithData = Object.entries(candlesByMarket)
-            .filter(([, candles]) => candles.length >= 21);
+        // Verify we have sufficient data for at least some markets (check 15m candles)
+        const marketsWithData = Object.entries(candleData)
+            .filter(([, intervals]) => intervals[15] && intervals[15].length >= 21);
         if (marketsWithData.length < 2) {
             log.warn('Insufficient candle data for markets.');
             writeHeartbeat('NONE');
@@ -130,7 +134,7 @@ async function runStrategyBoundary() {
             log.info('Attempting re-entry from CASH.');
             const defaultAsset = config.defaultAsset || markets[0];
             const tempState = { ...state, assetHeld: defaultAsset };
-            const signal = strategy.onNewCandle(tempState, candlesByMarket);
+            const signal = strategy.onNewCandle(tempState, candleData);
 
             const krw = await api.getBalance('KRW');
             const amt = Math.floor(krw * TRADE_RATIO);
@@ -151,7 +155,7 @@ async function runStrategyBoundary() {
             return;
         }
 
-        const result = strategy.onNewCandle(state, candlesByMarket);
+        const result = strategy.onNewCandle(state, candleData);
         saveState();
 
         log.info(`Action: [${result.action}]`, result.details);

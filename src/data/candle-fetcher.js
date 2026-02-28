@@ -16,7 +16,7 @@ const log = createLogger('CANDLE-FETCHER');
 
 const CONFIG_FILE = path.join(__dirname, '../../trading-config.json');
 
-const MAX_CANDLES = 2000;
+const MAX_CANDLES = 10000;
 const PAGE_SIZE = 200; // Upbit max per request
 const RATE_LIMIT_MS = 200; // Be gentle with the API
 

@@ -17,6 +17,7 @@ const log = createLogger('DEPLOY');
 
 const PROJECT_ROOT = path.join(__dirname, '../..');
 const CURRENT_STRATEGY = path.join(__dirname, '../strategies/current-strategy.js');
+const CUSTOM_INDICATORS = path.join(__dirname, '../strategies/custom-indicators.js');
 const BACKUP_DIR = path.join(PROJECT_ROOT, 'backups');
 const DEPLOY_LOG_FILE = path.join(PROJECT_ROOT, 'deploy-log.json');
 const HEARTBEAT_FILE = path.join(PROJECT_ROOT, 'data/bot-heartbeat.json');
@@ -66,6 +67,14 @@ function backupCurrentStrategy() {
     const backupPath = path.join(BACKUP_DIR, `strategy-${ts}.js`);
     fs.copyFileSync(CURRENT_STRATEGY, backupPath);
     log.info(`Backed up current strategy to: ${backupPath}`);
+
+    // Also backup custom-indicators.js
+    if (fs.existsSync(CUSTOM_INDICATORS)) {
+        const ciBackupPath = path.join(BACKUP_DIR, `custom-indicators-${ts}.js`);
+        fs.copyFileSync(CUSTOM_INDICATORS, ciBackupPath);
+        log.info(`Backed up custom indicators to: ${ciBackupPath}`);
+    }
+
     return backupPath;
 }
 
@@ -120,6 +129,11 @@ async function deploy(strategyCode, backtestComparison = null) {
         // Rollback
         if (backupPath) {
             fs.copyFileSync(backupPath, CURRENT_STRATEGY);
+            // Rollback custom indicators
+            const ciBackup = backupPath.replace('strategy-', 'custom-indicators-');
+            if (fs.existsSync(ciBackup)) {
+                fs.copyFileSync(ciBackup, CUSTOM_INDICATORS);
+            }
             restartPM2();
         }
         appendDeployLog({
@@ -140,6 +154,11 @@ async function deploy(strategyCode, backtestComparison = null) {
         log.error('Post-deploy health check FAILED. Rolling back...');
         if (backupPath) {
             fs.copyFileSync(backupPath, CURRENT_STRATEGY);
+            // Rollback custom indicators
+            const ciBackup = backupPath.replace('strategy-', 'custom-indicators-');
+            if (fs.existsSync(ciBackup)) {
+                fs.copyFileSync(ciBackup, CUSTOM_INDICATORS);
+            }
             restartPM2();
             log.info('Rollback complete.');
         }

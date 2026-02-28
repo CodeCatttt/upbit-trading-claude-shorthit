@@ -109,6 +109,16 @@ if [ "$ACTION" = "keep" ]; then
         });
     ")
     notify_batch "$KEEP_JSON"
+    # Update batch memory
+    echo "$PARSE_RESULT" | node -e "
+        process.stdin.setEncoding('utf8');let d='';
+        process.stdin.on('data',c=>d+=c);
+        process.stdin.on('end',()=>{
+            const r=JSON.parse(d).decision;
+            const {appendEntry}=require('./src/batch/update-memory');
+            appendEntry({action:'keep',reasoning:r.reasoning,confidence:r.confidence,outcome:'kept',notes:r.notes||'',strategicNotes:r.strategicNotes});
+        });
+    "
     echo "Batch complete."
     exit 0
 fi
@@ -155,6 +165,16 @@ if [ "$ACTION" = "modify" ]; then
         console.log(JSON.stringify({type:'modify',reasoning:r.reasoning||'',confidence:r.confidence||0,parameters:p}));
     ")
     notify_batch "$MODIFY_JSON"
+    # Update batch memory
+    echo "$PARSE_RESULT" | node -e "
+        process.stdin.setEncoding('utf8');let d='';
+        process.stdin.on('data',c=>d+=c);
+        process.stdin.on('end',()=>{
+            const r=JSON.parse(d).decision;
+            const {appendEntry}=require('./src/batch/update-memory');
+            appendEntry({action:'modify',reasoning:r.reasoning,confidence:r.confidence,parameters:r.parameters,outcome:'applied',notes:r.notes||'',strategicNotes:r.strategicNotes});
+        });
+    "
     echo "Batch complete (parameters modified)."
     exit 0
 fi
@@ -164,6 +184,10 @@ echo "[Step 4] Running backtest..."
 
 # Write new strategy to temp file
 TEMP_STRATEGY="$PROJECT_DIR/src/strategies/.tmp-new-strategy.js"
+CUSTOM_INDICATORS_FILE="$PROJECT_DIR/src/strategies/custom-indicators.js"
+CUSTOM_INDICATORS_BACKUP="$PROJECT_DIR/src/strategies/.backup-custom-indicators.js"
+HAS_CUSTOM_INDICATORS="false"
+
 echo "$PARSE_RESULT" | node -e "
     process.stdin.setEncoding('utf8');
     let d='';
@@ -171,8 +195,19 @@ echo "$PARSE_RESULT" | node -e "
     process.stdin.on('end',()=>{
         const r=JSON.parse(d);
         require('fs').writeFileSync('$TEMP_STRATEGY', r.strategyCode);
+        if (r.customIndicatorsCode) {
+            require('fs').writeFileSync('$TEMP_STRATEGY.custom-indicators', r.customIndicatorsCode);
+        }
     });
 "
+
+# Install custom indicators before backtest (with backup)
+if [ -f "$TEMP_STRATEGY.custom-indicators" ]; then
+    HAS_CUSTOM_INDICATORS="true"
+    echo "  Installing custom indicators for backtest..."
+    cp "$CUSTOM_INDICATORS_FILE" "$CUSTOM_INDICATORS_BACKUP" 2>/dev/null || true
+    cp "$TEMP_STRATEGY.custom-indicators" "$CUSTOM_INDICATORS_FILE"
+fi
 
 # Backtest current strategy
 echo "  Backtesting current strategy..."
@@ -201,13 +236,30 @@ echo "$COMPARISON"
 
 if [ "$PASS" != "true" ]; then
     echo "[Step 4] Backtest FAILED. Not deploying."
-    rm -f "$TEMP_STRATEGY"
+    rm -f "$TEMP_STRATEGY" "$TEMP_STRATEGY.custom-indicators"
+    # Restore custom indicators backup
+    if [ "$HAS_CUSTOM_INDICATORS" = "true" ] && [ -f "$CUSTOM_INDICATORS_BACKUP" ]; then
+        cp "$CUSTOM_INDICATORS_BACKUP" "$CUSTOM_INDICATORS_FILE"
+        rm -f "$CUSTOM_INDICATORS_BACKUP"
+        echo "  Custom indicators restored from backup."
+    fi
     FAIL_JSON=$(node -e "
         const comp = $COMPARISON;
         const r = $(echo "$PARSE_RESULT" | node -e "process.stdin.setEncoding('utf8');let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>console.log(JSON.stringify(JSON.parse(d).decision)))");
         console.log(JSON.stringify({type:'replace_fail',reasoning:r.reasoning||'',confidence:r.confidence||0,comparison:comp}));
     ")
     notify_batch "$FAIL_JSON"
+    # Update batch memory with backtest failure
+    echo "$PARSE_RESULT" | node -e "
+        process.stdin.setEncoding('utf8');let d='';
+        process.stdin.on('data',c=>d+=c);
+        process.stdin.on('end',()=>{
+            const r=JSON.parse(d).decision;
+            const comp=$COMPARISON;
+            const {appendEntry}=require('./src/batch/update-memory');
+            appendEntry({action:'replace',reasoning:r.reasoning,confidence:r.confidence,outcome:'backtest_failed',backtestResult:comp,notes:r.notes||'',strategicNotes:r.strategicNotes});
+        });
+    "
     echo "Batch complete (backtest failed)."
     exit 0
 fi
@@ -222,11 +274,21 @@ node -e "
     const comparison = $COMPARISON;
     deploy(code, comparison).then(r => {
         console.log(JSON.stringify(r, null, 2));
-        fs.unlinkSync('$TEMP_STRATEGY');
+        try { fs.unlinkSync('$TEMP_STRATEGY'); } catch(_){}
+        try { fs.unlinkSync('$TEMP_STRATEGY.custom-indicators'); } catch(_){}
+        try { fs.unlinkSync('$CUSTOM_INDICATORS_BACKUP'); } catch(_){}
         process.exit(r.success ? 0 : 1);
     }).catch(e => {
         console.error('Deploy error:', e.message);
+        // Rollback custom indicators on deploy failure
+        try {
+            if (fs.existsSync('$CUSTOM_INDICATORS_BACKUP')) {
+                fs.copyFileSync('$CUSTOM_INDICATORS_BACKUP', '$CUSTOM_INDICATORS_FILE');
+                fs.unlinkSync('$CUSTOM_INDICATORS_BACKUP');
+            }
+        } catch(_){}
         try { fs.unlinkSync('$TEMP_STRATEGY'); } catch(_){}
+        try { fs.unlinkSync('$TEMP_STRATEGY.custom-indicators'); } catch(_){}
         process.exit(1);
     });
 "
@@ -237,12 +299,23 @@ SUCCESS_JSON=$(node -e "
     console.log(JSON.stringify({type:'replace_success',reasoning:r.reasoning||'',confidence:r.confidence||0,comparison:comp}));
 ")
 notify_batch "$SUCCESS_JSON"
+# Update batch memory with deploy success
+echo "$PARSE_RESULT" | node -e "
+    process.stdin.setEncoding('utf8');let d='';
+    process.stdin.on('data',c=>d+=c);
+    process.stdin.on('end',()=>{
+        const r=JSON.parse(d).decision;
+        const comp=$COMPARISON;
+        const {appendEntry}=require('./src/batch/update-memory');
+        appendEntry({action:'replace',reasoning:r.reasoning,confidence:r.confidence,outcome:'deployed',backtestResult:comp,notes:r.notes||'',strategicNotes:r.strategicNotes});
+    });
+"
 
 # Step 6: Git commit & push
 echo "[Step 6] Committing changes to git..."
 cd "$PROJECT_DIR"
 REASONING=$(echo "$PARSE_RESULT" | node -e "process.stdin.setEncoding('utf8');let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const r=JSON.parse(d);console.log(r.decision.reasoning||'strategy replacement')})")
-git add src/strategies/current-strategy.js deploy-log.json trading-config.json 2>/dev/null || true
+git add src/strategies/current-strategy.js src/strategies/custom-indicators.js deploy-log.json trading-config.json data/batch-memory.json 2>/dev/null || true
 git commit -m "batch: replace strategy - $REASONING" 2>/dev/null || echo "  No changes to commit."
 git push 2>/dev/null || echo "  Push skipped (no remote configured)."
 

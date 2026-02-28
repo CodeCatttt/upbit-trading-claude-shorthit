@@ -54,7 +54,7 @@ function getCandles(market, unit) {
     return data ? data.candles : [];
 }
 
-function appendCandles(market, unit, newCandles, maxKeep = 2000) {
+function appendCandles(market, unit, newCandles, maxKeep = 10000) {
     const data = load(market, unit);
     const existing = data ? data.candles : [];
     const merged = merge(existing, newCandles);

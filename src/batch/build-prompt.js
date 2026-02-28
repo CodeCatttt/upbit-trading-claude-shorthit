@@ -16,8 +16,10 @@ const log = createLogger('BUILD-PROMPT');
 const METRICS_DIR = path.join(__dirname, '../../data/metrics');
 const DEPLOY_LOG = path.join(__dirname, '../../deploy-log.json');
 const INDICATORS_FILE = path.join(__dirname, '../indicators.js');
+const CUSTOM_INDICATORS_FILE = path.join(__dirname, '../strategies/custom-indicators.js');
 const BACKTEST_DIR = path.join(__dirname, '../../data/backtest-results');
 const CONFIG_FILE = path.join(__dirname, '../../trading-config.json');
+const MEMORY_FILE = path.join(__dirname, '../../data/batch-memory.json');
 
 function getLatestMetrics() {
     if (!fs.existsSync(METRICS_DIR)) return null;
@@ -36,6 +38,24 @@ function loadTradingConfig() {
     }
 }
 
+function loadMemory() {
+    try {
+        if (fs.existsSync(MEMORY_FILE)) {
+            return JSON.parse(fs.readFileSync(MEMORY_FILE, 'utf8'));
+        }
+    } catch {}
+    return { entries: [], strategicNotes: '' };
+}
+
+function loadCustomIndicators() {
+    try {
+        if (fs.existsSync(CUSTOM_INDICATORS_FILE)) {
+            return fs.readFileSync(CUSTOM_INDICATORS_FILE, 'utf8');
+        }
+    } catch {}
+    return null;
+}
+
 function buildPrompt() {
     const metrics = getLatestMetrics();
     if (!metrics) {
@@ -49,6 +69,8 @@ function buildPrompt() {
 
     const indicatorsSource = fs.readFileSync(INDICATORS_FILE, 'utf8');
     const tradingConfig = loadTradingConfig();
+    const memory = loadMemory();
+    const customIndicatorsSource = loadCustomIndicators();
 
     // Extract available indicator function names
     const indicatorExports = indicatorsSource.match(/module\.exports\s*=\s*\{([^}]+)\}/);
@@ -112,6 +134,19 @@ ${indicatorsSource}
 ## Recent Deploy History (last 5)
 ${JSON.stringify(deployLog.slice(-5), null, 2)}
 
+## Batch Decision History
+${(() => {
+    const recentEntries = memory.entries.slice(-10);
+    if (recentEntries.length === 0) return 'No previous batch decisions recorded yet.';
+    return recentEntries.map(e =>
+        `- [${e.timestamp}] ${e.action} (confidence: ${e.confidence}) → ${e.outcome}${e.notes ? ' | Notes: ' + e.notes : ''}`
+    ).join('\n');
+})()}
+${memory.strategicNotes ? `\n### Strategic Notes (accumulated insights)\n${memory.strategicNotes}` : ''}
+
+## Custom Indicators
+${customIndicatorsSource ? '```javascript\n' + customIndicatorsSource + '\n```' : 'No custom indicators defined yet. You can define them using a ```custom-indicators code block.'}
+
 ## Recent Backtest Results (last 3)
 ${(() => {
     if (!fs.existsSync(BACKTEST_DIR)) return 'No backtest results yet.';
@@ -141,8 +176,9 @@ Analyze the current strategy's performance and market conditions. Choose ONE act
 3. **REPLACE** - Write a completely new strategy file.
 
 ## Constraints
-- The strategy must export: \`DEFAULT_CONFIG\`, \`createStrategyState()\`, \`onNewCandle(state, candlesByMarket, config?)\`
-- \`candlesByMarket\` is an object: \`{ 'KRW-BTC': [...], 'KRW-ETH': [...], ... }\`
+- The strategy must export: \`DEFAULT_CONFIG\`, \`createStrategyState()\`, \`onNewCandle(state, candleData, config?)\`
+- \`candleData\` is a nested object: \`{ 'KRW-BTC': { 15: [...], 240: [...] }, 'KRW-ETH': { 15: [...], 240: [...] }, ... }\`
+- Access: \`candleData['KRW-BTC'][15]\` for 15m candles, \`candleData['KRW-BTC'][240]\` for 4h candles
 - Each candle array contains: \`{open, high, low, close, volume, timestamp}\`
 - \`onNewCandle\` must return one of:
   - \`{ action: 'HOLD', details: { ... } }\`
@@ -151,9 +187,10 @@ Analyze the current strategy's performance and market conditions. Choose ONE act
 - \`createStrategyState()\` must return \`{ assetHeld: 'KRW-BTC' }\`
 - \`state.assetHeld\` uses market codes: \`'KRW-BTC'\`, \`'KRW-ETH'\`, \`'CASH'\`, etc.
 - You may use any function from indicators.js via \`require('../indicators')\`
+- You may use \`require('./custom-indicators')\` for custom indicator functions
 - You may use \`require('../utils/adf-test')\` for the ADF test
 - Do NOT use any external npm packages beyond what the project already has
-- The strategy runs on 15-minute candles
+- The strategy runs on 15-minute candles (240m candles available for higher-timeframe context)
 - Daily trade frequency should stay under 6 trades/day
 - Backtest includes 0.1% slippage + 0.05% fee per side
 
@@ -170,17 +207,28 @@ Analyze the current strategy's performance and market conditions. Choose ONE act
   "reasoning": "한국어로 간단한 사유 설명",
   "confidence": 0.0 to 1.0,
   "parameters": {},
-  "markets": ["KRW-BTC", "KRW-ETH", "KRW-SOL"]
+  "markets": ["KRW-BTC", "KRW-ETH", "KRW-SOL"],
+  "notes": "다음 배치를 위한 메모 (선택사항)",
+  "strategicNotes": "누적 전략 인사이트 갱신 (선택사항)"
 }
 \`\`\`
 
 - \`parameters\`: "modify" 액션일 때만 필수
 - \`markets\`: 종목 리스트를 변경하고 싶을 때만 포함 (선택사항)
+- \`notes\`: 이번 결정에 대한 메모. 다음 배치에 참고됨 (선택사항)
+- \`strategicNotes\`: 전략적 인사이트 누적. 기존 내용을 대체함 (선택사항)
 
 If action is "replace", also output the complete new strategy file:
 
 \`\`\`javascript
 // Complete strategy file here
+\`\`\`
+
+If action is "replace" and you want to define custom indicator functions, output them in a separate block:
+
+\`\`\`custom-indicators
+function myIndicator(candles, period) { ... }
+module.exports = { myIndicator };
 \`\`\`
 `;
 

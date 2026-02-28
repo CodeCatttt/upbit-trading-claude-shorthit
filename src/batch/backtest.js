@@ -34,30 +34,40 @@ function loadTradingConfig() {
     }
 }
 
-function runBacktest(strategy, candlesByMarket, label = 'unnamed') {
-    const markets = Object.keys(candlesByMarket);
+function runBacktest(strategy, candleData, label = 'unnamed') {
+    const markets = Object.keys(candleData);
     if (markets.length < 2) {
         return { error: 'Need at least 2 markets for backtest' };
     }
 
-    // Find shortest candle length across markets
-    const minLength = Math.min(...markets.map(m => candlesByMarket[m].length));
+    // Find shortest 15m candle length across markets
+    const minLength = Math.min(...markets.map(m => {
+        const c15 = candleData[m][15] || candleData[m];
+        return Array.isArray(c15) ? c15.length : 0;
+    }));
     if (minLength < 100) {
         return { error: 'Insufficient candle data for backtest' };
     }
 
+    // Determine if data is nested (multi-timeframe) or flat (legacy)
+    const isNested = !Array.isArray(candleData[markets[0]]);
+
     const state = strategy.createStrategyState();
     const startAsset = state.assetHeld;
+
+    // Helper to get 15m candles
+    const get15m = (market) => isNested ? (candleData[market][15] || []) : (candleData[market] || []);
+    const get240m = (market) => isNested ? (candleData[market][240] || []) : [];
 
     // Record start prices for benchmarks
     const startPrices = {};
     for (const market of markets) {
-        startPrices[market] = candlesByMarket[market][0].close;
+        startPrices[market] = get15m(market)[0].close;
     }
 
     // Start with 1,000,000 KRW worth of default asset
     let portfolio = 1000000;
-    let holdings = portfolio / startPrices[startAsset]; // units of start asset
+    let holdings = portfolio / startPrices[startAsset];
     let currentAsset = startAsset;
     let trades = [];
     let equityCurve = [];
@@ -68,33 +78,44 @@ function runBacktest(strategy, candlesByMarket, label = 'unnamed') {
     const startIdx = Math.max(lookback, 60);
 
     for (let i = startIdx; i < minLength; i++) {
-        // Build candlesByMarket slice up to index i
-        const slicedCandles = {};
+        // Build nested candleData slice up to index i
+        const slicedData = {};
+        const currentTimestamp = get15m(markets[0])[i].timestamp;
+
         for (const market of markets) {
-            slicedCandles[market] = candlesByMarket[market].slice(0, i + 1);
+            const candles15 = get15m(market);
+            const candles240 = get240m(market);
+
+            // Slice 240m candles: only those with timestamp <= current 15m timestamp
+            const sliced240 = candles240.filter(c =>
+                new Date(c.timestamp) <= new Date(currentTimestamp)
+            );
+
+            slicedData[market] = {
+                15: candles15.slice(0, i + 1),
+                240: sliced240,
+            };
         }
 
-        const result = strategy.onNewCandle(state, slicedCandles);
+        const result = strategy.onNewCandle(state, slicedData);
 
         // Calculate current portfolio value
-        const currentPrice = candlesByMarket[currentAsset][i].close;
+        const currentPrice = get15m(currentAsset)[i].close;
         const currentValue = holdings * currentPrice;
 
         if (result.action === 'SWITCH' && result.details && result.details.targetMarket) {
             const target = result.details.targetMarket;
-            if (target !== currentAsset && candlesByMarket[target]) {
-                const sellPrice = candlesByMarket[currentAsset][i].close;
-                const buyPrice = candlesByMarket[target][i].close;
+            if (target !== currentAsset && candleData[target]) {
+                const sellPrice = get15m(currentAsset)[i].close;
+                const buyPrice = get15m(target)[i].close;
 
-                // Sell: price * (1 - slippage), then fee
                 const krwAfterSell = holdings * sellPrice * (1 - SLIPPAGE_RATE) * (1 - FEE_RATE);
-                // Buy: price * (1 + slippage), then fee
                 const effectiveBuyPrice = buyPrice * (1 + SLIPPAGE_RATE);
                 holdings = (krwAfterSell * (1 - FEE_RATE)) / effectiveBuyPrice;
 
                 trades.push({
                     idx: i,
-                    timestamp: candlesByMarket[currentAsset][i].timestamp,
+                    timestamp: get15m(currentAsset)[i].timestamp,
                     action: 'SWITCH',
                     from: currentAsset,
                     to: target,
@@ -106,7 +127,7 @@ function runBacktest(strategy, candlesByMarket, label = 'unnamed') {
             }
         }
 
-        const value = holdings * candlesByMarket[currentAsset][i].close;
+        const value = holdings * get15m(currentAsset)[i].close;
         equityCurve.push(value);
 
         if (value > peak) peak = value;
@@ -115,7 +136,7 @@ function runBacktest(strategy, candlesByMarket, label = 'unnamed') {
     }
 
     const finalIdx = minLength - 1;
-    const finalPrice = candlesByMarket[currentAsset][finalIdx].close;
+    const finalPrice = get15m(currentAsset)[finalIdx].close;
     const finalValue = holdings * finalPrice;
     const returnPct = ((finalValue - portfolio) / portfolio) * 100;
 
@@ -123,7 +144,7 @@ function runBacktest(strategy, candlesByMarket, label = 'unnamed') {
     const benchmarks = {};
     for (const market of markets) {
         const startP = startPrices[market];
-        const endP = candlesByMarket[market][finalIdx].close;
+        const endP = get15m(market)[finalIdx].close;
         benchmarks[market] = +((endP - startP) / startP * 100).toFixed(4);
     }
 
@@ -143,7 +164,7 @@ function runBacktest(strategy, candlesByMarket, label = 'unnamed') {
         periodCandles: totalPeriods,
         slippageRate: SLIPPAGE_RATE,
         feeRate: FEE_RATE,
-        trades: trades.slice(-20), // Last 20 trades for review
+        trades: trades.slice(-20),
     };
 }
 
@@ -190,24 +211,30 @@ if (require.main === module) {
     const strategy = require(resolvedPath);
     const config = loadTradingConfig();
 
-    // Build candlesByMarket from stored candle data
-    const candlesByMarket = {};
+    // Build candleData with nested timeframe structure
+    const intervals = config.candleIntervals || [15, 240];
+    const candleData = {};
     for (const market of config.markets) {
-        const candles = store.getCandles(market, 15);
-        if (candles.length > 0) {
-            candlesByMarket[market] = candles;
+        const candles15 = store.getCandles(market, 15);
+        if (candles15.length > 0) {
+            candleData[market] = { 15: candles15 };
+            for (const unit of intervals) {
+                if (unit !== 15) {
+                    candleData[market][unit] = store.getCandles(market, unit);
+                }
+            }
         }
     }
 
-    const marketsLoaded = Object.keys(candlesByMarket);
+    const marketsLoaded = Object.keys(candleData);
     if (marketsLoaded.length < 2) {
         process.stderr.write(`[BACKTEST] Not enough candle data. Found: ${marketsLoaded.join(', ')}. Run candle-fetcher.js first.\n`);
         process.exit(1);
     }
 
-    process.stderr.write(`[BACKTEST] Markets: ${marketsLoaded.join(', ')}\n`);
+    process.stderr.write(`[BACKTEST] Markets: ${marketsLoaded.join(', ')}, Intervals: ${intervals.join(', ')}\n`);
 
-    const result = runBacktest(strategy, candlesByMarket, path.basename(resolvedPath));
+    const result = runBacktest(strategy, candleData, path.basename(resolvedPath));
     // stdout: pure JSON only (for piping to other scripts)
     console.log(JSON.stringify(result));
     saveResult(result);
