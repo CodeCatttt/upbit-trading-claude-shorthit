@@ -1,0 +1,15 @@
+{
+  "markets": [
+    "KRW-BTC",
+    "KRW-ETH",
+    "KRW-SOL",
+    "KRW-XRP"
+  ],
+  "defaultAsset": "KRW-BTC",
+  "candleIntervals": [
+    15,
+    240
+  ],
+  "updatedAt": "2026-02-28T21:31:04.466Z",
+  "updatedBy": "batch"
+}

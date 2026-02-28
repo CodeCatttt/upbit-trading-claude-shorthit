@@ -1,92 +1,124 @@
 /**
- * strategy-ou-kalman-v2.js
- * BTC/ETH Relative Value Strategy using Kalman-filtered OU Process
- * with trade cooldown to prevent whipsaw in choppy markets.
+ * multi-asset-momentum-rv.js
+ * Multi-asset relative value + momentum strategy.
+ * Compares all watched markets, switches to the strongest candidate.
+ * Uses Kalman-filtered price ratios and momentum signals.
  */
 
 'use strict';
 
-const { calcPriceRatio, estimateOU, calcKalmanFilter } = require('../indicators');
-const { runAdfTest } = require('../utils/adf-test');
+const { calcEMASeries, calcRSI, calcATR, calcKalmanFilter } = require('../indicators');
 
 const DEFAULT_CONFIG = {
-    lookback: 384,            // 48 hours of 15-min candles for stable OU estimates
-    entryZScore: 2.5,         // Z-score threshold to trigger a switch
-    cooldownCandles: 48,      // Minimum 8 hours between trades
-    kalmanQ: 0.00005,          // Kalman process noise
-    kalmanR: 0.01,            // Kalman measurement noise
+    lookback: 192,             // Candles for momentum calculation
+    momentumWeight: 0.7,      // Weight for momentum score
+    rvWeight: 0.3,            // Weight for relative value score
+    switchThreshold: 0.06,    // Minimum score advantage to trigger switch
+    cooldownCandles: 96,      // Minimum 12 hours (48 x 15min) between trades
+    emaPeriod: 40,            // EMA period for trend
+    rsiPeriod: 14,            // RSI period
 };
 
 function createStrategyState() {
-    return { assetHeld: 'IN_BTC' };
+    return { assetHeld: 'KRW-BTC' };
 }
 
-function onNewCandle(state, btcCandles, ethCandles, config = DEFAULT_CONFIG) {
+function calcMomentumScore(candles, config) {
+    if (!candles || candles.length < config.lookback) return null;
+
+    const slice = candles.slice(-config.lookback);
+    const firstClose = slice[0].close;
+    const lastClose = slice[slice.length - 1].close;
+    const returnPct = (lastClose - firstClose) / firstClose;
+
+    const rsi = calcRSI(candles, config.rsiPeriod);
+    const rsiNorm = rsi !== null ? (rsi - 50) / 50 : 0; // -1 to +1
+
+    const emaSeries = calcEMASeries(candles, config.emaPeriod);
+    const emaLatest = emaSeries[emaSeries.length - 1];
+    const trendStrength = emaLatest ? (lastClose - emaLatest) / emaLatest : 0;
+
+    return {
+        returnPct,
+        rsiNorm,
+        trendStrength,
+        combined: returnPct * 0.4 + rsiNorm * 0.3 + trendStrength * 0.3,
+    };
+}
+
+function calcRelativeValueScore(candles, allCandles, config) {
+    if (!candles || candles.length < config.lookback) return null;
+
+    const prices = candles.slice(-config.lookback).map(c => c.close);
+    const filtered = calcKalmanFilter(prices, 0.00005, 0.01);
+    const current = filtered[filtered.length - 1];
+    const mean = filtered.reduce((a, b) => a + b, 0) / filtered.length;
+    const deviation = (current - mean) / mean;
+
+    // Negative deviation = undervalued = good buy opportunity
+    return -deviation;
+}
+
+function onNewCandle(state, candlesByMarket, config = DEFAULT_CONFIG) {
     if (state.candlesSinceLastTrade === undefined) {
         state.candlesSinceLastTrade = 9999;
     }
     state.candlesSinceLastTrade++;
 
-    if (btcCandles.length < config.lookback || ethCandles.length < config.lookback) {
-        return { action: 'NONE', details: { reason: 'insufficient_data' } };
+    const markets = Object.keys(candlesByMarket);
+    if (markets.length < 2) {
+        return { action: 'NONE', details: { reason: 'insufficient_markets' } };
     }
 
-    const btcSlice = btcCandles.slice(-config.lookback);
-    const ethSlice = ethCandles.slice(-config.lookback);
-    const ratioSeries = calcPriceRatio(btcSlice, ethSlice);
-
-    const adfResult = runAdfTest(ratioSeries, 0, 0.05);
-    if (!adfResult.isStationary && adfResult.adfStatistic > -2.86) {
-        return {
-            action: 'HOLD',
-            details: { asset: state.assetHeld, reason: 'adf_non_stationary', adfStatistic: adfResult.adfStatistic },
-        };
-    }
-
-    const smoothedRatio = calcKalmanFilter(ratioSeries, config.kalmanQ, config.kalmanR);
-
-    const ouParams = estimateOU(smoothedRatio);
-    if (!ouParams) {
-        return { action: 'HOLD', details: { asset: state.assetHeld, reason: 'ou_not_mean_reverting' } };
-    }
-
-    const { mu, theta, sigma } = ouParams;
-    const currentRatio = smoothedRatio[smoothedRatio.length - 1];
-    const eqStdDev = sigma / Math.sqrt(2 * theta);
-
-    if (eqStdDev === 0 || isNaN(eqStdDev)) {
-        return { action: 'HOLD', details: { asset: state.assetHeld, reason: 'invalid_eq_stddev' } };
-    }
-
-    const currentZScore = (currentRatio - mu) / eqStdDev;
     const inCooldown = state.candlesSinceLastTrade < config.cooldownCandles;
 
-    if (state.assetHeld === 'IN_BTC' && currentZScore > config.entryZScore && !inCooldown) {
-        state.assetHeld = 'IN_ETH';
-        state.candlesSinceLastTrade = 0;
-        return {
-            action: 'SWITCH_TO_ETH',
-            details: {
-                reason: 'btc_overvalued_ou',
-                zscore: +currentZScore.toFixed(4),
-                mu: +mu.toFixed(4),
-                theta: +theta.toFixed(4),
-                threshold: config.entryZScore,
-            },
+    // Score each market
+    const scores = {};
+    for (const market of markets) {
+        const candles = candlesByMarket[market];
+        if (!candles || candles.length < config.lookback) continue;
+
+        const momentum = calcMomentumScore(candles, config);
+        const rv = calcRelativeValueScore(candles, candlesByMarket, config);
+
+        if (momentum === null || rv === null) continue;
+
+        scores[market] = {
+            momentum: momentum.combined,
+            rv,
+            total: momentum.combined * config.momentumWeight + rv * config.rvWeight,
+            details: { returnPct: momentum.returnPct, rsi: momentum.rsiNorm, trend: momentum.trendStrength, rv },
         };
     }
 
-    if (state.assetHeld === 'IN_ETH' && currentZScore < -config.entryZScore && !inCooldown) {
-        state.assetHeld = 'IN_BTC';
+    const scoredMarkets = Object.keys(scores);
+    if (scoredMarkets.length === 0) {
+        return { action: 'NONE', details: { reason: 'no_scoreable_markets' } };
+    }
+
+    // Find best market
+    const best = scoredMarkets.reduce((a, b) => scores[a].total > scores[b].total ? a : b);
+    const currentScore = scores[state.assetHeld] || { total: -Infinity };
+    const bestScore = scores[best];
+    const advantage = bestScore.total - (currentScore.total || 0);
+
+    // Build details for logging
+    const allScores = {};
+    for (const m of scoredMarkets) {
+        allScores[m] = +scores[m].total.toFixed(4);
+    }
+
+    if (best !== state.assetHeld && advantage > config.switchThreshold && !inCooldown) {
+        state.assetHeld = best;
         state.candlesSinceLastTrade = 0;
         return {
-            action: 'SWITCH_TO_BTC',
+            action: 'SWITCH',
             details: {
-                reason: 'eth_overvalued_ou',
-                zscore: +currentZScore.toFixed(4),
-                mu: +mu.toFixed(4),
-                theta: +theta.toFixed(4),
-                threshold: config.entryZScore,
+                targetMarket: best,
+                reason: 'higher_score',
+                advantage: +advantage.toFixed(4),
+                scores: allScores,
+                bestDetails: bestScore.details,
             },
         };
     }
@@ -95,9 +127,9 @@ function onNewCandle(state, btcCandles, ethCandles, config = DEFAULT_CONFIG) {
         action: 'HOLD',
         details: {
             asset: state.assetHeld,
-            zscore: +currentZScore.toFixed(4),
-            theta: +theta.toFixed(4),
-            mu: +mu.toFixed(4),
+            scores: allScores,
+            bestMarket: best,
+            advantage: +advantage.toFixed(4),
             inCooldown,
         },
     };
