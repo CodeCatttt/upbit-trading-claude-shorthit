@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 #
-# run-batch.sh — Batch pipeline orchestrator
+# run-batch.sh — Batch pipeline orchestrator (multi-asset)
 # Steps: fetch candles → collect metrics → Claude analysis →
-#         parse response → backtest → deploy (if passed)
+#         parse response → update markets → backtest → deploy (if passed)
 #
 
 set -euo pipefail
@@ -63,6 +63,31 @@ if [ "$VALID" != "true" ]; then
     exit 1
 fi
 
+# Step 3.5: Update trading-config.json if markets field is present
+HAS_MARKETS=$(echo "$PARSE_RESULT" | node -e "
+    process.stdin.setEncoding('utf8');let d='';
+    process.stdin.on('data',c=>d+=c);
+    process.stdin.on('end',()=>{
+        const r=JSON.parse(d);
+        console.log(r.decision && r.decision.markets && Array.isArray(r.decision.markets) ? 'true' : 'false');
+    });
+")
+
+if [ "$HAS_MARKETS" = "true" ]; then
+    echo "[Step 3.5] Updating trading-config.json with new markets..."
+    node -e "
+        const fs = require('fs');
+        const configPath = '$PROJECT_DIR/trading-config.json';
+        const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+        const parseResult = JSON.parse(process.argv[1]);
+        config.markets = parseResult.decision.markets;
+        config.updatedAt = new Date().toISOString();
+        config.updatedBy = 'batch';
+        fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+        console.log('  Updated markets: ' + config.markets.join(', '));
+    " "$PARSE_RESULT"
+fi
+
 if [ "$ACTION" = "keep" ]; then
     echo "Claude chose KEEP. No changes needed."
     KEEP_JSON=$(echo "$PARSE_RESULT" | node -e "
@@ -111,7 +136,7 @@ if [ "$ACTION" = "modify" ]; then
     # Git commit the modification
     cd "$PROJECT_DIR"
     REASONING=$(echo "$PARSE_RESULT" | node -e "process.stdin.setEncoding('utf8');let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const r=JSON.parse(d);console.log(r.decision.reasoning||'parameter modification')})")
-    git add -A src/strategies/ 2>/dev/null || true
+    git add -A src/strategies/ trading-config.json 2>/dev/null || true
     git commit -m "batch: modify strategy parameters - $REASONING" 2>/dev/null || true
 
     MODIFY_JSON=$(node -e "
@@ -207,7 +232,7 @@ notify_batch "$SUCCESS_JSON"
 echo "[Step 6] Committing changes to git..."
 cd "$PROJECT_DIR"
 REASONING=$(echo "$PARSE_RESULT" | node -e "process.stdin.setEncoding('utf8');let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const r=JSON.parse(d);console.log(r.decision.reasoning||'strategy replacement')})")
-git add src/strategies/current-strategy.js deploy-log.json 2>/dev/null || true
+git add src/strategies/current-strategy.js deploy-log.json trading-config.json 2>/dev/null || true
 git commit -m "batch: replace strategy - $REASONING" 2>/dev/null || echo "  No changes to commit."
 git push 2>/dev/null || echo "  Push skipped (no remote configured)."
 

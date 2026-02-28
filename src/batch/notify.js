@@ -84,6 +84,17 @@ function formatReplaceFail(data) {
     };
 }
 
+function formatMarketsUpdated(data) {
+    return {
+        title: '🔄 관심 종목 변경',
+        color: 0x3498DB, // 파란색
+        fields: [
+            { name: '새 종목 리스트', value: (data.markets || []).join(', ') || '—', inline: false },
+            { name: '사유', value: data.reasoning || '—', inline: false },
+        ],
+    };
+}
+
 async function main() {
     let input = '';
     process.stdin.setEncoding('utf8');
@@ -93,10 +104,11 @@ async function main() {
     let embed;
 
     switch (data.type) {
-        case 'keep':           embed = formatKeep(data); break;
-        case 'modify':         embed = formatModify(data); break;
-        case 'replace_success': embed = formatReplaceSuccess(data); break;
-        case 'replace_fail':   embed = formatReplaceFail(data); break;
+        case 'keep':             embed = formatKeep(data); break;
+        case 'modify':           embed = formatModify(data); break;
+        case 'replace_success':  embed = formatReplaceSuccess(data); break;
+        case 'replace_fail':     embed = formatReplaceFail(data); break;
+        case 'markets_updated':  embed = formatMarketsUpdated(data); break;
         default:
             console.error('Unknown type:', data.type);
             process.exit(1);

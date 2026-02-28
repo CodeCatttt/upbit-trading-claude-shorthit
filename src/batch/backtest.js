@@ -1,7 +1,8 @@
 /**
  * backtest.js
- * Backtest engine: simulates strategy over historical candle data.
- * Calculates return, max drawdown, trade frequency, benchmark comparison.
+ * Multi-asset backtest engine with slippage model.
+ * Simulates strategy over historical candle data.
+ * Calculates return, max drawdown, trade frequency, per-market benchmarks.
  *
  * Usage:
  *   node backtest.js [strategyPath]
@@ -16,25 +17,48 @@ const store = require('../data/candle-store');
 const { createLogger } = require('../utils/logger');
 
 const log = createLogger('BACKTEST');
-const FEE_RATE = 0.0005; // 0.05% per trade
+const FEE_RATE = 0.0005;    // 0.05% per trade (Upbit)
+const SLIPPAGE_RATE = 0.001; // 0.1% slippage (market order assumption)
 const RESULTS_DIR = path.join(__dirname, '../../data/backtest-results');
+const CONFIG_FILE = path.join(__dirname, '../../trading-config.json');
 
 function ensureDir(dir) {
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 }
 
-function runBacktest(strategy, btcCandles, ethCandles, label = 'unnamed') {
-    if (btcCandles.length < 100 || ethCandles.length < 100) {
+function loadTradingConfig() {
+    try {
+        return JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
+    } catch {
+        return { markets: ['KRW-BTC', 'KRW-ETH'], candleIntervals: [15, 240] };
+    }
+}
+
+function runBacktest(strategy, candlesByMarket, label = 'unnamed') {
+    const markets = Object.keys(candlesByMarket);
+    if (markets.length < 2) {
+        return { error: 'Need at least 2 markets for backtest' };
+    }
+
+    // Find shortest candle length across markets
+    const minLength = Math.min(...markets.map(m => candlesByMarket[m].length));
+    if (minLength < 100) {
         return { error: 'Insufficient candle data for backtest' };
     }
 
     const state = strategy.createStrategyState();
-    const startPrice = { btc: btcCandles[0].close, eth: ethCandles[0].close };
+    const startAsset = state.assetHeld;
 
-    // Start with 1,000,000 KRW worth of BTC
+    // Record start prices for benchmarks
+    const startPrices = {};
+    for (const market of markets) {
+        startPrices[market] = candlesByMarket[market][0].close;
+    }
+
+    // Start with 1,000,000 KRW worth of default asset
     let portfolio = 1000000;
-    let holdings = portfolio / startPrice.btc; // BTC units
-    let currentAsset = 'BTC';
+    let holdings = portfolio / startPrices[startAsset]; // units of start asset
+    let currentAsset = startAsset;
     let trades = [];
     let equityCurve = [];
     let peak = portfolio;
@@ -43,41 +67,46 @@ function runBacktest(strategy, btcCandles, ethCandles, label = 'unnamed') {
     const lookback = (strategy.DEFAULT_CONFIG && strategy.DEFAULT_CONFIG.lookback) || 60;
     const startIdx = Math.max(lookback, 60);
 
-    for (let i = startIdx; i < btcCandles.length; i++) {
-        const btcSlice = btcCandles.slice(0, i + 1);
-        const ethSlice = ethCandles.slice(0, i + 1);
-
-        const result = strategy.onNewCandle(state, btcSlice, ethSlice);
-
-        // Calculate current portfolio value
-        const currentPrice = currentAsset === 'BTC' ? btcCandles[i].close : ethCandles[i].close;
-        const currentValue = holdings * currentPrice;
-
-        if (result.action === 'SWITCH_TO_ETH' && currentAsset === 'BTC') {
-            const krwAfterSell = holdings * btcCandles[i].close * (1 - FEE_RATE);
-            holdings = (krwAfterSell * (1 - FEE_RATE)) / ethCandles[i].close;
-            currentAsset = 'ETH';
-            trades.push({
-                idx: i,
-                timestamp: btcCandles[i].timestamp,
-                action: 'SWITCH_TO_ETH',
-                btcPrice: btcCandles[i].close,
-                ethPrice: ethCandles[i].close,
-            });
-        } else if (result.action === 'SWITCH_TO_BTC' && currentAsset === 'ETH') {
-            const krwAfterSell = holdings * ethCandles[i].close * (1 - FEE_RATE);
-            holdings = (krwAfterSell * (1 - FEE_RATE)) / btcCandles[i].close;
-            currentAsset = 'BTC';
-            trades.push({
-                idx: i,
-                timestamp: btcCandles[i].timestamp,
-                action: 'SWITCH_TO_BTC',
-                btcPrice: btcCandles[i].close,
-                ethPrice: ethCandles[i].close,
-            });
+    for (let i = startIdx; i < minLength; i++) {
+        // Build candlesByMarket slice up to index i
+        const slicedCandles = {};
+        for (const market of markets) {
+            slicedCandles[market] = candlesByMarket[market].slice(0, i + 1);
         }
 
-        const value = holdings * (currentAsset === 'BTC' ? btcCandles[i].close : ethCandles[i].close);
+        const result = strategy.onNewCandle(state, slicedCandles);
+
+        // Calculate current portfolio value
+        const currentPrice = candlesByMarket[currentAsset][i].close;
+        const currentValue = holdings * currentPrice;
+
+        if (result.action === 'SWITCH' && result.details && result.details.targetMarket) {
+            const target = result.details.targetMarket;
+            if (target !== currentAsset && candlesByMarket[target]) {
+                const sellPrice = candlesByMarket[currentAsset][i].close;
+                const buyPrice = candlesByMarket[target][i].close;
+
+                // Sell: price * (1 - slippage), then fee
+                const krwAfterSell = holdings * sellPrice * (1 - SLIPPAGE_RATE) * (1 - FEE_RATE);
+                // Buy: price * (1 + slippage), then fee
+                const effectiveBuyPrice = buyPrice * (1 + SLIPPAGE_RATE);
+                holdings = (krwAfterSell * (1 - FEE_RATE)) / effectiveBuyPrice;
+
+                trades.push({
+                    idx: i,
+                    timestamp: candlesByMarket[currentAsset][i].timestamp,
+                    action: 'SWITCH',
+                    from: currentAsset,
+                    to: target,
+                    sellPrice,
+                    buyPrice,
+                });
+
+                currentAsset = target;
+            }
+        }
+
+        const value = holdings * candlesByMarket[currentAsset][i].close;
         equityCurve.push(value);
 
         if (value > peak) peak = value;
@@ -85,17 +114,21 @@ function runBacktest(strategy, btcCandles, ethCandles, label = 'unnamed') {
         if (dd > maxDrawdown) maxDrawdown = dd;
     }
 
-    const finalIdx = btcCandles.length - 1;
-    const finalPrice = currentAsset === 'BTC' ? btcCandles[finalIdx].close : ethCandles[finalIdx].close;
+    const finalIdx = minLength - 1;
+    const finalPrice = candlesByMarket[currentAsset][finalIdx].close;
     const finalValue = holdings * finalPrice;
     const returnPct = ((finalValue - portfolio) / portfolio) * 100;
 
-    // Benchmarks: buy and hold
-    const btcReturn = ((btcCandles[finalIdx].close - startPrice.btc) / startPrice.btc) * 100;
-    const ethReturn = ((ethCandles[finalIdx].close - startPrice.eth) / startPrice.eth) * 100;
+    // Per-market benchmarks: buy and hold
+    const benchmarks = {};
+    for (const market of markets) {
+        const startP = startPrices[market];
+        const endP = candlesByMarket[market][finalIdx].close;
+        benchmarks[market] = +((endP - startP) / startP * 100).toFixed(4);
+    }
 
     // Estimate daily trades (assuming 15m candles, 96 per day)
-    const totalPeriods = btcCandles.length - startIdx;
+    const totalPeriods = minLength - startIdx;
     const days = totalPeriods / 96;
     const dailyTrades = days > 0 ? trades.length / days : 0;
 
@@ -105,10 +138,11 @@ function runBacktest(strategy, btcCandles, ethCandles, label = 'unnamed') {
         maxDrawdown: parseFloat((maxDrawdown * 100).toFixed(4)),
         totalTrades: trades.length,
         dailyTrades: parseFloat(dailyTrades.toFixed(2)),
-        btcBenchmark: parseFloat(btcReturn.toFixed(4)),
-        ethBenchmark: parseFloat(ethReturn.toFixed(4)),
+        benchmarks,
         finalValue: Math.floor(finalValue),
         periodCandles: totalPeriods,
+        slippageRate: SLIPPAGE_RATE,
+        feeRate: FEE_RATE,
         trades: trades.slice(-20), // Last 20 trades for review
     };
 }
@@ -154,15 +188,26 @@ if (require.main === module) {
     process.stderr.write(`[BACKTEST] Strategy: ${resolvedPath}\n`);
 
     const strategy = require(resolvedPath);
-    const btcCandles = store.getCandles('KRW-BTC', 15);
-    const ethCandles = store.getCandles('KRW-ETH', 15);
+    const config = loadTradingConfig();
 
-    if (btcCandles.length === 0 || ethCandles.length === 0) {
-        process.stderr.write('[BACKTEST] No candle data found. Run candle-fetcher.js first.\n');
+    // Build candlesByMarket from stored candle data
+    const candlesByMarket = {};
+    for (const market of config.markets) {
+        const candles = store.getCandles(market, 15);
+        if (candles.length > 0) {
+            candlesByMarket[market] = candles;
+        }
+    }
+
+    const marketsLoaded = Object.keys(candlesByMarket);
+    if (marketsLoaded.length < 2) {
+        process.stderr.write(`[BACKTEST] Not enough candle data. Found: ${marketsLoaded.join(', ')}. Run candle-fetcher.js first.\n`);
         process.exit(1);
     }
 
-    const result = runBacktest(strategy, btcCandles, ethCandles, path.basename(resolvedPath));
+    process.stderr.write(`[BACKTEST] Markets: ${marketsLoaded.join(', ')}\n`);
+
+    const result = runBacktest(strategy, candlesByMarket, path.basename(resolvedPath));
     // stdout: pure JSON only (for piping to other scripts)
     console.log(JSON.stringify(result));
     saveResult(result);

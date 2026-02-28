@@ -1,27 +1,46 @@
 /**
  * candle-fetcher.js
  * Fetches historical candle data from Upbit with pagination.
- * Targets: KRW-BTC, KRW-ETH x 15m, 240m — 2000 candles each.
+ * Reads markets and intervals from trading-config.json for dynamic multi-asset support.
  */
 
 'use strict';
 
+const fs = require('fs');
+const path = require('path');
 const api = require('../upbit-api');
 const store = require('./candle-store');
 const { createLogger } = require('../utils/logger');
 
 const log = createLogger('CANDLE-FETCHER');
 
-const TARGETS = [
-    { market: 'KRW-BTC', unit: 15 },
-    { market: 'KRW-ETH', unit: 15 },
-    { market: 'KRW-BTC', unit: 240 },
-    { market: 'KRW-ETH', unit: 240 },
-];
+const CONFIG_FILE = path.join(__dirname, '../../trading-config.json');
 
 const MAX_CANDLES = 2000;
 const PAGE_SIZE = 200; // Upbit max per request
 const RATE_LIMIT_MS = 200; // Be gentle with the API
+
+function loadTradingConfig() {
+    try {
+        return JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
+    } catch (e) {
+        log.warn('Failed to load trading-config.json, using defaults');
+        return {
+            markets: ['KRW-BTC', 'KRW-ETH'],
+            candleIntervals: [15, 240],
+        };
+    }
+}
+
+function buildTargets(config) {
+    const targets = [];
+    for (const market of config.markets) {
+        for (const unit of config.candleIntervals) {
+            targets.push({ market, unit });
+        }
+    }
+    return targets;
+}
 
 async function fetchAll(market, unit) {
     const existing = store.getCandles(market, unit);
@@ -67,8 +86,12 @@ async function fetchAll(market, unit) {
 }
 
 async function main() {
-    log.info('Starting candle data collection...');
-    for (const { market, unit } of TARGETS) {
+    const config = loadTradingConfig();
+    const targets = buildTargets(config);
+
+    log.info(`Starting candle data collection for ${config.markets.length} markets x ${config.candleIntervals.length} intervals = ${targets.length} targets`);
+
+    for (const { market, unit } of targets) {
         await fetchAll(market, unit);
         await new Promise(r => setTimeout(r, RATE_LIMIT_MS));
     }

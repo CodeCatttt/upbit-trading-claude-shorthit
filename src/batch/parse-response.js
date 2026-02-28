@@ -2,6 +2,7 @@
  * parse-response.js
  * Parses Claude CLI stdout to extract decision JSON and strategy code.
  * Validates JSON schema, code syntax, and strategy interface compliance.
+ * Multi-asset interface: SWITCH/HOLD/NONE with candlesByMarket.
  *
  * Usage: echo "$CLAUDE_OUTPUT" | node parse-response.js
  * Outputs validated JSON to stdout with { decision, strategyCode?, valid, errors }
@@ -49,6 +50,21 @@ function validateDecision(decision) {
     if (typeof decision.confidence !== 'number' || decision.confidence < 0 || decision.confidence > 1) {
         errors.push(`Invalid confidence: ${decision.confidence}`);
     }
+    // Validate markets field if present
+    if (decision.markets !== undefined) {
+        if (!Array.isArray(decision.markets)) {
+            errors.push('markets must be an array');
+        } else if (decision.markets.length === 0) {
+            errors.push('markets array must not be empty');
+        } else {
+            for (const m of decision.markets) {
+                if (typeof m !== 'string' || !m.startsWith('KRW-')) {
+                    errors.push(`Invalid market format: ${m} (must be KRW-XXX)`);
+                    break;
+                }
+            }
+        }
+    }
     return errors;
 }
 
@@ -86,14 +102,14 @@ function validateStrategyCode(code) {
             errors.push('Missing onNewCandle function');
         }
 
-        // 3. Mock call test
+        // 3. Mock call test with multi-asset interface
         if (typeof mod.createStrategyState === 'function' && typeof mod.onNewCandle === 'function') {
             const state = mod.createStrategyState();
             if (!state || !state.assetHeld) {
                 errors.push('createStrategyState must return { assetHeld: ... }');
             }
 
-            // Create minimal mock candles
+            // Create minimal mock candles for multi-asset interface
             const mockCandles = Array.from({ length: 100 }, (_, i) => ({
                 open: 100000 + i * 10,
                 high: 100010 + i * 10,
@@ -103,11 +119,21 @@ function validateStrategyCode(code) {
                 timestamp: `2025-01-01T${String(Math.floor(i / 4)).padStart(2, '0')}:${String((i % 4) * 15).padStart(2, '0')}:00`,
             }));
 
-            const result = mod.onNewCandle(state, mockCandles, mockCandles);
+            // Test with candlesByMarket object (multi-asset interface)
+            const mockCandlesByMarket = {
+                'KRW-BTC': mockCandles,
+                'KRW-ETH': mockCandles.map(c => ({ ...c, close: c.close / 20 })),
+            };
+
+            const result = mod.onNewCandle(state, mockCandlesByMarket);
             if (!result || !result.action) {
                 errors.push('onNewCandle did not return { action, details }');
-            } else if (!['SWITCH_TO_BTC', 'SWITCH_TO_ETH', 'HOLD', 'NONE'].includes(result.action)) {
-                errors.push(`Invalid action from onNewCandle: ${result.action}`);
+            } else if (!['SWITCH', 'HOLD', 'NONE'].includes(result.action)) {
+                errors.push(`Invalid action from onNewCandle: ${result.action} (expected SWITCH, HOLD, or NONE)`);
+            } else if (result.action === 'SWITCH') {
+                if (!result.details || !result.details.targetMarket) {
+                    errors.push('SWITCH action must include details.targetMarket');
+                }
             }
         }
     } catch (e) {
