@@ -10,10 +10,10 @@ const { calcPriceRatio, estimateOU, calcKalmanFilter } = require('../indicators'
 const { runAdfTest } = require('../utils/adf-test');
 
 const DEFAULT_CONFIG = {
-    lookback: 192,            // 48 hours of 15-min candles for stable OU estimates
-    entryZScore: 2.0,         // Z-score threshold to trigger a switch
-    cooldownCandles: 32,      // Minimum 8 hours between trades
-    kalmanQ: 0.0001,          // Kalman process noise
+    lookback: 384,            // 48 hours of 15-min candles for stable OU estimates
+    entryZScore: 2.5,         // Z-score threshold to trigger a switch
+    cooldownCandles: 48,      // Minimum 8 hours between trades
+    kalmanQ: 0.00005,          // Kalman process noise
     kalmanR: 0.01,            // Kalman measurement noise
 };
 
