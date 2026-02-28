@@ -1,3 +1,4 @@
 {
-  "assetHeld": "IN_ETH"
+  "assetHeld": "IN_BTC",
+  "candlesSinceLastTrade": 10001
 }
