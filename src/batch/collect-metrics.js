@@ -62,10 +62,22 @@ async function collectMetrics() {
         }
     }
 
-    // 2. Current strategy
+    // 2. Current strategy (resolve re-exports to get actual code)
     let strategySource = '';
     try {
         strategySource = fs.readFileSync(STRATEGY_FILE, 'utf8');
+        // If it's a re-export, follow the require to get actual strategy source
+        const reExportMatch = strategySource.match(/module\.exports\s*=\s*require\(['"](\.\/[^'"]+)['"]\)/);
+        if (reExportMatch) {
+            const actualPath = path.resolve(path.dirname(STRATEGY_FILE), reExportMatch[1]);
+            const candidates = [actualPath, actualPath + '.js'];
+            for (const cp of candidates) {
+                if (fs.existsSync(cp)) {
+                    strategySource = fs.readFileSync(cp, 'utf8');
+                    break;
+                }
+            }
+        }
     } catch {}
 
     // 3. Recent trades

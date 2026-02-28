@@ -60,7 +60,7 @@ function validateStrategyCode(code) {
     }
 
     // 1. Syntax check via node -c
-    const tmpFile = path.join(__dirname, '../../.tmp-strategy-check.js');
+    const tmpFile = path.join(__dirname, '../strategies/.tmp-strategy-check.js');
     try {
         fs.writeFileSync(tmpFile, code);
         execSync(`node -c "${tmpFile}"`, { stdio: 'pipe' });

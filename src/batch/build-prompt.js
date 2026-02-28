@@ -15,6 +15,7 @@ const log = createLogger('BUILD-PROMPT');
 const METRICS_DIR = path.join(__dirname, '../../data/metrics');
 const DEPLOY_LOG = path.join(__dirname, '../../deploy-log.json');
 const INDICATORS_FILE = path.join(__dirname, '../indicators.js');
+const BACKTEST_DIR = path.join(__dirname, '../../data/backtest-results');
 
 function getLatestMetrics() {
     if (!fs.existsSync(METRICS_DIR)) return null;
@@ -78,6 +79,17 @@ ${indicatorsSource}
 
 ## Recent Deploy History (last 5)
 ${JSON.stringify(deployLog.slice(-5), null, 2)}
+
+## Recent Backtest Results (last 3)
+${(() => {
+    if (!fs.existsSync(BACKTEST_DIR)) return 'No backtest results yet.';
+    const files = fs.readdirSync(BACKTEST_DIR).filter(f => f.endsWith('.json')).sort();
+    if (files.length === 0) return 'No backtest results yet.';
+    return files.slice(-3).map(f => {
+        try { return JSON.stringify(JSON.parse(fs.readFileSync(path.join(BACKTEST_DIR, f), 'utf8')), null, 2); }
+        catch { return ''; }
+    }).filter(Boolean).join('\n---\n');
+})()}
 
 ## Your Task
 Analyze the current strategy's performance and market conditions. Choose ONE action:

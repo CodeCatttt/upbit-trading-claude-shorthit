@@ -92,8 +92,69 @@ fi
 
 if [ "$ACTION" = "modify" ]; then
     echo "Claude chose MODIFY (parameter adjustment)."
-    echo "TODO: Apply parameter modifications. Skipping for now."
-    echo "Batch complete."
+
+    # Extract parameters and apply to current strategy's DEFAULT_CONFIG
+    PARAMS=$(echo "$PARSE_RESULT" | node -e "
+        process.stdin.setEncoding('utf8');
+        let d='';
+        process.stdin.on('data',c=>d+=c);
+        process.stdin.on('end',()=>{
+            const r=JSON.parse(d);
+            const p = r.decision.parameters;
+            if (!p || Object.keys(p).length === 0) {
+                console.log('EMPTY');
+            } else {
+                console.log(JSON.stringify(p));
+            }
+        });
+    ")
+
+    if [ "$PARAMS" = "EMPTY" ]; then
+        echo "  No parameters to modify. Skipping."
+        echo "Batch complete."
+        exit 0
+    fi
+
+    echo "  Applying parameter modifications: $PARAMS"
+
+    # Read current strategy, update DEFAULT_CONFIG values
+    node -e "
+        const fs = require('fs');
+        const params = $PARAMS;
+        const strategyPath = 'src/strategies/current-strategy.js';
+        let code = fs.readFileSync(strategyPath, 'utf8');
+
+        // If re-export, resolve to actual file
+        const reExport = code.match(/module\.exports\s*=\s*require\(['\"](\.\\/[^'\"]+)['\"]\)/);
+        let targetPath = strategyPath;
+        if (reExport) {
+            targetPath = require('path').resolve('src/strategies', reExport[1] + '.js');
+            if (!fs.existsSync(targetPath)) targetPath = require('path').resolve('src/strategies', reExport[1]);
+            code = fs.readFileSync(targetPath, 'utf8');
+        }
+
+        // Replace values in DEFAULT_CONFIG
+        for (const [key, value] of Object.entries(params)) {
+            const regex = new RegExp('(' + key + '\\\\s*:\\\\s*)([\\\\d.]+)');
+            if (regex.test(code)) {
+                code = code.replace(regex, '\\$1' + value);
+                console.log('  Updated ' + key + ' = ' + value);
+            } else {
+                console.log('  WARNING: key ' + key + ' not found in strategy');
+            }
+        }
+
+        fs.writeFileSync(targetPath, code);
+        console.log('  Strategy parameters updated: ' + targetPath);
+    "
+
+    # Git commit the modification
+    cd "$PROJECT_DIR"
+    REASONING=$(echo "$PARSE_RESULT" | node -e "process.stdin.setEncoding('utf8');let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const r=JSON.parse(d);console.log(r.decision.reasoning||'parameter modification')})")
+    git add -A src/strategies/ 2>/dev/null || true
+    git commit -m "batch: modify strategy parameters - $REASONING" 2>/dev/null || true
+
+    echo "Batch complete (parameters modified)."
     exit 0
 fi
 
@@ -101,7 +162,7 @@ fi
 echo "[Step 5] Running backtest..."
 
 # Write new strategy to temp file
-TEMP_STRATEGY="$PROJECT_DIR/.tmp-new-strategy.js"
+TEMP_STRATEGY="$PROJECT_DIR/src/strategies/.tmp-new-strategy.js"
 echo "$PARSE_RESULT" | node -e "
     process.stdin.setEncoding('utf8');
     let d='';
@@ -162,6 +223,14 @@ node -e "
         process.exit(1);
     });
 "
+
+# Step 7: Git commit & push
+echo "[Step 7] Committing changes to git..."
+cd "$PROJECT_DIR"
+REASONING=$(echo "$PARSE_RESULT" | node -e "process.stdin.setEncoding('utf8');let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const r=JSON.parse(d);console.log(r.decision.reasoning||'strategy replacement')})")
+git add src/strategies/current-strategy.js deploy-log.json 2>/dev/null || true
+git commit -m "batch: replace strategy - $REASONING" 2>/dev/null || echo "  No changes to commit."
+git push 2>/dev/null || echo "  Push skipped (no remote configured)."
 
 echo "=============================="
 echo "Batch complete: $TIMESTAMP"
