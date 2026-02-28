@@ -106,35 +106,7 @@ if [ "$ACTION" = "modify" ]; then
     echo "  Applying parameter modifications: $PARAMS"
 
     # Read current strategy, update DEFAULT_CONFIG values
-    node -e "
-        const fs = require('fs');
-        const params = $PARAMS;
-        const strategyPath = 'src/strategies/current-strategy.js';
-        let code = fs.readFileSync(strategyPath, 'utf8');
-
-        // If re-export, resolve to actual file
-        const reExport = code.match(/module\.exports\s*=\s*require\(['\"](\.\\/[^'\"]+)['\"]\)/);
-        let targetPath = strategyPath;
-        if (reExport) {
-            targetPath = require('path').resolve('src/strategies', reExport[1] + '.js');
-            if (!fs.existsSync(targetPath)) targetPath = require('path').resolve('src/strategies', reExport[1]);
-            code = fs.readFileSync(targetPath, 'utf8');
-        }
-
-        // Replace values in DEFAULT_CONFIG
-        for (const [key, value] of Object.entries(params)) {
-            const regex = new RegExp('(' + key + '\\\\s*:\\\\s*)([\\\\d.]+)');
-            if (regex.test(code)) {
-                code = code.replace(regex, '\\$1' + value);
-                console.log('  Updated ' + key + ' = ' + value);
-            } else {
-                console.log('  WARNING: key ' + key + ' not found in strategy');
-            }
-        }
-
-        fs.writeFileSync(targetPath, code);
-        console.log('  Strategy parameters updated: ' + targetPath);
-    "
+    node src/batch/apply-modify.js "$PARAMS"
 
     # Git commit the modification
     cd "$PROJECT_DIR"
