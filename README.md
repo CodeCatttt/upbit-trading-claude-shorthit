@@ -1,49 +1,47 @@
 # upbit-trading-claude
 
-업비트(Upbit) 거래소에서 BTC/ETH 상대가치(Relative Value) 전략으로 자동매매하는 봇입니다.
-6시간마다 Claude CLI(Opus)가 시장 데이터와 전략 성과를 분석하여, 전략을 자율적으로 개선하고 배포합니다.
+업비트(Upbit) 거래소에서 멀티에셋 전략으로 자동매매하는 봇입니다.
+1시간마다 Claude CLI(Opus)가 시장 데이터와 전략 성과를 분석하여, 전략과 관심 종목을 자율적으로 개선합니다.
 
 ## 핵심 아이디어
 
-```
-기존 방식 (OpenClaw)              →  새 방식 (Claude CLI 배치)
-─────────────────────────         ─────────────────────────
-매 실행마다 자아/컨텍스트 로딩        정형화된 데이터만 입력
-검증 없이 전략 코드 직접 파이핑       구문검사 + 인터페이스 검증 + 백테스트
-롤백 없음                          자동 롤백 + 배포 이력
-```
+- **단일 자산 100% 보유**: 한 번에 하나의 자산만 보유하고, 가장 유망한 종목으로 전환
+- **동적 종목 선정**: Claude가 매 배치마다 관심 종목 리스트를 동적으로 결정
+- **자율 전략 개선**: 백테스트 게이트를 통과해야만 새 전략 배포 (슬리피지 + 수수료 포함)
+- **안전장치**: 구문/인터페이스 검증, 백테스트 비교, PM2 헬스체크, 자동 롤백
 
 ## 아키텍처
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    Cron (6시간마다)                       │
-│                   run-batch.sh                          │
-│                                                         │
-│  ┌──────────┐  ┌──────────┐  ┌───────────┐  ┌────────┐ │
-│  │  캔들    │→│  메트릭  │→│  Claude   │→│  파서  │ │
-│  │  수집    │  │  수집    │  │  CLI 호출 │  │  검증  │ │
-│  └──────────┘  └──────────┘  └───────────┘  └───┬────┘ │
-│                                                  │      │
-│                              ┌───────────┐  ┌────▼────┐ │
-│                              │  배포     │←│ 백테스트│ │
-│                              │  +롤백    │  │  비교   │ │
-│                              └─────┬─────┘  └─────────┘ │
-│                                    │                     │
-│                              ┌─────▼─────┐              │
-│                              │ git commit │              │
-│                              │  & push    │              │
-│                              └───────────┘              │
-└─────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────┐
+│                   Cron (1시간마다)                          │
+│                   run-batch.sh                            │
+│                                                           │
+│  ┌──────────┐  ┌──────────┐  ┌───────────┐  ┌──────────┐ │
+│  │  캔들    │→│  메트릭  │→│  Claude   │→│  파서    │ │
+│  │  수집    │  │  수집    │  │  CLI 호출 │  │  검증    │ │
+│  │ (4종목+) │  │(Sharpe등)│  │ (Opus)   │  │(종목갱신)│ │
+│  └──────────┘  └──────────┘  └───────────┘  └────┬─────┘ │
+│                                                   │       │
+│                              ┌───────────┐  ┌─────▼─────┐ │
+│                              │  배포     │←│ 백테스트  │ │
+│                              │  +롤백    │  │ +슬리피지 │ │
+│                              └─────┬─────┘  └───────────┘ │
+│                                    │                       │
+│                              ┌─────▼─────┐                │
+│                              │ git commit │                │
+│                              │  & push    │                │
+│                              └───────────┘                │
+└──────────────────────────────────────────────────────────┘
 
-┌─────────────────────────────────────────────────────────┐
-│                  PM2 (24/7 상시 실행)                     │
-│                      bot.js                             │
-│                                                         │
-│  15분마다 current-strategy.js 로딩 → onNewCandle 호출    │
-│  → SWITCH_TO_BTC / SWITCH_TO_ETH / HOLD 판단            │
-│  → Upbit API로 매매 실행                                 │
-└─────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────┐
+│                   PM2 (24/7 상시 실행)                      │
+│                       bot.js                              │
+│                                                           │
+│  15분마다 current-strategy.js 로딩 → onNewCandle 호출      │
+│  → SWITCH(targetMarket) / HOLD / NONE 판단                │
+│  → Upbit API로 매매 실행 (atomic swap)                     │
+└──────────────────────────────────────────────────────────┘
 ```
 
 ## 프로젝트 구조
@@ -52,44 +50,45 @@
 upbit-trading-claude/
 ├── .env                          # Upbit API 키
 ├── ecosystem.config.js           # PM2 설정
-├── bot-state.json                # 봇 상태 (IN_BTC / IN_ETH)
+├── trading-config.json           # 동적 종목 + 인터벌 설정
+├── bot-state.json                # 봇 상태 (KRW-BTC, KRW-SOL 등)
 ├── deploy-log.json               # 배포 이력
 │
 ├── src/
-│   ├── bot.js                    # 매매 봇 (PM2, 15분 cron)
+│   ├── bot.js                    # 매매 봇 (PM2, 15분 cron, 멀티에셋)
 │   ├── upbit-api.js              # Upbit REST API 래퍼
 │   ├── indicators.js             # 기술 지표 라이브러리
 │   │
 │   ├── strategies/
-│   │   ├── current-strategy.js   # 현재 활성 전략 (배치가 교체)
-│   │   ├── strategy-ou-process.js # OU Process 전략 (초기)
-│   │   └── archive/              # 이전 전략 보관
+│   │   └── current-strategy.js   # 현재 활성 전략 (배치가 교체)
 │   │
 │   ├── batch/
-│   │   ├── run-batch.sh          # 배치 오케스트레이터 (7단계)
-│   │   ├── collect-metrics.js    # 포트폴리오/시장/봇 메트릭 수집
-│   │   ├── build-prompt.js       # Claude 프롬프트 조립
-│   │   ├── parse-response.js     # 응답 파싱 + 코드 검증
-│   │   ├── backtest.js           # 히스토리컬 백테스트 엔진
-│   │   └── deploy.js             # 안전 배포 + 자동 롤백
+│   │   ├── run-batch.sh          # 배치 오케스트레이터
+│   │   ├── collect-metrics.js    # 강화 메트릭 (Sharpe, 승률, 롤링 수익률)
+│   │   ├── build-prompt.js       # 멀티에셋 Claude 프롬프트 조립
+│   │   ├── parse-response.js     # 응답 파싱 + 코드/종목 검증
+│   │   ├── backtest.js           # 멀티에셋 백테스트 + 슬리피지 모델
+│   │   ├── deploy.js             # 안전 배포 + 자동 롤백
+│   │   ├── apply-modify.js       # 파라미터 수정 적용
+│   │   └── notify.js             # Discord 알림
 │   │
 │   ├── data/
-│   │   ├── candle-fetcher.js     # Upbit 캔들 페이지네이션 수집
+│   │   ├── candle-fetcher.js     # 동적 종목 캔들 수집
 │   │   └── candle-store.js       # JSON 캔들 저장/병합/중복제거
 │   │
 │   └── utils/
 │       ├── adf-test.js           # Augmented Dickey-Fuller 검정
+│       ├── discord.js            # Discord 봇 API
 │       └── logger.js             # 구조화된 로깅
 │
 ├── data/
-│   ├── candles/                  # BTC/ETH × 15m/240m 캔들 (각 2000개)
+│   ├── candles/                  # 종목별 × 인터벌별 캔들 (각 2000개)
 │   ├── metrics/                  # 배치 메트릭 스냅샷
 │   └── backtest-results/         # 백테스트 결과
 │
 ├── backups/                      # 전략 백업 (배포 전 자동 생성)
 └── logs/
-    ├── batch/                    # 배치 실행 로그
-    └── deploy/                   # 배포 로그
+    └── batch/                    # 배치 실행 로그
 ```
 
 ## 설치 및 실행
@@ -115,6 +114,8 @@ npm install
 cat > .env << 'EOF'
 UPBIT_ACCESS_KEY=your_access_key
 UPBIT_SECRET_KEY=your_secret_key
+DISCORD_BOT_TOKEN=your_discord_bot_token    # 선택사항
+DISCORD_CHANNEL_ID=your_channel_id          # 선택사항
 EOF
 ```
 
@@ -132,45 +133,48 @@ pm2 save
 ### 배치 크론 등록
 
 ```bash
-# 6시간마다 실행 (00:30, 06:30, 12:30, 18:30)
 crontab -e
-# 다음 줄 추가:
-30 0,6,12,18 * * * /home/kook/programming/upbit-trading-claude/src/batch/run-batch.sh >> /home/kook/programming/upbit-trading-claude/logs/batch/cron.log 2>&1
+# 다음 줄 추가 (1시간마다):
+30 * * * * /path/to/upbit-trading-claude/src/batch/run-batch.sh >> /path/to/upbit-trading-claude/logs/batch/cron.log 2>&1
 ```
 
-## 매매 전략
+## 종목 관리
 
-### 현재 전략: Ornstein-Uhlenbeck Process
+`trading-config.json`으로 관심 종목을 관리합니다. Claude가 배치 분석 시 종목을 추가/제거할 수 있습니다.
 
-BTC/ETH 가격 비율을 평균회귀(mean-reverting) 확률 과정으로 모델링합니다.
+```json
+{
+  "markets": ["KRW-BTC", "KRW-ETH", "KRW-SOL", "KRW-XRP"],
+  "defaultAsset": "KRW-BTC",
+  "candleIntervals": [15, 240]
+}
+```
 
-| 파라미터 | 값 | 설명 |
-|----------|------|------|
-| lookback | 60 | OU 파라미터 추정 기간 (15분봉 60개 = 15시간) |
-| entryThreshold | 1.5 | Z-score 진입 임계값 |
-| minThreshold | 1.0 | 동적 임계값 하한 |
-| maxThreshold | 2.5 | 동적 임계값 상한 |
+- 현재 보유 중인 종목은 자동으로 리스트에 유지됩니다 (안전장치)
+- Upbit KRW 마켓에서 거래 가능한 종목만 대상
 
-**매매 로직:**
-1. BTC/ETH 가격비율 시계열에서 OU 파라미터(μ, θ, σ) 추정
-2. ADF 검정으로 정상성(stationarity) 확인
-3. 균형분포의 Z-score 계산
-4. Z-score가 동적 임계값을 초과하면 자산 전환
-   - Z > threshold → BTC 과대평가 → ETH로 전환
-   - Z < -threshold → ETH 과대평가 → BTC로 전환
-
-### 전략 인터페이스 규격
+## 전략 인터페이스
 
 모든 전략은 다음 인터페이스를 준수해야 합니다:
 
 ```javascript
 module.exports = {
-    DEFAULT_CONFIG,             // { lookback, entryThreshold, ... }
-    createStrategyState(),      // → { assetHeld: 'IN_BTC' }
-    onNewCandle(state, btcCandles, ethCandles, config?)
-    // → { action: 'SWITCH_TO_BTC'|'SWITCH_TO_ETH'|'HOLD'|'NONE', details: {} }
+    DEFAULT_CONFIG,                     // { lookback, switchThreshold, ... }
+    createStrategyState(),              // → { assetHeld: 'KRW-BTC', candlesSinceLastTrade: 9999 }
+    onNewCandle(state, candlesByMarket, config?)
+    // candlesByMarket: { 'KRW-BTC': [...], 'KRW-ETH': [...], ... }
+    // 반환값:
+    //   { action: 'HOLD', details: { ... } }
+    //   { action: 'NONE', details: { reason: '...' } }
+    //   { action: 'SWITCH', details: { targetMarket: 'KRW-SOL', reason: '...', ... } }
 };
 ```
+
+### 상태 형식
+
+- `state.assetHeld`: 시장 코드 (`'KRW-BTC'`, `'KRW-SOL'`, `'CASH'` 등)
+- `state.candlesSinceLastTrade`: 마지막 거래 이후 캔들 수
+- 캔들: `{ open, high, low, close, volume, timestamp }`
 
 ### 사용 가능한 기술 지표 (`indicators.js`)
 
@@ -188,17 +192,17 @@ module.exports = {
 
 ## 배치 파이프라인
 
-6시간마다 `run-batch.sh`가 7단계를 순차 실행합니다:
+1시간마다 `run-batch.sh`가 순차 실행합니다:
 
 ```
-Step 0  캔들 수집        Upbit API → data/candles/ 갱신
-Step 1  메트릭 수집      잔고, 시세, 거래내역, 봇 상태 → data/metrics/ 스냅샷
-Step 2  쿨다운 체크      마지막 배포 후 12시간 미경과 시 → 종료
-Step 3  Claude 호출      메트릭 + 전략소스 + 지표목록 + 백테스트이력 → Opus 분석
-Step 4  응답 파싱        JSON 결정 + JS 코드 추출, 구문검사 + 인터페이스 검증
-Step 5  백테스트         현재 vs 신규 전략 히스토리컬 시뮬레이션 비교
-Step 6  배포             백업 → 교체 → PM2 재시작 → 30초 헬스체크 → (실패 시 롤백)
-Step 7  git commit/push  변경사항 버전관리
+Step 0    캔들 수집        동적 종목 × 인터벌 조합 캔들 수집
+Step 1    메트릭 수집      잔고, 시세, Sharpe, 승률, 롤링 수익률
+Step 2    Claude 호출      멀티에셋 프롬프트 + 종목 관리 지시
+Step 3    응답 파싱        JSON 결정 + JS 코드 추출, 인터페이스 검증
+Step 3.5  종목 갱신        markets 필드가 있으면 trading-config.json 업데이트
+Step 4    백테스트         현재 vs 신규 전략 (슬리피지 0.1% + 수수료 0.05%)
+Step 5    배포             백업 → 교체 → PM2 재시작 → 헬스체크 → (실패 시 롤백)
+Step 6    git commit/push  변경사항 버전관리
 ```
 
 ### Claude의 3가지 선택지
@@ -209,18 +213,34 @@ Step 7  git commit/push  변경사항 버전관리
 | **MODIFY** | 파라미터만 조정 | DEFAULT_CONFIG 값 교체 → git commit |
 | **REPLACE** | 전략 전체 교체 | 백테스트 → 배포 → git commit & push |
 
+추가로, 응답 JSON에 `markets` 필드를 포함하면 관심 종목 리스트를 변경할 수 있습니다.
+
+## 강화 메트릭
+
+배치 프롬프트에 포함되는 성과 지표:
+
+| 메트릭 | 설명 |
+|--------|------|
+| **Sharpe Ratio** | 최근 30일 수익률의 평균/표준편차 |
+| **승률** | 배포 후 수익/손실 비율 |
+| **롤링 수익률** | 최근 7일, 30일 포트폴리오 변화율 |
+| **거래 통계** | 총 배포 수, 평균 보유 시간 |
+| **종목별 시세** | 각 관심 종목 현재가, 24h 변동률 |
+
 ## 안전장치
 
 | 장치 | 설명 |
 |------|------|
-| 12시간 쿨다운 | 배포 간 최소 12시간 간격 강제 |
-| 백테스트 게이트 | 수익률 +0.5% 이상 개선, 낙폭 악화 2% 이내, 일일거래 4회 이하 |
+| 백테스트 게이트 | 수익률 +0.5% 이상 개선, 낙폭 악화 2% 이내, 일일거래 6회 이하 |
+| 슬리피지 모델 | 0.1% 슬리피지 + 0.05% 수수료 (per side) |
 | 구문 검증 | `node -c` + `require()` + mock `onNewCandle()` 호출 |
+| 인터페이스 검증 | SWITCH/HOLD/NONE 액션, targetMarket 존재 확인 |
 | 30초 헬스체크 | 배포 후 PM2 상태 + 재시작 횟수 확인 |
 | 자동 롤백 | 헬스체크 실패 시 백업 전략 복원 + PM2 재시작 |
-| 거래 빈도 제한 | 백테스트에서 일일 4회 초과 전략 거부 |
+| Atomic SWITCH | 매수 성공 후에만 state 변경, 실패 시 CASH 상태로 전환 |
+| Atomic state write | tmp 파일 쓰기 + rename으로 파일 손상 방지 |
+| 종목 보호 | 보유 중인 종목은 markets 리스트에서 자동 유지 |
 | 감사 추적 | 배치 로그, 배포 로그, 백테스트 결과 모두 보존 |
-| 백테스트 피드백 | 이전 백테스트 결과를 다음 프롬프트에 포함 (실패 학습) |
 
 ## 운영 명령어
 
@@ -249,12 +269,16 @@ crontab -l
 
 # 배포 이력 확인
 cat deploy-log.json | jq '.'
+
+# 관심 종목 확인
+cat trading-config.json | jq '.'
 ```
 
 ## 기술 스택
 
 - **Runtime**: Node.js
 - **Process Manager**: PM2
-- **AI**: Claude CLI (Opus 모델)
+- **AI**: Claude CLI (Opus 4.6)
 - **Exchange**: Upbit REST API
 - **Scheduling**: node-cron (봇), crontab (배치)
+- **Notifications**: Discord Bot API (선택사항)
