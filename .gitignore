@@ -1,6 +1,6 @@
 node_modules/
 .env
-data/candles/
+data/
 backups/
 logs/
 *.log
