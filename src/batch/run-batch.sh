@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # run-batch.sh — Batch pipeline orchestrator
-# Steps: fetch candles → collect metrics → cooldown check → Claude analysis →
+# Steps: fetch candles → collect metrics → Claude analysis →
 #         parse response → backtest → deploy (if passed)
 #
 
@@ -36,55 +36,29 @@ echo "[Step 1] Collecting metrics..."
 node src/batch/collect-metrics.js > /dev/null
 echo "[Step 1] Done."
 
-# Step 2: Check 12-hour cooldown
-echo "[Step 2] Checking cooldown..."
-DEPLOY_LOG="$PROJECT_DIR/deploy-log.json"
-if [ -f "$DEPLOY_LOG" ]; then
-    LAST_TS=$(node -e "
-        const log = JSON.parse(require('fs').readFileSync('$DEPLOY_LOG','utf8'));
-        if (log.length > 0) {
-            const last = log[log.length-1];
-            if (last.success) {
-                const elapsed = (Date.now() - new Date(last.timestamp).getTime()) / (1000*60*60);
-                if (elapsed < 12) {
-                    console.log('COOLDOWN');
-                    process.exit(0);
-                }
-            }
-        }
-        console.log('OK');
-    ")
-    if [ "$LAST_TS" = "COOLDOWN" ]; then
-        echo "[Step 2] Cooldown active. Skipping Claude analysis."
-        echo "Batch complete (cooldown skip)."
-        exit 0
-    fi
-fi
-echo "[Step 2] Cooldown clear."
-
-# Step 3: Build prompt and call Claude
-echo "[Step 3] Building prompt and calling Claude..."
+# Step 2: Build prompt and call Claude
+echo "[Step 2] Building prompt and calling Claude..."
 PROMPT=$(node src/batch/build-prompt.js)
 
 CLAUDE_OUTPUT=$(echo "$PROMPT" | env -u CLAUDECODE claude --model claude-opus-4-6 --allowedTools "WebSearch" -p 2>/dev/null || true)
 
 if [ -z "$CLAUDE_OUTPUT" ]; then
-    echo "[Step 3] ERROR: Claude returned empty output."
+    echo "[Step 2] ERROR: Claude returned empty output."
     exit 1
 fi
-echo "[Step 3] Claude response received (${#CLAUDE_OUTPUT} chars)."
+echo "[Step 2] Claude response received (${#CLAUDE_OUTPUT} chars)."
 
-# Step 4: Parse response
-echo "[Step 4] Parsing Claude response..."
+# Step 3: Parse response
+echo "[Step 3] Parsing Claude response..."
 PARSE_RESULT=$(echo "$CLAUDE_OUTPUT" | node src/batch/parse-response.js 2>/dev/null || echo '{"valid":false,"errors":["parse failed"]}')
 
 VALID=$(echo "$PARSE_RESULT" | node -e "process.stdin.setEncoding('utf8');let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>console.log(JSON.parse(d).valid))")
 ACTION=$(echo "$PARSE_RESULT" | node -e "process.stdin.setEncoding('utf8');let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const p=JSON.parse(d);console.log(p.decision?p.decision.action:'none')})")
 
-echo "[Step 4] Valid: $VALID, Action: $ACTION"
+echo "[Step 3] Valid: $VALID, Action: $ACTION"
 
 if [ "$VALID" != "true" ]; then
-    echo "[Step 4] Validation failed. Aborting."
+    echo "[Step 3] Validation failed. Aborting."
     echo "$PARSE_RESULT" | node -e "process.stdin.setEncoding('utf8');let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>console.log(JSON.parse(d).errors))"
     exit 1
 fi
@@ -178,8 +152,8 @@ if [ "$ACTION" = "modify" ]; then
     exit 0
 fi
 
-# Step 5: Backtest (only for replace)
-echo "[Step 5] Running backtest..."
+# Step 4: Backtest (only for replace)
+echo "[Step 4] Running backtest..."
 
 # Write new strategy to temp file
 TEMP_STRATEGY="$PROJECT_DIR/src/strategies/.tmp-new-strategy.js"
@@ -215,11 +189,11 @@ COMPARISON=$(node -e "
 
 PASS=$(echo "$COMPARISON" | node -e "process.stdin.setEncoding('utf8');let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>console.log(JSON.parse(d).pass))")
 
-echo "[Step 5] Backtest result: pass=$PASS"
+echo "[Step 4] Backtest result: pass=$PASS"
 echo "$COMPARISON"
 
 if [ "$PASS" != "true" ]; then
-    echo "[Step 5] Backtest FAILED. Not deploying."
+    echo "[Step 4] Backtest FAILED. Not deploying."
     rm -f "$TEMP_STRATEGY"
     FAIL_JSON=$(node -e "
         const comp = $COMPARISON;
@@ -231,8 +205,8 @@ if [ "$PASS" != "true" ]; then
     exit 0
 fi
 
-# Step 6: Deploy
-echo "[Step 6] Deploying new strategy..."
+# Step 5: Deploy
+echo "[Step 5] Deploying new strategy..."
 
 node -e "
     const fs = require('fs');
@@ -257,8 +231,8 @@ SUCCESS_JSON=$(node -e "
 ")
 notify_batch "$SUCCESS_JSON"
 
-# Step 7: Git commit & push
-echo "[Step 7] Committing changes to git..."
+# Step 6: Git commit & push
+echo "[Step 6] Committing changes to git..."
 cd "$PROJECT_DIR"
 REASONING=$(echo "$PARSE_RESULT" | node -e "process.stdin.setEncoding('utf8');let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const r=JSON.parse(d);console.log(r.decision.reasoning||'strategy replacement')})")
 git add src/strategies/current-strategy.js deploy-log.json 2>/dev/null || true

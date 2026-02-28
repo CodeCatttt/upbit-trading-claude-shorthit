@@ -20,7 +20,6 @@ const CURRENT_STRATEGY = path.join(__dirname, '../strategies/current-strategy.js
 const BACKUP_DIR = path.join(PROJECT_ROOT, 'backups');
 const DEPLOY_LOG_FILE = path.join(PROJECT_ROOT, 'deploy-log.json');
 const HEARTBEAT_FILE = path.join(PROJECT_ROOT, 'data/bot-heartbeat.json');
-const COOLDOWN_HOURS = 12;
 const HEALTH_CHECK_WAIT_MS = 30000;
 const PM2_NAME = 'upbit-trading-bot';
 
@@ -43,19 +42,6 @@ function appendDeployLog(entry) {
     const log = getDeployLog();
     log.push(entry);
     fs.writeFileSync(DEPLOY_LOG_FILE, JSON.stringify(log, null, 2));
-}
-
-function checkCooldown() {
-    const deployLog = getDeployLog();
-    if (deployLog.length === 0) return true;
-
-    const last = deployLog[deployLog.length - 1];
-    const elapsed = (Date.now() - new Date(last.timestamp).getTime()) / (1000 * 60 * 60);
-    if (elapsed < COOLDOWN_HOURS) {
-        log.warn(`Cooldown active: ${elapsed.toFixed(1)}h since last deploy (need ${COOLDOWN_HOURS}h)`);
-        return false;
-    }
-    return true;
 }
 
 function checkBotHealth() {
@@ -122,19 +108,14 @@ function checkPM2Status() {
 async function deploy(strategyCode, backtestComparison = null) {
     log.info('=== Starting deployment ===');
 
-    // 1. Pre-checks
-    if (!checkCooldown()) {
-        return { success: false, reason: 'cooldown_active' };
-    }
-
-    // 2. Backup
+    // 1. Backup
     const backupPath = backupCurrentStrategy();
 
-    // 3. Write new strategy
+    // 2. Write new strategy
     fs.writeFileSync(CURRENT_STRATEGY, strategyCode);
     log.info('New strategy written to current-strategy.js');
 
-    // 4. PM2 restart
+    // 3. PM2 restart
     if (!restartPM2()) {
         // Rollback
         if (backupPath) {
@@ -150,7 +131,7 @@ async function deploy(strategyCode, backtestComparison = null) {
         return { success: false, reason: 'pm2_restart_failed', rollback: true };
     }
 
-    // 5. Health check (30 second wait)
+    // 4. Health check (30 second wait)
     log.info(`Waiting ${HEALTH_CHECK_WAIT_MS / 1000}s for health check...`);
     await new Promise(r => setTimeout(r, HEALTH_CHECK_WAIT_MS));
 
@@ -172,7 +153,7 @@ async function deploy(strategyCode, backtestComparison = null) {
         return { success: false, reason: 'health_check_failed', rollback: true };
     }
 
-    // 6. Success
+    // 5. Success
     log.info('=== Deployment SUCCESSFUL ===');
     const entry = {
         timestamp: new Date().toISOString(),
@@ -202,4 +183,4 @@ if (require.main === module) {
         });
 }
 
-module.exports = { deploy, checkCooldown, checkBotHealth };
+module.exports = { deploy, checkBotHealth };

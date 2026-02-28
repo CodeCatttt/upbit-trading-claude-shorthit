@@ -106,7 +106,6 @@ Analyze the current strategy's performance and market conditions. Choose ONE act
 - You may use \`require('../utils/adf-test')\` for the ADF test
 - Do NOT use any external npm packages beyond what the project already has
 - The strategy runs on 15-minute candles; btcCandles and ethCandles are arrays of {open, high, low, close, volume, timestamp}
-- Minimum 12 hours between strategy deployments (cooldown enforced separately)
 - Daily trade frequency should stay under 4 trades/day
 
 ## Response Format
