@@ -57,7 +57,10 @@ if (fs.existsSync(STATE_FILE)) {
 }
 
 function saveState() {
-    fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
+    // Atomic write: write to temp file then rename to prevent corruption
+    const tmpFile = STATE_FILE + '.tmp';
+    fs.writeFileSync(tmpFile, JSON.stringify(state, null, 2));
+    fs.renameSync(tmpFile, STATE_FILE);
 }
 
 function writeHeartbeat(lastAction) {
@@ -102,9 +105,16 @@ async function runStrategyBoundary() {
         const config = loadTradingConfig();
         const markets = config.markets;
 
-        log.info(`Strategy check - Held: ${state.assetHeld}, Markets: ${markets.join(', ')}`);
+        // Ensure current asset is always in the watched markets list
+        let effectiveMarkets = markets;
+        if (state.assetHeld !== 'CASH' && !markets.includes(state.assetHeld)) {
+            log.warn(`Current asset ${state.assetHeld} not in markets list, adding temporarily.`);
+            effectiveMarkets = [state.assetHeld, ...markets];
+        }
 
-        const candlesByMarket = await fetchCandlesByMarket(markets);
+        log.info(`Strategy check - Held: ${state.assetHeld}, Markets: ${effectiveMarkets.join(', ')}`);
+
+        const candlesByMarket = await fetchCandlesByMarket(effectiveMarkets);
 
         // Verify we have sufficient data for at least some markets
         const marketsWithData = Object.entries(candlesByMarket)
@@ -150,26 +160,41 @@ async function runStrategyBoundary() {
             const targetMarket = result.details.targetMarket;
             const targetCurrency = getCurrencyFromMarket(targetMarket);
             const currentCurrency = getCurrencyFromMarket(state.assetHeld);
+            const previousAsset = state.assetHeld;
 
-            // Sell current asset
-            if (state.assetHeld !== 'CASH') {
-                const balance = await api.getBalance(currentCurrency);
-                if (balance > 0) {
-                    log.info(`Selling ${balance} ${currentCurrency} to buy ${targetCurrency}...`);
-                    await api.sellMarketOrder(state.assetHeld, balance);
-                    await new Promise(r => setTimeout(r, 3000));
+            try {
+                // Sell current asset
+                if (state.assetHeld !== 'CASH') {
+                    const balance = await api.getBalance(currentCurrency);
+                    if (balance > 0) {
+                        log.info(`Selling ${balance} ${currentCurrency} to buy ${targetCurrency}...`);
+                        await api.sellMarketOrder(state.assetHeld, balance);
+                        await new Promise(r => setTimeout(r, 3000));
+                    }
                 }
-            }
 
-            // Buy target asset
-            const krwBalance = await api.getBalance('KRW');
-            const buyAmount = Math.floor(krwBalance * TRADE_RATIO);
-            if (buyAmount > MIN_ORDER_KRW) {
-                await api.buyMarketOrder(targetMarket, buyAmount);
+                // Buy target asset — only update state if buy succeeds
+                const krwBalance = await api.getBalance('KRW');
+                const buyAmount = Math.floor(krwBalance * TRADE_RATIO);
+                if (buyAmount > MIN_ORDER_KRW) {
+                    await api.buyMarketOrder(targetMarket, buyAmount);
+                    state.assetHeld = targetMarket;
+                    saveState();
+                    log.info(`SWITCH complete: ${previousAsset} → ${targetMarket}`);
+                } else {
+                    log.error(`Buy failed: insufficient KRW (${buyAmount}). Entering CASH state.`);
+                    state.assetHeld = 'CASH';
+                    saveState();
+                }
+            } catch (switchErr) {
+                log.error(`SWITCH execution error: ${switchErr.message}`);
+                // Check what we actually hold now
+                const krwBal = await api.getBalance('KRW').catch(() => 0);
+                if (krwBal > MIN_ORDER_KRW) {
+                    state.assetHeld = 'CASH';
+                }
+                saveState();
             }
-
-            state.assetHeld = targetMarket;
-            saveState();
         }
 
         writeHeartbeat(result.action);

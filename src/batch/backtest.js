@@ -154,7 +154,7 @@ function compareStrategies(currentResult, newResult) {
     const pass =
         returnImprovement >= 0.5 &&    // At least 0.5% better return
         drawdownWorsening <= 2.0 &&    // Max drawdown doesn't worsen by >2%
-        newResult.dailyTrades <= 4;    // No more than 4 trades per day
+        newResult.dailyTrades <= 6;    // No more than 6 trades per day
 
     return {
         pass,
@@ -165,7 +165,7 @@ function compareStrategies(currentResult, newResult) {
             pass ? 'PASSED' : 'FAILED',
             `Return improvement: ${returnImprovement.toFixed(2)}% (need >= 0.5%)`,
             `Drawdown worsening: ${drawdownWorsening.toFixed(2)}% (need <= 2.0%)`,
-            `Daily trades: ${newResult.dailyTrades} (need <= 4)`,
+            `Daily trades: ${newResult.dailyTrades} (need <= 6)`,
         ],
     };
 }

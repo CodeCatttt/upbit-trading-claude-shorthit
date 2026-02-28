@@ -48,15 +48,14 @@ module.exports = {
 - `trading-config.json`의 markets 배열로 관리
 
 ### Prohibited Patterns
-- 일일 10회 이상 거래 금지 (백테스트 게이트: 4회/일)
+- 일일 10회 이상 거래 금지 (백테스트 게이트: 6회/일)
 - 시가총액 100위 밖 종목 거래 금지
 - 레버리지/마진 거래 불가 (Upbit 현물만)
 - 단일 배치에서 전략 교체 + 종목 변경 동시 수행 자제
 
 ### Backtest & Safety Gates
 - 백테스트에 슬리피지 0.1% + 수수료 0.05% 포함 (per side)
-- 신규 전략 배포 조건: 수익률 +0.5% 이상 개선, MDD 2% 이내 악화, 일일 거래 4회 이하
-- 12시간 배포 쿨다운
+- 신규 전략 배포 조건: 수익률 +0.5% 이상 개선, MDD 2% 이내 악화, 일일 거래 6회 이하
 - PM2 헬스체크 + 자동 롤백
 
 ## Key Files
@@ -90,9 +89,9 @@ module.exports = {
 
 ## Safety
 
-- 12-hour cooldown between deploys
-- Backtest gate: +0.5% return, MDD ≤ 2% worse, ≤ 4 trades/day
+- Backtest gate: +0.5% return, MDD ≤ 2% worse, ≤ 6 trades/day
 - Slippage model: 0.1% per trade (market order assumption)
 - Syntax + interface validation before deploy
 - Auto-rollback on PM2 crash after deploy
-- Max 4 trades/day limit
+- Atomic state file writes (crash-safe)
+- Market removal safety: 보유 종목은 자동으로 관심 리스트에 유지

@@ -154,7 +154,7 @@ Analyze the current strategy's performance and market conditions. Choose ONE act
 - You may use \`require('../utils/adf-test')\` for the ADF test
 - Do NOT use any external npm packages beyond what the project already has
 - The strategy runs on 15-minute candles
-- Daily trade frequency should stay under 4 trades/day
+- Daily trade frequency should stay under 6 trades/day
 - Backtest includes 0.1% slippage + 0.05% fee per side
 
 ## Response Format

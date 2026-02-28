@@ -14,13 +14,13 @@ const DEFAULT_CONFIG = {
     momentumWeight: 0.7,      // Weight for momentum score
     rvWeight: 0.3,            // Weight for relative value score
     switchThreshold: 0.06,    // Minimum score advantage to trigger switch
-    cooldownCandles: 96,      // Minimum 12 hours (48 x 15min) between trades
+    cooldownCandles: 96,      // Minimum 24 hours (96 x 15min) between trades
     emaPeriod: 40,            // EMA period for trend
     rsiPeriod: 14,            // RSI period
 };
 
 function createStrategyState() {
-    return { assetHeld: 'KRW-BTC' };
+    return { assetHeld: 'KRW-BTC', candlesSinceLastTrade: 9999 };
 }
 
 function calcMomentumScore(candles, config) {

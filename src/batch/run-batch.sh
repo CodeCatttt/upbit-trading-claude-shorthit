@@ -78,9 +78,19 @@ if [ "$HAS_MARKETS" = "true" ]; then
     node -e "
         const fs = require('fs');
         const configPath = '$PROJECT_DIR/trading-config.json';
+        const statePath = '$PROJECT_DIR/bot-state.json';
         const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
         const parseResult = JSON.parse(process.argv[1]);
-        config.markets = parseResult.decision.markets;
+        let newMarkets = parseResult.decision.markets;
+        // Safety: ensure currently held asset is not removed from markets
+        try {
+            const state = JSON.parse(fs.readFileSync(statePath, 'utf8'));
+            if (state.assetHeld && state.assetHeld !== 'CASH' && !newMarkets.includes(state.assetHeld)) {
+                console.log('  WARNING: Current asset ' + state.assetHeld + ' not in new list, adding back.');
+                newMarkets = [state.assetHeld, ...newMarkets];
+            }
+        } catch(e) {}
+        config.markets = newMarkets;
         config.updatedAt = new Date().toISOString();
         config.updatedBy = 'batch';
         fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
