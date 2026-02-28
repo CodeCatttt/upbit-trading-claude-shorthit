@@ -109,16 +109,18 @@ Analyze the current strategy's performance and market conditions. Choose ONE act
 - Daily trade frequency should stay under 4 trades/day
 
 ## Response Format
-First, provide your analysis and reasoning in plain text.
+**모든 응답은 한국어로 작성하세요.**
 
-Then output your decision as a JSON block:
+먼저 분석과 판단 근거를 평문으로 작성하세요.
+
+그 다음, 결정을 JSON 블록으로 출력하세요:
 
 \`\`\`json
 {
   "action": "keep" | "modify" | "replace",
-  "reasoning": "Brief explanation",
+  "reasoning": "한국어로 간단한 사유 설명",
   "confidence": 0.0 to 1.0,
-  "parameters": {} // only for "modify" action
+  "parameters": {} // "modify" 액션일 때만
 }
 \`\`\`
 
