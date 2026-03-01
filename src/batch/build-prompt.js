@@ -283,15 +283,77 @@ Choose ONE action:
 2. **MODIFY** — 파라미터 조정 (전략 코드 유지)
 3. **REPLACE** — 전략 전면 교체
 
-## Adjustable Execution Parameters (via modify)
+## Adjustable Parameters (via modify)
 다음 키들을 \`parameters\` 필드에 포함하여 수정할 수 있습니다:
-- \`executionMode\`: \`'market'\` | \`'smart'\` — 실행 모드 전환
+
+**실행 파라미터:**
+- \`executionMode\`: \`'market'\` | \`'smart'\`
 - \`smartEntry.entryMethod\`: \`'rsi_dip'\` | \`'pullback'\` | \`'bollinger_touch'\`
-- \`smartEntry.rsiThreshold\`: RSI 진입 임계값 (기본 40)
-- \`smartEntry.pullbackPct\`: 풀백 진입 % (기본 0.3)
-- \`smartEntry.maxWaitMinutes\`: 최대 대기시간 (기본 15)
-- \`smartEntry.pollIntervalMs\`: 폴링 간격 ms (기본 15000)
-- 기존 전략 파라미터(cooldownCandles, switchThreshold 등)도 동일하게 수정 가능
+- \`smartEntry.rsiThreshold\`, \`smartEntry.pullbackPct\`, \`smartEntry.maxWaitMinutes\`, \`smartEntry.pollIntervalMs\`
+
+**리스크 관리 파라미터:**
+- \`trailingStopPct\`: 트레일링 스탑 % (기본 0.12 = 12%)
+- \`crashThreshold\`: 24h 크래시 감지 % (기본 0.08 = 8%)
+- \`crashWindowCandles\`: 크래시 감지 윈도우 (기본 96 = 24h)
+
+**쿨다운 파라미터:**
+- \`cooldownTrending\`: 추세장 쿨다운 캔들 수 (기본 288 = 3일)
+- \`cooldownChoppy\`: 횡보장 쿨다운 캔들 수 (기본 1344 = 14일)
+- \`choppinessThreshold\`: 횡보 판단 임계값 (기본 0.45)
+
+**재진입 파라미터:**
+- \`reentryRsiMin\`: CASH 탈출 최소 RSI (기본 45)
+- \`reentryMinScore\`: 재진입 최소 스코어 (기본 0.1)
+- \`reentryTrendConfirm\`: EMA 골든크로스 필요 여부 (기본 true)
+
+**스코어링 가중치:**
+- \`momentumWeight\`: 모멘텀 가중치 (기본 0.45)
+- \`trendWeight\`: 추세 가중치 (기본 0.25)
+- \`volumeWeight\`: 거래량 가중치 (기본 0.15)
+- \`bollingerWeight\`: 볼린저 가중치 (기본 0.15)
+- \`switchThreshold\`, \`trendLookback\`, \`emaFast\`, \`emaSlow\`, \`rsiPeriod\`
+
+## Strategy Pattern Library
+전략 교체(replace) 시 참고할 수 있는 검증된 패턴입니다.
+
+### CASH 전환 패턴 (트레일링 스탑)
+\`\`\`javascript
+// state.peakPriceSinceEntry를 매 캔들마다 갱신
+// 고점 대비 trailingStopPct 이상 하락 시 CASH 전환
+if (currentPrice < state.peakPriceSinceEntry * (1 - config.trailingStopPct)) {
+    return { action: 'SWITCH', details: { targetMarket: 'CASH', reason: 'trailing_stop' } };
+}
+\`\`\`
+
+### 크래시 감지 패턴 (15m)
+\`\`\`javascript
+// 최근 24h(96캔들) 내 최고가 대비 8%+ 하락 시 즉시 CASH
+const window = candles15m.slice(-96);
+const high = Math.max(...window.map(c => c.high));
+if ((currentPrice - high) / high < -0.08) {
+    return { action: 'SWITCH', details: { targetMarket: 'CASH', reason: 'crash_detected' } };
+}
+\`\`\`
+
+### 스마트 재진입 패턴
+\`\`\`javascript
+// CASH 상태에서 재진입 조건: RSI > 45 + 추세 확인 + 레짐 비횡보
+if (state.assetHeld === 'CASH') {
+    const best = findBestMarket(scores);
+    if (!best.isChoppy && best.rsi > 45 && best.trendCross > 0 && best.score > 0.1) {
+        return { action: 'SWITCH', details: { targetMarket: best.market, reason: 'reentry_from_cash' } };
+    }
+    return { action: 'HOLD', details: { asset: 'CASH', reason: 'reentry_conditions_not_met' } };
+}
+\`\`\`
+
+### 적응형 쿨다운 패턴
+\`\`\`javascript
+// 시장 평균 choppiness로 쿨다운 보간
+const avgChoppiness = Object.values(scores).reduce((a,s) => a + s.choppiness, 0) / n;
+const t = Math.min(1, Math.max(0, (avgChoppiness - 0.3) / 0.3));
+const cooldown = cooldownTrending + t * (cooldownChoppy - cooldownTrending);
+\`\`\`
 
 ## Constraints
 - The strategy must export: \`DEFAULT_CONFIG\`, \`createStrategyState()\`, \`onNewCandle(state, candleData, config?)\`

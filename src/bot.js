@@ -147,29 +147,38 @@ async function runStrategyBoundary() {
             return;
         }
 
-        // Re-entry from CASH
+        // Re-entry from CASH — let strategy decide
         if (state.assetHeld === 'CASH') {
-            log.info('Attempting re-entry from CASH.');
-            const defaultAsset = config.defaultAsset || markets[0];
-            const tempState = { ...state, assetHeld: defaultAsset };
-            const signal = strategy.onNewCandle(tempState, candleData);
+            log.info('In CASH state. Checking re-entry conditions...');
+            const signal = strategy.onNewCandle(state, candleData);
 
-            const krw = await api.getBalance('KRW');
-            const amt = Math.floor(krw * TRADE_RATIO);
+            if (signal.action === 'SWITCH' && signal.details && signal.details.targetMarket && signal.details.targetMarket !== 'CASH') {
+                const targetMarket = signal.details.targetMarket;
+                const krw = await api.getBalance('KRW');
+                const amt = Math.floor(krw * TRADE_RATIO);
 
-            if (amt > MIN_ORDER_KRW) {
-                let targetMarket = defaultAsset;
-                if (signal.action === 'SWITCH' && signal.details && signal.details.targetMarket) {
-                    targetMarket = signal.details.targetMarket;
+                if (amt > MIN_ORDER_KRW) {
+                    log.info(`Re-entry: Buying ${getCurrencyFromMarket(targetMarket)}. Reason: ${signal.details.reason || 'strategy'}`);
+                    await api.buyMarketOrder(targetMarket, amt);
+                    state.assetHeld = targetMarket;
+                    saveState();
+                    appendExecutionLog({
+                        from: 'CASH',
+                        to: targetMarket,
+                        mode: 'market',
+                        executed: true,
+                        method: 'reentry',
+                        reason: signal.details.reason || 'strategy',
+                    });
+                    writeHeartbeat('REENTRY');
+                } else {
+                    log.warn('Insufficient KRW for re-entry.');
+                    writeHeartbeat('CASH_LOW_BALANCE');
                 }
-                log.info(`Re-entry: Buying ${getCurrencyFromMarket(targetMarket)}.`);
-                await api.buyMarketOrder(targetMarket, amt);
-                state.assetHeld = targetMarket;
-                saveState();
             } else {
-                log.warn('Insufficient KRW for re-entry.');
+                log.info(`Staying in CASH. ${signal.details ? signal.details.reason || '' : ''}`);
+                writeHeartbeat('CASH_HOLD');
             }
-            writeHeartbeat('REENTRY');
             return;
         }
 

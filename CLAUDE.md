@@ -39,9 +39,19 @@ module.exports = {
 
 ### Action Types
 - `SWITCH`: Sell current asset, buy `details.targetMarket`
-- `SWITCH` (to CASH): `{ action: 'SWITCH', details: { targetMarket: 'CASH', reason: '...' } }` — sell to KRW, next cycle auto re-entry
-- `HOLD`: Keep current position
+- `SWITCH` (to CASH): `{ action: 'SWITCH', details: { targetMarket: 'CASH', reason: '...' } }` — sell to KRW, hold as cash
+- `SWITCH` (from CASH): Strategy's `checkReentry()` determines when to buy back (RSI + trend + cooldown)
+- `HOLD`: Keep current position (or stay in CASH)
 - `NONE`: No action (insufficient data)
+
+### Current Strategy: Adaptive Regime Multi-Timeframe
+- **15m 캔들**: 빠른 리스크 신호 (crash detection, trailing stop)
+- **4h 캔들**: 트렌드 스코어링, 레짐 감지, 스위칭 결정
+- **CASH 전환**: trailing stop (12%) + 24h crash detection (8%) → 자동 현금 전환
+- **적응형 쿨다운**: 트렌딩 시장 3일, 횡보 시장 14일 (choppiness 기반 보간)
+- **스마트 재진입**: RSI > 45 + 양의 스코어 + EMA 골든크로스 확인 후 매수
+- **그레이스 기간**: 진입 후 24h 동안 리스크 체크 비활성화 (whipsaw 방지)
+- **복합 스코어링**: 모멘텀(45%) + EMA 트렌드(25%) + 거래량(15%) + 볼린저(15%)
 
 ### Available Imports
 - `require('../indicators')` — built-in technical indicators (EMA, RSI, ATR, Kalman, etc.)
