@@ -13,7 +13,7 @@
 
 'use strict';
 
-const { calcEMASeries, calcRSI, calcBollingerBands, calcATR } = require('../indicators');
+const { calcEMASeries, calcRSI, calcBollingerBands, calcATR } = require('../core/indicators');
 
 const DEFAULT_CONFIG = {
     // 4h trend scoring

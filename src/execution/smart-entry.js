@@ -7,8 +7,8 @@
 
 'use strict';
 
-const api = require('../upbit-api');
-const { calcRSI, calcBollingerBands } = require('../indicators');
+const api = require('../core/upbit-api');
+const { calcRSI, calcBollingerBands } = require('../core/indicators');
 const { createLogger } = require('../utils/logger');
 
 const log = createLogger('SMART-ENTRY');

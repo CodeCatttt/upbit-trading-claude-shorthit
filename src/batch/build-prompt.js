@@ -275,7 +275,7 @@ function buildConstraintsSection() {
 - SWITCH to CASH: \`{ action: 'SWITCH', details: { targetMarket: 'CASH', reason: '...' } }\`
 - \`createStrategyState()\` must return \`{ assetHeld: 'KRW-BTC' }\`
 - DEFAULT_CONFIG must include \`executionMode\` and \`smartEntry\` fields
-- Available: \`require('../indicators')\`, \`require('./custom-indicators')\`, \`require('../utils/adf-test')\`
+- Available: \`require('../core/indicators')\`, \`require('./custom-indicators')\`, \`require('../utils/adf-test')\`
 - No external npm packages beyond what exists
 - Daily trade frequency < 6 trades/day
 - Backtest: 0.1% slippage (0.05% smart) + 0.05% fee per side

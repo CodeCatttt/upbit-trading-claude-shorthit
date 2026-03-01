@@ -1,7 +1,7 @@
 module.exports = {
     apps: [{
         name: 'upbit-trading-bot',
-        script: 'src/bot.js',
+        script: 'src/core/bot.js',
         cwd: '/home/kook/programming/upbit-trading-claude',
         max_restarts: 5,
         restart_delay: 10000,

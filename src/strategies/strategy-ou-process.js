@@ -5,7 +5,7 @@
 
 'use strict';
 
-const { calcPriceRatio, estimateOU, calculateDynamicThreshold } = require('../indicators');
+const { calcPriceRatio, estimateOU, calculateDynamicThreshold } = require('../core/indicators');
 const { runAdfTest } = require('../utils/adf-test');
 
 const DEFAULT_CONFIG = {

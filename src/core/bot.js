@@ -11,19 +11,19 @@ const cron = require('node-cron');
 const fs = require('fs');
 const path = require('path');
 const api = require('./upbit-api');
-const { executeSmartEntry } = require('./execution/smart-entry');
-const { createLogger } = require('./utils/logger');
+const { executeSmartEntry } = require('../execution/smart-entry');
+const { createLogger } = require('../utils/logger');
 
 const log = createLogger('BOT');
 
 const MIN_ORDER_KRW = 5500;
 const TRADE_RATIO = 0.995;
 
-const STATE_FILE = path.join(__dirname, '../bot-state.json');
-const HEARTBEAT_FILE = path.join(__dirname, '../data/bot-heartbeat.json');
-const EXECUTION_LOG_FILE = path.join(__dirname, '../data/execution-log.json');
-const STRATEGY_PATH = path.resolve(__dirname, './strategies/current-strategy.js');
-const CONFIG_FILE = path.join(__dirname, '../trading-config.json');
+const STATE_FILE = path.join(__dirname, '../../bot-state.json');
+const HEARTBEAT_FILE = path.join(__dirname, '../../data/bot-heartbeat.json');
+const EXECUTION_LOG_FILE = path.join(__dirname, '../../data/execution-log.json');
+const STRATEGY_PATH = path.resolve(__dirname, '../strategies/current-strategy.js');
+const CONFIG_FILE = path.join(__dirname, '../../trading-config.json');
 
 function loadTradingConfig() {
     try {
@@ -40,10 +40,10 @@ function loadTradingConfig() {
 
 function loadStrategy() {
     // Clear cache to pick up hot-swapped strategy files
-    delete require.cache[require.resolve('./strategies/current-strategy')];
-    const resolved = require.resolve('./strategies/current-strategy');
+    delete require.cache[require.resolve('../strategies/current-strategy')];
+    const resolved = require.resolve('../strategies/current-strategy');
     delete require.cache[resolved];
-    return require('./strategies/current-strategy');
+    return require('../strategies/current-strategy');
 }
 
 let strategy = loadStrategy();
@@ -140,7 +140,7 @@ async function runStrategyBoundary() {
 
         // Run shadow strategies (paper trading, no real orders)
         try {
-            const { runShadowCycle } = require('./batch/shadow-manager');
+            const { runShadowCycle } = require('../batch/shadow-manager');
             runShadowCycle(candleData);
         } catch (e) {
             // Shadow execution is non-critical

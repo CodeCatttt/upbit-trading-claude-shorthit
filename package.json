@@ -4,7 +4,7 @@
   "description": "Upbit BTC/ETH relative value trading bot with Claude-powered batch analysis",
   "type": "commonjs",
   "scripts": {
-    "start": "node src/bot.js",
+    "start": "node src/core/bot.js",
     "backtest": "node src/batch/backtest.js",
     "batch": "bash src/batch/run-batch.sh",
     "fetch-candles": "node src/data/candle-fetcher.js",

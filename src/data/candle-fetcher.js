@@ -8,7 +8,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const api = require('../upbit-api');
+const api = require('../core/upbit-api');
 const store = require('./candle-store');
 const { createLogger } = require('../utils/logger');
 

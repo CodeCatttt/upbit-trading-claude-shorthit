@@ -4,7 +4,7 @@ Upbit 멀티에셋 트레이딩 봇 with Claude-powered batch strategy analysis.
 
 ## Architecture
 
-- **Bot** (`src/bot.js`): PM2 process running 24/7, checks every 15 minutes
+- **Bot** (`src/core/bot.js`): PM2 process running 24/7, checks every 15 minutes
 - **Execution** (`src/execution/smart-entry.js`): Smart entry module — monitors short-term price for optimal buy timing
 - **Strategy** (`src/strategies/current-strategy.js`): Hot-swappable strategy file
 - **Custom Indicators** (`src/strategies/custom-indicators.js`): Claude-managed custom indicator functions
@@ -58,7 +58,7 @@ module.exports = {
 - **복합 스코어링**: 모멘텀(45%) + EMA 트렌드(25%) + 거래량(15%) + 볼린저(15%)
 
 ### Available Imports
-- `require('../indicators')` — built-in technical indicators (EMA, RSI, ATR, Kalman, etc.)
+- `require('../core/indicators')` — built-in technical indicators (EMA, RSI, ATR, Kalman, etc.)
 - `require('./custom-indicators')` — Claude-managed custom indicator functions
 - `require('../utils/adf-test')` — ADF stationarity test
 
@@ -159,10 +159,10 @@ module.exports = {
 
 | File | Purpose |
 |------|---------|
-| `src/bot.js` | Main bot (PM2 24/7, multi-timeframe + shadow execution) |
+| `src/core/bot.js` | Main bot (PM2 24/7, multi-timeframe + shadow execution) |
+| `src/core/upbit-api.js` | Upbit API wrapper (+ orderbook, ticker) |
+| `src/core/indicators.js` | Technical indicators library |
 | `src/execution/smart-entry.js` | Smart entry module (RSI dip, pullback, Bollinger) |
-| `src/upbit-api.js` | Upbit API wrapper (+ orderbook, ticker) |
-| `src/indicators.js` | Technical indicators library |
 | `src/strategies/current-strategy.js` | Active strategy (replaced on deploy) |
 | `src/strategies/custom-indicators.js` | Custom indicator functions (Claude-managed) |
 | `src/batch/batch-scheduler.js` | Adaptive batch scheduler (PM2, trigger-based) |

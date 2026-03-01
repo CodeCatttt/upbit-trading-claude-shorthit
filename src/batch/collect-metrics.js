@@ -10,7 +10,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const api = require('../upbit-api');
+const api = require('../core/upbit-api');
 const { createLogger } = require('../utils/logger');
 
 const log = createLogger('METRICS');
