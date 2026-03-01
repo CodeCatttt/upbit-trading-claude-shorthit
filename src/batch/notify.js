@@ -17,6 +17,7 @@ const COLORS = {
     replace_success: 0x2ECC71, // 초록색
     replace_fail: 0xE74C3C,   // 빨간색
     modify_fail: 0xE67E22,    // 주황색
+    experiment: 0x9B59B6,     // 보라색
 };
 
 function formatKeep(data) {
@@ -96,6 +97,17 @@ function formatModifyFail(data) {
     };
 }
 
+function formatExperiment(data) {
+    return {
+        title: '🧪 배치 분석 완료 — 실험 등록',
+        color: COLORS.experiment,
+        fields: [
+            { name: '가설', value: data.hypothesis || '—', inline: false },
+            { name: '사유', value: data.reasoning || '—', inline: false },
+        ],
+    };
+}
+
 function formatMarketsUpdated(data) {
     return {
         title: '🔄 관심 종목 변경',
@@ -122,6 +134,7 @@ async function main() {
         case 'replace_success':  embed = formatReplaceSuccess(data); break;
         case 'replace_fail':     embed = formatReplaceFail(data); break;
         case 'markets_updated':  embed = formatMarketsUpdated(data); break;
+        case 'experiment':       embed = formatExperiment(data); break;
         default:
             console.error('Unknown type:', data.type);
             process.exit(1);

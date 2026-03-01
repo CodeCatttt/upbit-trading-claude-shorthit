@@ -217,6 +217,14 @@ function calcMarketRegime(marketData) {
 async function collectMetrics() {
     log.info('Collecting metrics...');
 
+    // Record daily performance (idempotent — skips if already recorded today)
+    try {
+        const { recordDaily } = require('./performance-tracker');
+        await recordDaily();
+    } catch (e) {
+        log.warn('Performance tracking skipped:', e.message);
+    }
+
     const tradingConfig = loadTradingConfig();
     const markets = tradingConfig.markets;
 
@@ -321,6 +329,41 @@ async function collectMetrics() {
     const executionQuality = calcExecutionQuality();
     const marketRegime = calcMarketRegime(marketData);
 
+    // 7. Orderbook spreads
+    const orderbookSpread = {};
+    for (const market of markets) {
+        try {
+            const ob = await api.getOrderbook(market);
+            if (ob) orderbookSpread[market] = ob;
+        } catch (e) {
+            log.warn(`Failed to get orderbook for ${market}: ${e.message}`);
+        }
+    }
+
+    // 8. Trade intensity (buy/sell ratio from ticker)
+    const tradeIntensity = {};
+    try {
+        const tickers = await api.getTicker(markets);
+        for (const [market, ticker] of Object.entries(tickers)) {
+            const ob = orderbookSpread[market];
+            if (ob) {
+                const totalBid = ob.totalBidSize || 0;
+                const totalAsk = ob.totalAskSize || 0;
+                const ratio = totalAsk > 0 ? +(totalBid / totalAsk).toFixed(2) : 0;
+                tradeIntensity[market] = {
+                    buyVolume: totalBid,
+                    sellVolume: totalAsk,
+                    ratio,
+                    accTradePrice24h: ticker.accTradePrice24h,
+                    change: ticker.change,
+                    signedChangeRate: ticker.signedChangeRate,
+                };
+            }
+        }
+    } catch (e) {
+        log.warn('Failed to collect trade intensity:', e.message);
+    }
+
     const metrics = {
         timestamp: new Date().toISOString(),
         portfolio: {
@@ -358,6 +401,8 @@ async function collectMetrics() {
         },
         executionQuality,
         marketRegime,
+        orderbookSpread,
+        tradeIntensity,
     };
 
     // Save

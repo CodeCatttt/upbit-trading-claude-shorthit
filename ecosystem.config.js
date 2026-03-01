@@ -8,5 +8,14 @@ module.exports = {
         env: {
             NODE_ENV: 'production',
         },
+    }, {
+        name: 'batch-scheduler',
+        script: 'src/batch/batch-scheduler.js',
+        cwd: '/home/kook/programming/upbit-trading-claude',
+        max_restarts: 3,
+        restart_delay: 60000,
+        env: {
+            NODE_ENV: 'production',
+        },
     }],
 };

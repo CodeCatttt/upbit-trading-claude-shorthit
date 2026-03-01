@@ -53,8 +53,9 @@ node src/batch/collect-metrics.js > /dev/null
 echo "[Step 1] Done."
 
 # Step 2: Build prompt and call Claude
-echo "[Step 2] Building prompt and calling Claude..."
-PROMPT=$(node src/batch/build-prompt.js)
+TRIGGER_TYPE="${BATCH_TRIGGER:-DAILY_REVIEW}"
+echo "[Step 2] Building prompt (trigger: $TRIGGER_TYPE) and calling Claude..."
+PROMPT=$(BATCH_TRIGGER="$TRIGGER_TYPE" node src/batch/build-prompt.js)
 
 CLAUDE_OUTPUT=$(echo "$PROMPT" | timeout 600 env -u CLAUDECODE claude --model claude-opus-4-6 --allowedTools "WebSearch" -p 2>/dev/null || true)
 
@@ -118,7 +119,7 @@ if [ "$ACTION" = "keep" ]; then
         process.stdin.on('end',()=>{
             const r=JSON.parse(d).decision;
             const {appendEntry}=require('./src/batch/update-memory');
-            appendEntry({action:'keep',reasoning:r.reasoning,confidence:r.confidence,outcome:'kept',improvementAreas:r.improvementAreas||null,notes:r.notes||'',strategicNotes:r.strategicNotes});
+            appendEntry({action:'keep',reasoning:r.reasoning,confidence:r.confidence,outcome:'kept',improvementAreas:r.improvementAreas||null,notes:r.notes||'',strategicNotes:r.strategicNotes,knowledge:r.knowledge||null,triggerType:'$TRIGGER_TYPE'});
         });
     "
     echo "Batch complete."
@@ -191,7 +192,7 @@ if [ "$ACTION" = "modify" ]; then
                 const r=JSON.parse(d).decision;
                 const comp=$MODIFY_COMPARISON;
                 const {appendEntry}=require('./src/batch/update-memory');
-                appendEntry({action:'modify',reasoning:r.reasoning,confidence:r.confidence,parameters:r.parameters,outcome:'gate_failed',improvementAreas:r.improvementAreas||null,backtestResult:comp,notes:r.notes||'',strategicNotes:r.strategicNotes});
+                appendEntry({action:'modify',reasoning:r.reasoning,confidence:r.confidence,parameters:r.parameters,outcome:'gate_failed',improvementAreas:r.improvementAreas||null,backtestResult:comp,notes:r.notes||'',strategicNotes:r.strategicNotes,knowledge:r.knowledge||null,triggerType:'$TRIGGER_TYPE'});
             });
         "
         notify_batch '{"type":"modify_fail","reasoning":"modify gate failed"}'
@@ -218,10 +219,105 @@ if [ "$ACTION" = "modify" ]; then
         process.stdin.on('end',()=>{
             const r=JSON.parse(d).decision;
             const {appendEntry}=require('./src/batch/update-memory');
-            appendEntry({action:'modify',reasoning:r.reasoning,confidence:r.confidence,parameters:r.parameters,outcome:'applied',improvementAreas:r.improvementAreas||null,notes:r.notes||'',strategicNotes:r.strategicNotes});
+            appendEntry({action:'modify',reasoning:r.reasoning,confidence:r.confidence,parameters:r.parameters,outcome:'applied',improvementAreas:r.improvementAreas||null,notes:r.notes||'',strategicNotes:r.strategicNotes,knowledge:r.knowledge||null,triggerType:'$TRIGGER_TYPE'});
         });
     "
     echo "Batch complete (parameters modified)."
+    exit 0
+fi
+
+# =====================================================================
+# EXPERIMENT PATH — structured hypothesis testing
+# =====================================================================
+
+if [ "$ACTION" = "experiment" ]; then
+    echo "[Step 4] EXPERIMENT path — structured hypothesis testing"
+
+    EXPERIMENT_DATA=$(json_field "$PARSE_RESULT" "JSON.stringify(o.decision.experiment||{})")
+    HYPOTHESIS=$(json_field "$PARSE_RESULT" "o.decision.experiment?o.decision.experiment.hypothesis:'unknown'")
+    DESIGN_TYPE=$(json_field "$PARSE_RESULT" "o.decision.experiment&&o.decision.experiment.design?o.decision.experiment.design.type:'unknown'")
+
+    echo "  Hypothesis: $HYPOTHESIS"
+    echo "  Design type: $DESIGN_TYPE"
+
+    # Process experiment via experiment-manager
+    EXPERIMENT_RESULT=$(node -e "
+        const { processExperimentAction } = require('./src/batch/experiment-manager');
+        const expData = $EXPERIMENT_DATA;
+        const result = processExperimentAction(expData, null);
+        console.log(JSON.stringify(result));
+    " 2>/dev/null || echo '{"success":false,"reason":"experiment_error"}')
+
+    EXP_SUCCESS=$(json_field "$EXPERIMENT_RESULT" "o.success")
+    echo "  Experiment registered: $EXP_SUCCESS"
+
+    if [ "$EXP_SUCCESS" = "true" ]; then
+        # If experiment includes strategy code (parameter_test with code), backtest it
+        HAS_STRATEGY_CODE=$(json_field "$PARSE_RESULT" "o.strategyCode?'true':'false'")
+
+        if [ "$HAS_STRATEGY_CODE" = "true" ]; then
+            echo "  Backtesting experiment strategy..."
+            EXP_ID=$(json_field "$EXPERIMENT_RESULT" "o.experiment.id")
+
+            echo "$PARSE_RESULT" | node -e "
+                process.stdin.setEncoding('utf8');let d='';
+                process.stdin.on('data',c=>d+=c);
+                process.stdin.on('end',()=>{
+                    const r=JSON.parse(d);
+                    if (r.strategyCode) require('fs').writeFileSync('$TEMP_STRATEGY', r.strategyCode);
+                });
+            "
+
+            if [ -f "$TEMP_STRATEGY" ]; then
+                EXP_BACKTEST=$(node src/batch/backtest.js --walk-forward "$TEMP_STRATEGY" 2>/dev/null || echo '{"test":{"error":"backtest failed"}}')
+                CURRENT_WF=$(node src/batch/backtest.js --walk-forward src/strategies/current-strategy.js 2>/dev/null || echo '{"test":{"error":"backtest failed"}}')
+
+                EXP_COMPARISON=$(node -e "
+                    const { compareStrategies } = require('./src/batch/backtest');
+                    const currentWF = $CURRENT_WF;
+                    const newWF = $EXP_BACKTEST;
+                    const cTest = currentWF.test || {};
+                    const nTest = newWF.test || {};
+                    if (cTest.error || nTest.error) {
+                        console.log(JSON.stringify({pass:false, reasons:['Backtest error']}));
+                    } else {
+                        const cMetrics = cTest.measurePeriod || cTest;
+                        const nMetrics = nTest.measurePeriod || nTest;
+                        console.log(JSON.stringify(compareStrategies(cMetrics, nMetrics, 'replace')));
+                    }
+                ")
+
+                # Update experiment with backtest results
+                node -e "
+                    const { updateExperimentStatus } = require('./src/batch/experiment-manager');
+                    const comp = $EXP_COMPARISON;
+                    const status = comp.pass ? 'backtest_passed' : 'backtest_failed';
+                    updateExperimentStatus('$EXP_ID', status, {
+                        backtestReturn: comp.returnImprovement,
+                        backtestMdd: comp.drawdownWorsening,
+                    });
+                "
+                echo "  Experiment backtest: $(json_field "$EXP_COMPARISON" "o.pass?'PASSED':'FAILED'")"
+                rm -f "$TEMP_STRATEGY"
+            fi
+        fi
+    fi
+
+    # Update batch memory
+    echo "$PARSE_RESULT" | node -e "
+        process.stdin.setEncoding('utf8');let d='';
+        process.stdin.on('data',c=>d+=c);
+        process.stdin.on('end',()=>{
+            const r=JSON.parse(d).decision;
+            const {appendEntry}=require('./src/batch/update-memory');
+            appendEntry({action:'experiment',reasoning:r.reasoning,confidence:r.confidence,outcome:'registered',improvementAreas:r.improvementAreas||null,notes:r.notes||'',strategicNotes:r.strategicNotes,knowledge:r.knowledge||null,triggerType:'$TRIGGER_TYPE'});
+        });
+    "
+
+    NOTIFY_JSON=$(json_field "$PARSE_RESULT" "JSON.stringify({type:'experiment',hypothesis:o.decision.experiment?o.decision.experiment.hypothesis:'',reasoning:o.decision.reasoning||''})")
+    notify_batch "$NOTIFY_JSON"
+
+    echo "Batch complete (experiment registered)."
     exit 0
 fi
 
@@ -434,7 +530,7 @@ for ATTEMPT in $(seq 0 $MAX_RETRIES); do
             "
 
             # Validate syntax first
-            SYNTAX_OK=$(node -c "$TEMP_STRATEGY" 2>&1 && echo "true" || echo "false")
+            SYNTAX_OK=$(node --check "$TEMP_STRATEGY" 2>&1 && echo "true" || echo "false")
             if [ "$SYNTAX_OK" != "true" ]; then
                 echo "    Variant $VARIANT_LABEL: syntax error, skipping."
                 rm -f "$TEMP_STRATEGY"
@@ -542,6 +638,8 @@ if [ -z "${WINNING_CODE:-}" ]; then
                 backtestResult:${LAST_GATE_RESULT:-null},
                 notes:r.notes||'',
                 strategicNotes:r.strategicNotes,
+                knowledge:r.knowledge||null,
+                triggerType:'$TRIGGER_TYPE',
                 retryAttempts:$((MAX_RETRIES + 1)),
                 variantsTested:$TOTAL_VARIANTS_TESTED,
                 diagnosis:$(node -e "
@@ -641,7 +739,7 @@ if [ "$DEPLOY_SUCCESS" = "true" ]; then
             const r=JSON.parse(d).decision;
             const comp=$WINNING_COMPARISON;
             const {appendEntry}=require('./src/batch/update-memory');
-            appendEntry({action:'replace',reasoning:r.reasoning,confidence:r.confidence,outcome:'deployed',improvementAreas:r.improvementAreas||null,backtestResult:comp,notes:r.notes||'',strategicNotes:r.strategicNotes,retryAttempts:$((ATTEMPT + 1)),variantsTested:$TOTAL_VARIANTS_TESTED});
+            appendEntry({action:'replace',reasoning:r.reasoning,confidence:r.confidence,outcome:'deployed',improvementAreas:r.improvementAreas||null,backtestResult:comp,notes:r.notes||'',strategicNotes:r.strategicNotes,knowledge:r.knowledge||null,triggerType:'$TRIGGER_TYPE',retryAttempts:$((ATTEMPT + 1)),variantsTested:$TOTAL_VARIANTS_TESTED});
         });
     "
 
@@ -669,7 +767,7 @@ else
             const r=JSON.parse(d).decision;
             const comp=$WINNING_COMPARISON;
             const {appendEntry}=require('./src/batch/update-memory');
-            appendEntry({action:'replace',reasoning:r.reasoning,confidence:r.confidence,outcome:'deploy_failed',improvementAreas:r.improvementAreas||null,backtestResult:comp,notes:r.notes||'',strategicNotes:r.strategicNotes,retryAttempts:$((ATTEMPT + 1)),variantsTested:$TOTAL_VARIANTS_TESTED});
+            appendEntry({action:'replace',reasoning:r.reasoning,confidence:r.confidence,outcome:'deploy_failed',improvementAreas:r.improvementAreas||null,backtestResult:comp,notes:r.notes||'',strategicNotes:r.strategicNotes,knowledge:r.knowledge||null,triggerType:'$TRIGGER_TYPE',retryAttempts:$((ATTEMPT + 1)),variantsTested:$TOTAL_VARIANTS_TESTED});
         });
     "
 

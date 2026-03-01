@@ -87,7 +87,7 @@ function validateDecision(decision) {
         errors.push('No decision JSON found');
         return errors;
     }
-    if (!['keep', 'modify', 'replace'].includes(decision.action)) {
+    if (!['keep', 'modify', 'replace', 'experiment'].includes(decision.action)) {
         errors.push(`Invalid action: ${decision.action}`);
     }
     if (typeof decision.reasoning !== 'string' || decision.reasoning.length === 0) {
@@ -116,6 +116,23 @@ function validateDecision(decision) {
                 }
             }
         }
+    }
+    // Validate experiment field if action is experiment
+    if (decision.action === 'experiment') {
+        if (!decision.experiment || typeof decision.experiment !== 'object') {
+            errors.push('experiment action requires an "experiment" field');
+        } else {
+            if (!decision.experiment.hypothesis) {
+                errors.push('experiment.hypothesis is required');
+            }
+            if (!decision.experiment.design || typeof decision.experiment.design !== 'object') {
+                errors.push('experiment.design is required');
+            }
+        }
+    }
+    // Validate knowledge field if present
+    if (decision.knowledge !== undefined && typeof decision.knowledge !== 'object') {
+        errors.push('knowledge must be an object with confirmed/hypotheses/rejected arrays');
     }
     // Validate markets field if present
     if (decision.markets !== undefined) {

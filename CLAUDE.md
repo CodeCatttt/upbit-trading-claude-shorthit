@@ -8,8 +8,12 @@ Upbit 멀티에셋 트레이딩 봇 with Claude-powered batch strategy analysis.
 - **Execution** (`src/execution/smart-entry.js`): Smart entry module — monitors short-term price for optimal buy timing
 - **Strategy** (`src/strategies/current-strategy.js`): Hot-swappable strategy file
 - **Custom Indicators** (`src/strategies/custom-indicators.js`): Claude-managed custom indicator functions
-- **Batch** (`src/batch/run-batch.sh`): 1-hour cron — collects metrics → calls Claude → backtests → deploys (retry loop + multi-variant)
-- **Batch Memory** (`data/batch-memory.json`): Decision history for cross-batch learning (includes failure diagnostics)
+- **Batch Scheduler** (`src/batch/batch-scheduler.js`): PM2 process — trigger-based adaptive batch scheduling (replaces fixed cron)
+- **Batch** (`src/batch/run-batch.sh`): Pipeline orchestrator — collects metrics → calls Claude → backtests → deploys (retry loop + multi-variant)
+- **Batch Memory** (`data/batch-memory.json`): Decision history + structured knowledge base for cross-batch learning
+- **Performance Tracker** (`src/batch/performance-tracker.js`): Daily real P&L vs BTC benchmark tracking
+- **Experiment Manager** (`src/batch/experiment-manager.js`): Structured hypothesis → test → learn cycle
+- **Shadow Manager** (`src/batch/shadow-manager.js`): Paper-trading parallel strategy evaluation
 - **Config** (`trading-config.json`): Dynamic market list, updated by Claude at each batch
 
 ## Strategy Interface (Multi-Timeframe)
@@ -63,12 +67,51 @@ module.exports = {
 - Intervals: 15m (primary), 240m (4h higher-timeframe context)
 - Backtest runs on 15m candles; 240m aligned by timestamp at each step
 
-## Batch Memory
+## Batch Scheduling (Adaptive)
+
+**Trigger-based scheduling** — replaces fixed hourly cron:
+
+| Trigger | Condition | Prompt Mode |
+|---------|-----------|-------------|
+| REGIME_CHANGE | 24h price change > 5% (any asset) | 전략 교체/수정 집중 |
+| DRAWDOWN_ALERT | Portfolio MDD > 8% | 리스크 관리 집중 |
+| STAGNATION | 7+ days since last trade | 기회 탐색 집중 |
+| DAILY_REVIEW | Daily candle close (UTC 0:00) | 전반적 점검 |
+| EXPERIMENT_REVIEW | Active experiment duration met | 실험 결과 평가 |
+
+- Minimum 6h between batches (prevents spam)
+- `BATCH_TRIGGER` env var passed to `build-prompt.js` for focused prompts
+- PM2 process: `batch-scheduler` (checks every 15 minutes)
+
+## Batch Memory & Knowledge Base
 - File: `data/batch-memory.json`
 - Stores last 50 batch decisions with action, reasoning, outcome, notes
-- `strategicNotes`: accumulated strategic insights (Claude replaces each time)
-- Enhanced fields: `retryAttempts`, `variantsTested`, `diagnosis` (failure context)
-- Helper: `src/batch/update-memory.js` — auto-called by run-batch.sh after each decision
+- **Structured Knowledge** (replaces flat strategicNotes):
+  - `knowledge.confirmed`: 백테스트+실거래로 검증된 사실 (max 20)
+  - `knowledge.hypotheses`: 검증 대기 중인 가설 (max 20)
+  - `knowledge.rejected`: 실험으로 반증된 가설 (max 20)
+- Helper: `src/batch/update-memory.js` — auto-called by run-batch.sh
+
+## Performance Tracking
+- File: `data/performance-ledger.json`
+- Daily recording: portfolio value, BTC benchmark, alpha, MDD
+- Tracked automatically during `collect-metrics.js`
+- Summary (totalReturn, btcReturn, alpha, maxMdd, winRate) included in batch prompt
+
+## Experiment Framework
+- File: `data/experiments.json`
+- Lifecycle: propose → backtest → deploy/reject → evaluate → learn
+- Max 2 active experiments simultaneously
+- Types: `parameter_test`, `shadow_strategy`
+- Batch response `"action": "experiment"` triggers proposal
+- Completed experiments generate knowledge entries (confirmed/rejected)
+
+## Shadow Strategy System
+- Directory: `data/shadow-strategies/`
+- Performance: `data/shadow-performance.json`
+- New strategies run in paper-trading mode alongside live strategy
+- Bot executes shadow cycles each 15-minute tick (no real orders)
+- 7-day evaluation period before promotion decision
 
 ## Custom Indicators
 - File: `src/strategies/custom-indicators.js`
@@ -116,23 +159,31 @@ module.exports = {
 
 | File | Purpose |
 |------|---------|
-| `src/bot.js` | Main bot (PM2 24/7, multi-timeframe) |
+| `src/bot.js` | Main bot (PM2 24/7, multi-timeframe + shadow execution) |
 | `src/execution/smart-entry.js` | Smart entry module (RSI dip, pullback, Bollinger) |
-| `src/upbit-api.js` | Upbit API wrapper |
+| `src/upbit-api.js` | Upbit API wrapper (+ orderbook, ticker) |
 | `src/indicators.js` | Technical indicators library |
 | `src/strategies/current-strategy.js` | Active strategy (replaced on deploy) |
 | `src/strategies/custom-indicators.js` | Custom indicator functions (Claude-managed) |
-| `src/batch/run-batch.sh` | Batch pipeline orchestrator (retry + multi-variant) |
+| `src/batch/batch-scheduler.js` | Adaptive batch scheduler (PM2, trigger-based) |
+| `src/batch/run-batch.sh` | Batch pipeline orchestrator (retry + multi-variant + experiment) |
 | `src/batch/backtest.js` | Multi-timeframe backtest engine with slippage |
 | `src/batch/diagnose-failure.js` | Gate failure diagnosis for retry prompts |
 | `src/batch/build-retry-prompt.js` | Focused retry prompt builder |
-| `src/batch/collect-metrics.js` | Enhanced metrics (Sharpe, win rate, rolling returns) |
-| `src/batch/build-prompt.js` | Multi-timeframe prompt assembly |
+| `src/batch/collect-metrics.js` | Enhanced metrics (Sharpe, win rate, orderbook, trade intensity) |
+| `src/batch/build-prompt.js` | Trigger-based focused prompt assembly |
 | `src/batch/deploy.js` | Safe deploy with dry-run + rollback (strategy + custom indicators) |
-| `src/batch/update-memory.js` | Batch memory append helper |
-| `src/batch/parse-response.js` | Response parsing + multi-variant extraction |
+| `src/batch/update-memory.js` | Batch memory + structured knowledge management |
+| `src/batch/parse-response.js` | Response parsing (+ experiment action) |
+| `src/batch/performance-tracker.js` | Real P&L vs BTC benchmark daily tracking |
+| `src/batch/experiment-manager.js` | Structured experiment lifecycle management |
+| `src/batch/shadow-manager.js` | Shadow (paper-trading) strategy parallel execution |
 | `trading-config.json` | Dynamic market list + intervals |
-| `data/batch-memory.json` | Batch decision history (max 50 entries) |
+| `data/batch-memory.json` | Batch decisions + structured knowledge base |
+| `data/performance-ledger.json` | Daily portfolio performance records |
+| `data/experiments.json` | Active/completed experiments |
+| `data/shadow-strategies/` | Shadow strategy files |
+| `data/shadow-performance.json` | Shadow strategy performance tracking |
 | `bot-state.json` | Bot state (assetHeld as market code) |
 | `deploy-log.json` | Deploy history |
 | `data/execution-log.json` | Execution log (smart entry results, max 100) |
@@ -160,14 +211,22 @@ smartEntry: {
 
 ```json
 {
-  "action": "keep" | "modify" | "replace",
+  "action": "keep" | "modify" | "replace" | "experiment",
   "reasoning": "한국어 사유",
   "confidence": 0.0~1.0,
   "parameters": {},
   "markets": ["KRW-BTC", "KRW-ETH", "KRW-SOL"],
   "improvementAreas": ["strategy", "execution", "risk", "assets", "regime"],
   "notes": "다음 배치를 위한 메모 (선택사항)",
-  "strategicNotes": "전략적 인사이트 누적 (선택사항)"
+  "knowledge": {
+    "confirmed": [{"insight": "...", "evidence": "..."}],
+    "hypotheses": [{"hypothesis": "...", "status": "proposed"}],
+    "rejected": [{"hypothesis": "...", "reason": "..."}]
+  },
+  "experiment": {
+    "hypothesis": "...",
+    "design": {"type": "parameter_test", "changes": {}, "duration": "7d", "successCriteria": "..."}
+  }
 }
 ```
 
@@ -186,4 +245,6 @@ For "replace" action, additional code blocks:
 - Replace retry loop: 게이트 실패 시 최대 2회 자동 재시도 (진단 기반 타겟 수정)
 - Atomic state file writes (crash-safe)
 - Market removal safety: 보유 종목은 자동으로 관심 리스트에 유지
-- Batch memory: 최근 50개 결정 기록으로 학습 패턴 추적
+- Batch memory: 최근 50개 결정 기록 + 구조화된 학습 지식 추적
+- Shadow strategies: 새 전략을 7일간 페이퍼 트레이딩 후 승격/폐기 결정
+- Adaptive scheduling: 트리거 기반 배치 실행, 최소 6시간 간격 보장

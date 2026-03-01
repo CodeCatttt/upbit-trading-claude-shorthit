@@ -138,6 +138,15 @@ async function runStrategyBoundary() {
 
         const candleData = await fetchCandleData(effectiveMarkets, intervals);
 
+        // Run shadow strategies (paper trading, no real orders)
+        try {
+            const { runShadowCycle } = require('./batch/shadow-manager');
+            runShadowCycle(candleData);
+        } catch (e) {
+            // Shadow execution is non-critical
+            if (e.code !== 'MODULE_NOT_FOUND') log.warn('Shadow cycle error:', e.message);
+        }
+
         // Verify we have sufficient data for at least some markets (check 15m candles)
         const marketsWithData = Object.entries(candleData)
             .filter(([, intervals]) => intervals[15] && intervals[15].length >= 21);

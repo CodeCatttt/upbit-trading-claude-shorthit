@@ -144,6 +144,64 @@ async function getRecentOrders(limit = 10) {
     }
 }
 
+/**
+ * Get orderbook (bid-ask spread) for a market.
+ * Returns { bidPrice, askPrice, spreadPct, bidSize, askSize }
+ */
+async function getOrderbook(market) {
+    try {
+        const res = await axios.get(`${server_url}/v1/orderbook?markets=${market}`);
+        const data = res.data[0];
+        if (!data || !data.orderbook_units || data.orderbook_units.length === 0) return null;
+
+        const top = data.orderbook_units[0];
+        const bidPrice = top.bid_price;
+        const askPrice = top.ask_price;
+        const spreadPct = +((askPrice - bidPrice) / bidPrice * 100).toFixed(4);
+
+        return {
+            bidPrice,
+            askPrice,
+            spreadPct,
+            bidSize: top.bid_size,
+            askSize: top.ask_size,
+            totalBidSize: data.total_bid_size,
+            totalAskSize: data.total_ask_size,
+        };
+    } catch (e) {
+        console.error(`Error getOrderbook for ${market}:`, e.message);
+        return null;
+    }
+}
+
+/**
+ * Get ticker data for markets (24h stats, trade intensity).
+ * Returns { tradeVolume, tradeValue, prevClosingPrice, change, changeRate, signedChangeRate }
+ */
+async function getTicker(markets) {
+    try {
+        const marketStr = Array.isArray(markets) ? markets.join(',') : markets;
+        const res = await axios.get(`${server_url}/v1/ticker?markets=${marketStr}`);
+        const result = {};
+        for (const t of res.data) {
+            result[t.market] = {
+                tradePrice: t.trade_price,
+                prevClosingPrice: t.prev_closing_price,
+                change: t.change, // RISE, EVEN, FALL
+                signedChangeRate: t.signed_change_rate,
+                accTradePrice24h: t.acc_trade_price_24h,
+                accTradeVolume24h: t.acc_trade_volume_24h,
+                highest52WeekPrice: t.highest_52_week_price,
+                lowest52WeekPrice: t.lowest_52_week_price,
+            };
+        }
+        return result;
+    } catch (e) {
+        console.error('Error getTicker:', e.message);
+        return {};
+    }
+}
+
 module.exports = {
     getBalance,
     getBalances,
@@ -153,4 +211,6 @@ module.exports = {
     buyMarketOrder,
     sellMarketOrder,
     getRecentOrders,
+    getOrderbook,
+    getTicker,
 };
