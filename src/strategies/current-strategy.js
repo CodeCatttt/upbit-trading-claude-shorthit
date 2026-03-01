@@ -10,14 +10,14 @@
 const { calcEMASeries, calcRSI } = require('../indicators');
 
 const DEFAULT_CONFIG = {
-    trendLookback: 48,         // 48 × 4h = 8 days for momentum
+    trendLookback: 72,         // 48 × 4h = 8 days for momentum
     emaFast: 9,                // Fast EMA on 4h (~36h)
     emaSlow: 26,               // Slow EMA on 4h (~4.3 days)
     rsiPeriod: 14,             // RSI on 4h
     choppinessPeriod: 20,      // 20 × 4h = ~3.3 days for regime detection
-    choppinessThreshold: 0.55, // Above = choppy/ranging, block switching
-    switchThreshold: 0.15,     // Minimum score advantage to trigger switch
-    cooldownCandles: 288,      // 288 × 15min = 3 days between trades
+    choppinessThreshold: 0.45, // Above = choppy/ranging, block switching
+    switchThreshold: 0.3,     // Minimum score advantage to trigger switch
+    cooldownCandles: 672,      // 288 × 15min = 3 days between trades
 };
 
 function createStrategyState() {
