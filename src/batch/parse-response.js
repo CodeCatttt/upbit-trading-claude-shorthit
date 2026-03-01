@@ -35,6 +35,18 @@ function extractLastJsBlock(text) {
     return matches[matches.length - 1][1].trim();
 }
 
+function extractAllJsBlocks(text) {
+    const matches = [...text.matchAll(/```javascript\s*\n([\s\S]*?)\n\s*```/g)];
+    if (matches.length === 0) return [];
+    return matches.map(m => {
+        const code = m[1].trim();
+        // Extract VARIANT label from first line comment
+        const labelMatch = code.match(/^\/\/\s*VARIANT:\s*(.+)$/m);
+        const label = labelMatch ? labelMatch[1].trim() : null;
+        return { code, label };
+    });
+}
+
 function extractCustomIndicatorsBlock(text) {
     const matches = [...text.matchAll(/```custom-indicators\s*\n([\s\S]*?)\n\s*```/g)];
     if (matches.length === 0) return null;
@@ -220,7 +232,13 @@ function parseResponse(text) {
     let customIndicatorsCode = null;
     let customIndicatorsErrors = [];
 
+    let strategyVariants = [];
+
     if (decision && decision.action === 'replace') {
+        const allBlocks = extractAllJsBlocks(text);
+        strategyVariants = allBlocks;
+
+        // Backward compat: use the last JS block as strategyCode
         strategyCode = extractLastJsBlock(text);
         codeErrors = validateStrategyCode(strategyCode);
 
@@ -235,6 +253,7 @@ function parseResponse(text) {
         valid: allErrors.length === 0,
         decision,
         strategyCode,
+        strategyVariants,
         customIndicatorsCode,
         errors: allErrors,
     };
@@ -256,4 +275,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = { parseResponse, extractLastJsonBlock, extractLastJsBlock, extractCustomIndicatorsBlock };
+module.exports = { parseResponse, extractLastJsonBlock, extractLastJsBlock, extractAllJsBlocks, extractCustomIndicatorsBlock };

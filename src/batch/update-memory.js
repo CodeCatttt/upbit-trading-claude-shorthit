@@ -48,6 +48,9 @@ function appendEntry(data) {
         backtestResult: data.backtestResult || null,
         outcome: data.outcome || 'unknown',
         notes: data.notes || '',
+        retryAttempts: data.retryAttempts || null,
+        variantsTested: data.variantsTested || null,
+        diagnosis: data.diagnosis || null,
     };
 
     memory.entries.push(entry);

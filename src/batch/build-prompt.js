@@ -242,6 +242,30 @@ ${(() => {
     return lines.join('\n');
 })()}
 
+## Gate Failure History (Recent)
+${(() => {
+    const failures = (memory.entries || [])
+        .filter(e => e.outcome === 'backtest_failed' || e.outcome === 'gate_failed' || e.outcome === 'all_retries_failed')
+        .slice(-5);
+    if (failures.length === 0) return '최근 게이트 실패 이력 없음.';
+    return failures.map(e => {
+        const parts = [`- [${e.timestamp}] ${e.action} → ${e.outcome}`];
+        if (e.backtestResult) {
+            const r = e.backtestResult;
+            parts.push(`  수익률 차이: ${r.returnImprovement != null ? r.returnImprovement + '%' : 'N/A'}, MDD 악화: ${r.drawdownWorsening != null ? r.drawdownWorsening + '%' : 'N/A'}, 일일거래: ${r.dailyTrades != null ? r.dailyTrades : 'N/A'}`);
+        }
+        if (e.diagnosis) parts.push(`  진단: ${e.diagnosis}`);
+        if (e.retryAttempts) parts.push(`  시도: ${e.retryAttempts}회, 변형: ${e.variantsTested || 0}개`);
+        return parts.join('\n');
+    }).join('\n');
+})()}
+
+## Multi-Variant Mode
+replace 시 최대 3개 변형을 제출할 수 있습니다.
+각 \`\`\`javascript 블록 첫줄에 \`// VARIANT: 라벨\` 작성.
+모든 변형을 독립 백테스트하여 게이트 통과하는 최고 성과 변형을 배포합니다.
+실패 시 자동으로 최대 2회 재시도합니다 (재시도 프롬프트에 실패 진단 포함).
+
 ## Innovation Signals
 ${(() => {
     const nudge = getInnovationNudge(memory);

@@ -126,8 +126,118 @@ function checkPM2Status(restartsBefore) {
     }
 }
 
+function preDeployValidation(strategyCode) {
+    log.info('Running pre-deploy dry-run validation...');
+    const tmpFile = path.join(__dirname, '../strategies/.tmp-dryrun-strategy.js');
+    const errors = [];
+
+    try {
+        fs.writeFileSync(tmpFile, strategyCode);
+
+        // Clear require cache
+        delete require.cache[require.resolve(tmpFile)];
+        const mod = require(tmpFile);
+
+        if (typeof mod.createStrategyState !== 'function' || typeof mod.onNewCandle !== 'function') {
+            errors.push('Missing required exports (createStrategyState or onNewCandle)');
+            try { fs.unlinkSync(tmpFile); } catch {}
+            return { pass: false, errors };
+        }
+
+        // Load real candle data for dry-run
+        const candleDir = path.join(PROJECT_ROOT, 'data/candles');
+        const candleData = {};
+        if (fs.existsSync(candleDir)) {
+            const files = fs.readdirSync(candleDir).filter(f => f.endsWith('.json'));
+            for (const file of files) {
+                const match = file.match(/^(.+)_(\d+)m\.json$/);
+                if (!match) continue;
+                const [, market, interval] = match;
+                if (!candleData[market]) candleData[market] = {};
+                try {
+                    const data = JSON.parse(fs.readFileSync(path.join(candleDir, file), 'utf8'));
+                    candleData[market][parseInt(interval)] = data.slice(-200);
+                } catch {}
+            }
+        }
+
+        // Need at least one market with 15m data
+        const markets = Object.keys(candleData).filter(m => candleData[m][15]?.length >= 50);
+        if (markets.length === 0) {
+            log.warn('No sufficient candle data for dry-run, skipping');
+            try { fs.unlinkSync(tmpFile); } catch {}
+            return { pass: true, errors: [], skipped: true };
+        }
+
+        // Run onNewCandle 100 times, simulating candle-by-candle feed
+        const state = mod.createStrategyState();
+        const config = mod.DEFAULT_CONFIG || {};
+        let errorCount = 0;
+
+        for (let i = 50; i <= 150 && i <= (candleData[markets[0]][15]?.length || 0); i++) {
+            // Build progressive candle data (up to index i)
+            const slicedData = {};
+            for (const market of markets) {
+                slicedData[market] = {};
+                if (candleData[market][15]) {
+                    slicedData[market][15] = candleData[market][15].slice(0, i);
+                }
+                if (candleData[market][240]) {
+                    // Proportional slice for 4h candles
+                    const ratio = Math.max(1, Math.floor(i / 16));
+                    slicedData[market][240] = candleData[market][240].slice(0, ratio);
+                }
+            }
+
+            try {
+                const result = mod.onNewCandle(state, slicedData, config);
+                if (!result || !result.action) {
+                    errorCount++;
+                    if (errorCount >= 5) {
+                        errors.push(`onNewCandle returned invalid result at iteration ${i - 50 + 1}`);
+                        break;
+                    }
+                } else if (!['SWITCH', 'HOLD', 'NONE'].includes(result.action)) {
+                    errors.push(`Invalid action "${result.action}" at iteration ${i - 50 + 1}`);
+                    break;
+                } else if (result.action === 'SWITCH' && result.details?.targetMarket) {
+                    // Simulate asset switch in state
+                    state.assetHeld = result.details.targetMarket;
+                }
+            } catch (e) {
+                errors.push(`Runtime error at iteration ${i - 50 + 1}: ${e.message}`);
+                break;
+            }
+        }
+
+        log.info(`Dry-run complete: ${errors.length === 0 ? 'PASSED' : 'FAILED'}`);
+    } catch (e) {
+        errors.push(`Dry-run setup error: ${e.message}`);
+    }
+
+    try { fs.unlinkSync(tmpFile); } catch {}
+    // Clean require cache
+    try { delete require.cache[require.resolve(tmpFile)]; } catch {}
+
+    return { pass: errors.length === 0, errors };
+}
+
 async function deploy(strategyCode, backtestComparison = null) {
     log.info('=== Starting deployment ===');
+
+    // 0a. Pre-deploy dry-run validation
+    const dryRun = preDeployValidation(strategyCode);
+    if (!dryRun.pass) {
+        log.error('Pre-deploy dry-run FAILED:', dryRun.errors);
+        appendDeployLog({
+            timestamp: new Date().toISOString(),
+            success: false,
+            reason: 'dryrun_failed',
+            rollback: false,
+            dryRunErrors: dryRun.errors,
+        });
+        return { success: false, reason: 'dryrun_failed', errors: dryRun.errors };
+    }
 
     // 0. Record restart count before deploy
     const restartsBefore = getPM2RestartCount();
@@ -217,4 +327,4 @@ if (require.main === module) {
         });
 }
 
-module.exports = { deploy, checkBotHealth };
+module.exports = { deploy, checkBotHealth, preDeployValidation };
