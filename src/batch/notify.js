@@ -4,7 +4,7 @@
  *
  * Usage: echo '{"type":"keep","reasoning":"...","confidence":0.8}' | node notify.js
  *
- * type: "keep" | "modify" | "replace_success" | "replace_fail"
+ * type: "keep" | "modify" | "modify_fail" | "replace_success" | "replace_fail"
  */
 
 'use strict';
@@ -16,6 +16,7 @@ const COLORS = {
     modify: 0xE6A817,         // 노란색
     replace_success: 0x2ECC71, // 초록색
     replace_fail: 0xE74C3C,   // 빨간색
+    modify_fail: 0xE67E22,    // 주황색
 };
 
 function formatKeep(data) {
@@ -84,6 +85,17 @@ function formatReplaceFail(data) {
     };
 }
 
+function formatModifyFail(data) {
+    return {
+        title: '⚠️ 배치 분석 완료 — 파라미터 수정 실패',
+        color: COLORS.modify_fail,
+        fields: [
+            { name: '결정', value: '파라미터 수정 시도했으나 백테스트 미통과', inline: false },
+            { name: '사유', value: data.reasoning || '—', inline: false },
+        ],
+    };
+}
+
 function formatMarketsUpdated(data) {
     return {
         title: '🔄 관심 종목 변경',
@@ -106,6 +118,7 @@ async function main() {
     switch (data.type) {
         case 'keep':             embed = formatKeep(data); break;
         case 'modify':           embed = formatModify(data); break;
+        case 'modify_fail':      embed = formatModifyFail(data); break;
         case 'replace_success':  embed = formatReplaceSuccess(data); break;
         case 'replace_fail':     embed = formatReplaceFail(data); break;
         case 'markets_updated':  embed = formatMarketsUpdated(data); break;
