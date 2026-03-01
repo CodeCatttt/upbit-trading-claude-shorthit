@@ -11,6 +11,7 @@ const cron = require('node-cron');
 const fs = require('fs');
 const path = require('path');
 const api = require('./upbit-api');
+const { executeSmartEntry } = require('./execution/smart-entry');
 const { createLogger } = require('./utils/logger');
 
 const log = createLogger('BOT');
@@ -20,6 +21,7 @@ const TRADE_RATIO = 0.995;
 
 const STATE_FILE = path.join(__dirname, '../bot-state.json');
 const HEARTBEAT_FILE = path.join(__dirname, '../data/bot-heartbeat.json');
+const EXECUTION_LOG_FILE = path.join(__dirname, '../data/execution-log.json');
 const STRATEGY_PATH = path.resolve(__dirname, './strategies/current-strategy.js');
 const CONFIG_FILE = path.join(__dirname, '../trading-config.json');
 
@@ -82,6 +84,22 @@ function writeHeartbeat(lastAction) {
 
 function getCurrencyFromMarket(market) {
     return market.replace('KRW-', '');
+}
+
+function appendExecutionLog(entry) {
+    try {
+        const dir = path.dirname(EXECUTION_LOG_FILE);
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        let logs = [];
+        if (fs.existsSync(EXECUTION_LOG_FILE)) {
+            logs = JSON.parse(fs.readFileSync(EXECUTION_LOG_FILE, 'utf8'));
+        }
+        logs.push({ timestamp: new Date().toISOString(), ...entry });
+        if (logs.length > 100) logs = logs.slice(-100);
+        fs.writeFileSync(EXECUTION_LOG_FILE, JSON.stringify(logs, null, 2));
+    } catch (e) {
+        log.error('Failed to write execution log', e.message);
+    }
 }
 
 async function fetchCandleData(markets, intervals) {
@@ -155,7 +173,11 @@ async function runStrategyBoundary() {
             return;
         }
 
+        // Save current asset BEFORE strategy mutates state.assetHeld
+        const assetBeforeSignal = state.assetHeld;
         const result = strategy.onNewCandle(state, candleData);
+        // Restore pre-signal asset — bot controls state transitions, not strategy
+        state.assetHeld = assetBeforeSignal;
         saveState();
 
         log.info(`Action: [${result.action}]`, result.details);
@@ -165,9 +187,10 @@ async function runStrategyBoundary() {
             const targetCurrency = getCurrencyFromMarket(targetMarket);
             const currentCurrency = getCurrencyFromMarket(state.assetHeld);
             const previousAsset = state.assetHeld;
+            const executionMode = (strategy.DEFAULT_CONFIG && strategy.DEFAULT_CONFIG.executionMode) || 'market';
 
             try {
-                // Sell current asset
+                // Sell current asset (always immediate)
                 if (state.assetHeld !== 'CASH') {
                     const balance = await api.getBalance(currentCurrency);
                     if (balance > 0) {
@@ -177,22 +200,56 @@ async function runStrategyBoundary() {
                     }
                 }
 
-                // Buy target asset — only update state if buy succeeds
                 const krwBalance = await api.getBalance('KRW');
-                const buyAmount = Math.floor(krwBalance * TRADE_RATIO);
-                if (buyAmount > MIN_ORDER_KRW) {
-                    await api.buyMarketOrder(targetMarket, buyAmount);
-                    state.assetHeld = targetMarket;
-                    saveState();
-                    log.info(`SWITCH complete: ${previousAsset} → ${targetMarket}`);
+
+                if (executionMode === 'smart' && strategy.DEFAULT_CONFIG.smartEntry) {
+                    // Smart execution: monitor and enter at optimal price
+                    log.info(`Smart entry mode for ${targetMarket}`);
+                    const smartResult = await executeSmartEntry(
+                        targetMarket, krwBalance, strategy.DEFAULT_CONFIG.smartEntry, TRADE_RATIO, MIN_ORDER_KRW
+                    );
+
+                    appendExecutionLog({
+                        from: previousAsset,
+                        to: targetMarket,
+                        mode: 'smart',
+                        ...smartResult,
+                    });
+
+                    if (smartResult.executed) {
+                        state.assetHeld = targetMarket;
+                        saveState();
+                        log.info(`SWITCH complete (smart, ${smartResult.method}): ${previousAsset} → ${targetMarket}, improvement: ${smartResult.improvement}%`);
+                    } else {
+                        log.error(`Smart entry failed for ${targetMarket}. Entering CASH state.`);
+                        state.assetHeld = 'CASH';
+                        saveState();
+                    }
                 } else {
-                    log.error(`Buy failed: insufficient KRW (${buyAmount}). Entering CASH state.`);
-                    state.assetHeld = 'CASH';
-                    saveState();
+                    // Market execution: immediate buy
+                    const buyAmount = Math.floor(krwBalance * TRADE_RATIO);
+                    if (buyAmount > MIN_ORDER_KRW) {
+                        await api.buyMarketOrder(targetMarket, buyAmount);
+                        state.assetHeld = targetMarket;
+                        saveState();
+                        log.info(`SWITCH complete (market): ${previousAsset} → ${targetMarket}`);
+                        appendExecutionLog({
+                            from: previousAsset,
+                            to: targetMarket,
+                            mode: 'market',
+                            executed: true,
+                            method: 'market',
+                            improvement: 0,
+                            waitedMs: 0,
+                        });
+                    } else {
+                        log.error(`Buy failed: insufficient KRW (${buyAmount}). Entering CASH state.`);
+                        state.assetHeld = 'CASH';
+                        saveState();
+                    }
                 }
             } catch (switchErr) {
                 log.error(`SWITCH execution error: ${switchErr.message}`);
-                // Check what we actually hold now
                 const krwBal = await api.getBalance('KRW').catch(() => 0);
                 if (krwBal > MIN_ORDER_KRW) {
                     state.assetHeld = 'CASH';

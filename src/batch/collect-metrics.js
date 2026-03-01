@@ -21,6 +21,7 @@ const STRATEGY_FILE = path.join(__dirname, '../strategies/current-strategy.js');
 const METRICS_DIR = path.join(__dirname, '../../data/metrics');
 const DEPLOY_LOG = path.join(__dirname, '../../deploy-log.json');
 const CONFIG_FILE = path.join(__dirname, '../../trading-config.json');
+const EXECUTION_LOG_FILE = path.join(__dirname, '../../data/execution-log.json');
 
 function ensureDir(dir) {
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
@@ -156,6 +157,63 @@ function calcTradeStats(recentOrders, deployLog) {
     };
 }
 
+/**
+ * Calculate execution quality metrics from execution log.
+ */
+function calcExecutionQuality() {
+    const logs = safeReadJSON(EXECUTION_LOG_FILE);
+    if (!logs || logs.length === 0) return null;
+
+    const smartEntries = logs.filter(l => l.mode === 'smart');
+    const total = smartEntries.length;
+    if (total === 0) return { totalExecutions: logs.length, smartEntries: 0 };
+
+    const executed = smartEntries.filter(l => l.executed);
+    const timedOut = smartEntries.filter(l => l.method === 'timeout');
+    const improvements = executed.map(l => l.improvement || 0);
+    const avgImprovement = improvements.length > 0
+        ? +(improvements.reduce((a, b) => a + b, 0) / improvements.length).toFixed(4)
+        : 0;
+
+    return {
+        totalExecutions: logs.length,
+        smartEntries: total,
+        smartSuccessRate: +(executed.length / total).toFixed(4),
+        timeoutRate: +(timedOut.length / total).toFixed(4),
+        avgPriceImprovement: avgImprovement,
+    };
+}
+
+/**
+ * Calculate market regime metrics from market data.
+ */
+function calcMarketRegime(marketData) {
+    if (!marketData || Object.keys(marketData).length === 0) return null;
+
+    const changes = Object.values(marketData)
+        .map(d => d.change24h)
+        .filter(c => c !== null && c !== undefined);
+
+    if (changes.length === 0) return null;
+
+    const avgChange = +(changes.reduce((a, b) => a + b, 0) / changes.length).toFixed(2);
+    const positiveCount = changes.filter(c => c > 0).length;
+    const direction = positiveCount > changes.length * 0.6 ? 'bullish'
+        : positiveCount < changes.length * 0.4 ? 'bearish' : 'mixed';
+
+    // Simple correlation: how similar are the moves across assets
+    const mean = changes.reduce((a, b) => a + b, 0) / changes.length;
+    const variance = changes.reduce((s, c) => s + (c - mean) ** 2, 0) / changes.length;
+    const dispersion = +Math.sqrt(variance).toFixed(2);
+
+    return {
+        avgChange24h: avgChange,
+        direction,
+        assetCount: changes.length,
+        dispersion,
+    };
+}
+
 async function collectMetrics() {
     log.info('Collecting metrics...');
 
@@ -260,6 +318,9 @@ async function collectMetrics() {
     const rollingReturns = calcRollingReturns(METRICS_DIR);
     const tradeStats = calcTradeStats(recentOrders, deployLog);
 
+    const executionQuality = calcExecutionQuality();
+    const marketRegime = calcMarketRegime(marketData);
+
     const metrics = {
         timestamp: new Date().toISOString(),
         portfolio: {
@@ -295,6 +356,8 @@ async function collectMetrics() {
             rollingReturns,
             tradeStats,
         },
+        executionQuality,
+        marketRegime,
     };
 
     // Save

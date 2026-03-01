@@ -35,6 +35,10 @@ function loadTradingConfig() {
 }
 
 function runBacktest(strategy, candleData, label = 'unnamed') {
+    // If strategy uses smart execution, model reduced slippage (50%)
+    const executionMode = (strategy.DEFAULT_CONFIG && strategy.DEFAULT_CONFIG.executionMode) || 'market';
+    const effectiveSlippage = executionMode === 'smart' ? SLIPPAGE_RATE * 0.5 : SLIPPAGE_RATE;
+
     const markets = Object.keys(candleData);
     if (markets.length < 2) {
         return { error: 'Need at least 2 markets for backtest' };
@@ -135,8 +139,8 @@ function runBacktest(strategy, candleData, label = 'unnamed') {
                 const sellPrice = get15m(currentAsset)[i].close;
                 const buyPrice = get15m(target)[i].close;
 
-                const krwAfterSell = holdings * sellPrice * (1 - SLIPPAGE_RATE) * (1 - FEE_RATE);
-                const effectiveBuyPrice = buyPrice * (1 + SLIPPAGE_RATE);
+                const krwAfterSell = holdings * sellPrice * (1 - effectiveSlippage) * (1 - FEE_RATE);
+                const effectiveBuyPrice = buyPrice * (1 + effectiveSlippage);
                 holdings = (krwAfterSell * (1 - FEE_RATE)) / effectiveBuyPrice;
 
                 trades.push({
@@ -188,7 +192,8 @@ function runBacktest(strategy, candleData, label = 'unnamed') {
         benchmarks,
         finalValue: Math.floor(finalValue),
         periodCandles: totalPeriods,
-        slippageRate: SLIPPAGE_RATE,
+        executionMode,
+        slippageRate: effectiveSlippage,
         feeRate: FEE_RATE,
         trades: trades.slice(-20),
     };

@@ -5,6 +5,7 @@ Upbit 멀티에셋 트레이딩 봇 with Claude-powered batch strategy analysis.
 ## Architecture
 
 - **Bot** (`src/bot.js`): PM2 process running 24/7, checks every 15 minutes
+- **Execution** (`src/execution/smart-entry.js`): Smart entry module — monitors short-term price for optimal buy timing
 - **Strategy** (`src/strategies/current-strategy.js`): Hot-swappable strategy file
 - **Custom Indicators** (`src/strategies/custom-indicators.js`): Claude-managed custom indicator functions
 - **Batch** (`src/batch/run-batch.sh`): 1-hour cron — collects metrics → calls Claude → backtests → deploys
@@ -83,7 +84,7 @@ module.exports = {
 - 단일 배치에서 전략 교체 + 종목 변경 동시 수행 자제
 
 ### Backtest & Safety Gates
-- 백테스트에 슬리피지 0.1% + 수수료 0.05% 포함 (per side)
+- 백테스트에 슬리피지 0.1% (smart 모드 0.05%) + 수수료 0.05% 포함 (per side)
 - 신규 전략 배포 조건: 수익률 +0.5% 이상 개선, MDD 2% 이내 악화, 일일 거래 6회 이하
 - PM2 헬스체크 + 자동 롤백
 
@@ -92,6 +93,7 @@ module.exports = {
 | File | Purpose |
 |------|---------|
 | `src/bot.js` | Main bot (PM2 24/7, multi-timeframe) |
+| `src/execution/smart-entry.js` | Smart entry module (RSI dip, pullback, Bollinger) |
 | `src/upbit-api.js` | Upbit API wrapper |
 | `src/indicators.js` | Technical indicators library |
 | `src/strategies/current-strategy.js` | Active strategy (replaced on deploy) |
@@ -107,6 +109,26 @@ module.exports = {
 | `data/batch-memory.json` | Batch decision history (max 50 entries) |
 | `bot-state.json` | Bot state (assetHeld as market code) |
 | `deploy-log.json` | Deploy history |
+| `data/execution-log.json` | Execution log (smart entry results, max 100) |
+
+## Execution Modes
+
+DEFAULT_CONFIG에 실행 설정 포함:
+```javascript
+executionMode: 'market',    // 'market' | 'smart' (배치가 전환 가능)
+smartEntry: {
+    candleInterval: 5,      // 5분 캔들 모니터링
+    maxWaitMinutes: 15,     // 최대 대기시간 (초과 시 시장가)
+    pollIntervalMs: 15000,  // 폴링 간격
+    entryMethod: 'rsi_dip', // 'rsi_dip' | 'pullback' | 'bollinger_touch'
+    rsiThreshold: 40,       // RSI 진입 임계값
+    pullbackPct: 0.3,       // 풀백 진입 %
+},
+```
+
+- `market`: 즉시 시장가 주문 (기본값)
+- `smart`: 매도 즉시 → 매수는 단기 모니터링 후 유리한 타이밍에 진입
+- 실행 로그: `data/execution-log.json` (최대 100건)
 
 ## Batch Response Format
 
@@ -117,6 +139,7 @@ module.exports = {
   "confidence": 0.0~1.0,
   "parameters": {},
   "markets": ["KRW-BTC", "KRW-ETH", "KRW-SOL"],
+  "improvementAreas": ["strategy", "execution", "risk", "assets", "regime"],
   "notes": "다음 배치를 위한 메모 (선택사항)",
   "strategicNotes": "전략적 인사이트 누적 (선택사항)"
 }
@@ -129,7 +152,7 @@ For "replace" action, additional code blocks:
 ## Safety
 
 - Backtest gate: +0.5% return, MDD ≤ 2% worse, ≤ 6 trades/day
-- Slippage model: 0.1% per trade (market order assumption)
+- Slippage model: 0.1% per trade (market mode), 0.05% (smart mode)
 - Syntax + interface validation before deploy (strategy + custom indicators)
 - Auto-rollback on PM2 crash after deploy (strategy + custom indicators)
 - Atomic state file writes (crash-safe)

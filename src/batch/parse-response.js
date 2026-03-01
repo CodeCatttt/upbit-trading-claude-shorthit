@@ -91,6 +91,20 @@ function validateDecision(decision) {
     if (decision.strategicNotes !== undefined && typeof decision.strategicNotes !== 'string') {
         errors.push('strategicNotes must be a string');
     }
+    // Validate improvementAreas if present
+    if (decision.improvementAreas !== undefined) {
+        if (!Array.isArray(decision.improvementAreas)) {
+            errors.push('improvementAreas must be an array');
+        } else {
+            const validAreas = ['strategy', 'execution', 'risk', 'assets', 'regime'];
+            for (const area of decision.improvementAreas) {
+                if (!validAreas.includes(area)) {
+                    errors.push(`Invalid improvementArea: ${area} (valid: ${validAreas.join(', ')})`);
+                    break;
+                }
+            }
+        }
+    }
     // Validate markets field if present
     if (decision.markets !== undefined) {
         if (!Array.isArray(decision.markets)) {

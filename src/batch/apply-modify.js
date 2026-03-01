@@ -24,10 +24,32 @@ if (reExport) {
 }
 
 // Replace values in DEFAULT_CONFIG
+// Supports nested keys (e.g. "smartEntry.rsiThreshold") and string values (e.g. "executionMode": "smart")
 for (const [key, value] of Object.entries(params)) {
-    const regex = new RegExp('(' + key + '\\s*:\\s*)([\\d.]+)');
-    if (regex.test(code)) {
-        code = code.replace(regex, '$1' + value);
+    // For nested keys like "smartEntry.rsiThreshold", use the leaf key for matching
+    const leafKey = key.includes('.') ? key.split('.').pop() : key;
+    const isString = typeof value === 'string';
+
+    let replaced = false;
+    if (isString) {
+        // Match string values: key: 'value' or key: "value"
+        const strRegex = new RegExp("(" + leafKey + "\\s*:\\s*)['\"]([^'\"]*)['\"]");
+        if (strRegex.test(code)) {
+            code = code.replace(strRegex, "$1'" + value + "'");
+            replaced = true;
+        }
+    }
+
+    if (!replaced) {
+        // Match numeric values: key: 123 or key: 1.5
+        const numRegex = new RegExp('(' + leafKey + '\\s*:\\s*)([\\d.]+)');
+        if (numRegex.test(code)) {
+            code = code.replace(numRegex, '$1' + value);
+            replaced = true;
+        }
+    }
+
+    if (replaced) {
         console.log('  Updated ' + key + ' = ' + value);
     } else {
         console.log('  WARNING: key ' + key + ' not found in strategy');

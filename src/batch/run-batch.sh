@@ -120,7 +120,7 @@ if [ "$ACTION" = "keep" ]; then
         process.stdin.on('end',()=>{
             const r=JSON.parse(d).decision;
             const {appendEntry}=require('./src/batch/update-memory');
-            appendEntry({action:'keep',reasoning:r.reasoning,confidence:r.confidence,outcome:'kept',notes:r.notes||'',strategicNotes:r.strategicNotes});
+            appendEntry({action:'keep',reasoning:r.reasoning,confidence:r.confidence,outcome:'kept',improvementAreas:r.improvementAreas||null,notes:r.notes||'',strategicNotes:r.strategicNotes});
         });
     "
     echo "Batch complete."
@@ -176,7 +176,7 @@ if [ "$ACTION" = "modify" ]; then
         process.stdin.on('end',()=>{
             const r=JSON.parse(d).decision;
             const {appendEntry}=require('./src/batch/update-memory');
-            appendEntry({action:'modify',reasoning:r.reasoning,confidence:r.confidence,parameters:r.parameters,outcome:'applied',notes:r.notes||'',strategicNotes:r.strategicNotes});
+            appendEntry({action:'modify',reasoning:r.reasoning,confidence:r.confidence,parameters:r.parameters,outcome:'applied',improvementAreas:r.improvementAreas||null,notes:r.notes||'',strategicNotes:r.strategicNotes});
         });
     "
     echo "Batch complete (parameters modified)."
@@ -261,7 +261,7 @@ if [ "$PASS" != "true" ]; then
             const r=JSON.parse(d).decision;
             const comp=$COMPARISON;
             const {appendEntry}=require('./src/batch/update-memory');
-            appendEntry({action:'replace',reasoning:r.reasoning,confidence:r.confidence,outcome:'backtest_failed',backtestResult:comp,notes:r.notes||'',strategicNotes:r.strategicNotes});
+            appendEntry({action:'replace',reasoning:r.reasoning,confidence:r.confidence,outcome:'backtest_failed',improvementAreas:r.improvementAreas||null,backtestResult:comp,notes:r.notes||'',strategicNotes:r.strategicNotes});
         });
     "
     echo "Batch complete (backtest failed)."
@@ -316,7 +316,7 @@ if [ "$DEPLOY_SUCCESS" = "true" ]; then
             const r=JSON.parse(d).decision;
             const comp=$COMPARISON;
             const {appendEntry}=require('./src/batch/update-memory');
-            appendEntry({action:'replace',reasoning:r.reasoning,confidence:r.confidence,outcome:'deployed',backtestResult:comp,notes:r.notes||'',strategicNotes:r.strategicNotes});
+            appendEntry({action:'replace',reasoning:r.reasoning,confidence:r.confidence,outcome:'deployed',improvementAreas:r.improvementAreas||null,backtestResult:comp,notes:r.notes||'',strategicNotes:r.strategicNotes});
         });
     "
 
@@ -344,7 +344,7 @@ else
             const r=JSON.parse(d).decision;
             const comp=$COMPARISON;
             const {appendEntry}=require('./src/batch/update-memory');
-            appendEntry({action:'replace',reasoning:r.reasoning,confidence:r.confidence,outcome:'deploy_failed',backtestResult:comp,notes:r.notes||'',strategicNotes:r.strategicNotes});
+            appendEntry({action:'replace',reasoning:r.reasoning,confidence:r.confidence,outcome:'deploy_failed',improvementAreas:r.improvementAreas||null,backtestResult:comp,notes:r.notes||'',strategicNotes:r.strategicNotes});
         });
     "
 fi

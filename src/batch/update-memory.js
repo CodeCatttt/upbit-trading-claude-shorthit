@@ -44,6 +44,7 @@ function appendEntry(data) {
         confidence: data.confidence || 0,
         parameters: data.parameters || null,
         markets: data.markets || null,
+        improvementAreas: data.improvementAreas || null,
         backtestResult: data.backtestResult || null,
         outcome: data.outcome || 'unknown',
         notes: data.notes || '',

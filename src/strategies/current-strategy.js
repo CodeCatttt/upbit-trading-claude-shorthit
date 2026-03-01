@@ -18,6 +18,15 @@ const DEFAULT_CONFIG = {
     choppinessThreshold: 0.35, // Above = choppy/ranging, block switching
     switchThreshold: 0.6,     // Minimum score advantage to trigger switch
     cooldownCandles: 1344,      // 288 × 15min = 3 days between trades
+    executionMode: 'market',   // 'market' | 'smart' (batch can switch)
+    smartEntry: {
+        candleInterval: 5,     // 5-minute candle monitoring
+        maxWaitMinutes: 15,    // Max wait before fallback to market order
+        pollIntervalMs: 15000, // Poll every 15 seconds
+        entryMethod: 'rsi_dip', // 'rsi_dip' | 'pullback' | 'bollinger_touch'
+        rsiThreshold: 40,      // RSI below this triggers entry (rsi_dip)
+        pullbackPct: 0.3,      // Price drop % from signal (pullback)
+    },
 };
 
 function createStrategyState() {
