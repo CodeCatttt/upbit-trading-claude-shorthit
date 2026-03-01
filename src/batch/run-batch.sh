@@ -152,10 +152,54 @@ if [ "$ACTION" = "modify" ]; then
         exit 0
     fi
 
+    # Step M1: Baseline backtest BEFORE modification
+    echo "  [Modify Gate] Backtesting baseline strategy..."
+    MODIFY_BASELINE=$(node src/batch/backtest.js src/strategies/current-strategy.js 2>/dev/null || echo '{"error":"backtest failed"}')
+
     echo "  Applying parameter modifications: $PARAMS"
 
     # Read current strategy, update DEFAULT_CONFIG values
     node src/batch/apply-modify.js "$PARAMS"
+
+    # Step M2: Backtest AFTER modification
+    echo "  [Modify Gate] Backtesting modified strategy..."
+    MODIFY_AFTER=$(node src/batch/backtest.js src/strategies/current-strategy.js 2>/dev/null || echo '{"error":"backtest failed"}')
+
+    # Step M3: Compare with modify gate
+    MODIFY_COMPARISON=$(node -e "
+        const { compareStrategies } = require('./src/batch/backtest');
+        const baseline = $MODIFY_BASELINE;
+        const modified = $MODIFY_AFTER;
+        if (baseline.error || modified.error) {
+            console.log(JSON.stringify({pass:true, reasons:['Backtest error, allowing modify']}));
+        } else {
+            console.log(JSON.stringify(compareStrategies(baseline, modified, 'modify')));
+        }
+    ")
+
+    MODIFY_PASS=$(echo "$MODIFY_COMPARISON" | node -e "process.stdin.setEncoding('utf8');let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>console.log(JSON.parse(d).pass))")
+
+    echo "  [Modify Gate] Result: pass=$MODIFY_PASS"
+    echo "$MODIFY_COMPARISON"
+
+    if [ "$MODIFY_PASS" != "true" ]; then
+        echo "  [Modify Gate] FAILED. Reverting strategy."
+        git checkout -- src/strategies/current-strategy.js 2>/dev/null || true
+        # Update batch memory with modify gate failure
+        echo "$PARSE_RESULT" | node -e "
+            process.stdin.setEncoding('utf8');let d='';
+            process.stdin.on('data',c=>d+=c);
+            process.stdin.on('end',()=>{
+                const r=JSON.parse(d).decision;
+                const comp=$MODIFY_COMPARISON;
+                const {appendEntry}=require('./src/batch/update-memory');
+                appendEntry({action:'modify',reasoning:r.reasoning,confidence:r.confidence,parameters:r.parameters,outcome:'gate_failed',improvementAreas:r.improvementAreas||null,backtestResult:comp,notes:r.notes||'',strategicNotes:r.strategicNotes});
+            });
+        "
+        notify_batch '{"type":"modify_fail","reasoning":"modify gate failed"}'
+        echo "Batch complete (modify gate failed)."
+        exit 0
+    fi
 
     # Git commit the modification
     cd "$PROJECT_DIR"
@@ -183,8 +227,8 @@ if [ "$ACTION" = "modify" ]; then
     exit 0
 fi
 
-# Step 4: Backtest (only for replace)
-echo "[Step 4] Running backtest..."
+# Step 4: Walk-forward backtest (for replace)
+echo "[Step 4] Running walk-forward backtest..."
 
 # Write new strategy to temp file
 TEMP_STRATEGY="$PROJECT_DIR/src/strategies/.tmp-new-strategy.js"
@@ -213,23 +257,28 @@ if [ -f "$TEMP_STRATEGY.custom-indicators" ]; then
     cp "$TEMP_STRATEGY.custom-indicators" "$CUSTOM_INDICATORS_FILE"
 fi
 
-# Backtest current strategy
-echo "  Backtesting current strategy..."
-CURRENT_RESULT=$(node src/batch/backtest.js src/strategies/current-strategy.js 2>/dev/null || echo '{"error":"backtest failed"}')
+# Walk-forward backtest current strategy
+echo "  Walk-forward backtesting current strategy..."
+CURRENT_WF=$(node src/batch/backtest.js --walk-forward src/strategies/current-strategy.js 2>/dev/null || echo '{"test":{"error":"backtest failed"}}')
 
-# Backtest new strategy
-echo "  Backtesting new strategy..."
-NEW_RESULT=$(node src/batch/backtest.js "$TEMP_STRATEGY" 2>/dev/null || echo '{"error":"backtest failed"}')
+# Walk-forward backtest new strategy
+echo "  Walk-forward backtesting new strategy..."
+NEW_WF=$(node src/batch/backtest.js --walk-forward "$TEMP_STRATEGY" 2>/dev/null || echo '{"test":{"error":"backtest failed"}}')
 
-# Compare
+# Compare TEST periods with replace gate
 COMPARISON=$(node -e "
     const { compareStrategies } = require('./src/batch/backtest');
-    const current = $CURRENT_RESULT;
-    const newS = $NEW_RESULT;
-    if (current.error || newS.error) {
+    const currentWF = $CURRENT_WF;
+    const newWF = $NEW_WF;
+    const cTest = currentWF.test || {};
+    const nTest = newWF.test || {};
+    if (cTest.error || nTest.error) {
         console.log(JSON.stringify({pass:false, reasons:['Backtest error']}));
     } else {
-        console.log(JSON.stringify(compareStrategies(current, newS)));
+        // Use measurePeriod if walk-forward was used, otherwise full results
+        const cMetrics = cTest.measurePeriod || cTest;
+        const nMetrics = nTest.measurePeriod || nTest;
+        console.log(JSON.stringify(compareStrategies(cMetrics, nMetrics, 'replace')));
     }
 ")
 

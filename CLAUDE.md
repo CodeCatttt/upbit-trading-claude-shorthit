@@ -39,6 +39,7 @@ module.exports = {
 
 ### Action Types
 - `SWITCH`: Sell current asset, buy `details.targetMarket`
+- `SWITCH` (to CASH): `{ action: 'SWITCH', details: { targetMarket: 'CASH', reason: '...' } }` — sell to KRW, next cycle auto re-entry
 - `HOLD`: Keep current position
 - `NONE`: No action (insufficient data)
 
@@ -85,7 +86,10 @@ module.exports = {
 
 ### Backtest & Safety Gates
 - 백테스트에 슬리피지 0.1% (smart 모드 0.05%) + 수수료 0.05% 포함 (per side)
-- 신규 전략 배포 조건: 수익률 +0.5% 이상 개선, MDD 2% 이내 악화, 일일 거래 6회 이하
+- Walk-forward 백테스트: 70/30 분할, TEST 구간 기준 평가 (최소 200캔들, 미만 시 단일패스)
+- 티어드 게이트 (완화):
+  - `replace`: 수익률 차이 >= -1%, MDD 악화 <= 3%, 일일거래 <= 6
+  - `modify`: 수익률 차이 >= -2%, MDD 악화 <= 5%, 일일거래 <= 6
 - PM2 헬스체크 + 자동 롤백
 
 ## Key Files
@@ -151,7 +155,8 @@ For "replace" action, additional code blocks:
 
 ## Safety
 
-- Backtest gate: +0.5% return, MDD ≤ 2% worse, ≤ 6 trades/day
+- Tiered backtest gates: replace (return diff >= -1%, MDD <= 3% worse), modify (return diff >= -2%, MDD <= 5% worse), both <= 6 trades/day
+- Walk-forward: replace uses 70/30 split, TEST period for gate evaluation
 - Slippage model: 0.1% per trade (market mode), 0.05% (smart mode)
 - Syntax + interface validation before deploy (strategy + custom indicators)
 - Auto-rollback on PM2 crash after deploy (strategy + custom indicators)

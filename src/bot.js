@@ -184,6 +184,35 @@ async function runStrategyBoundary() {
 
         if (result.action === 'SWITCH' && result.details && result.details.targetMarket) {
             const targetMarket = result.details.targetMarket;
+
+            // SELL_TO_CASH: sell current asset, hold KRW
+            if (targetMarket === 'CASH' && state.assetHeld !== 'CASH') {
+                const currentCurrency = getCurrencyFromMarket(state.assetHeld);
+                const previousAsset = state.assetHeld;
+                try {
+                    const balance = await api.getBalance(currentCurrency);
+                    if (balance > 0) {
+                        log.info(`SELL_TO_CASH: Selling ${balance} ${currentCurrency}...`);
+                        await api.sellMarketOrder(state.assetHeld, balance);
+                        state.assetHeld = 'CASH';
+                        saveState();
+                        log.info(`SELL_TO_CASH complete: ${previousAsset} → CASH`);
+                        appendExecutionLog({
+                            from: previousAsset,
+                            to: 'CASH',
+                            mode: 'market',
+                            executed: true,
+                            method: 'sell_to_cash',
+                            reason: result.details.reason || 'risk management',
+                        });
+                    }
+                } catch (cashErr) {
+                    log.error(`SELL_TO_CASH error: ${cashErr.message}`);
+                }
+                writeHeartbeat('SELL_TO_CASH');
+                return;
+            }
+
             const targetCurrency = getCurrencyFromMarket(targetMarket);
             const currentCurrency = getCurrencyFromMarket(state.assetHeld);
             const previousAsset = state.assetHeld;

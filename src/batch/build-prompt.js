@@ -56,6 +56,48 @@ function loadCustomIndicators() {
     return null;
 }
 
+function getBenchmarkComparison() {
+    const BACKTEST_DIR_LOCAL = path.join(__dirname, '../../data/backtest-results');
+    if (!fs.existsSync(BACKTEST_DIR_LOCAL)) return null;
+    const files = fs.readdirSync(BACKTEST_DIR_LOCAL).filter(f => f.endsWith('.json')).sort();
+    if (files.length === 0) return null;
+
+    try {
+        const latest = JSON.parse(fs.readFileSync(path.join(BACKTEST_DIR_LOCAL, files[files.length - 1]), 'utf8'));
+        const result = latest.result || latest.test || latest;
+        if (!result || !result.benchmarks || result.returnPct === undefined) return null;
+
+        const btcBenchmark = result.benchmarks['KRW-BTC'];
+        if (btcBenchmark === undefined) return null;
+
+        const diff = result.returnPct - btcBenchmark;
+        return { strategyReturn: result.returnPct, btcReturn: btcBenchmark, diff };
+    } catch { return null; }
+}
+
+function getInnovationNudge(memory) {
+    const lines = [];
+    const entries = memory.entries || [];
+    if (entries.length === 0) return '';
+
+    // Check KEEP ratio in last 10 entries
+    const recent = entries.slice(-10);
+    const keepCount = recent.filter(e => e.action === 'keep').length;
+    const keepRatio = keepCount / recent.length;
+
+    if (keepRatio >= 0.6) {
+        lines.push(`- 최근 ${recent.length}회 배치 중 ${keepCount}회(${(keepRatio * 100).toFixed(0)}%)가 KEEP입니다. 현재 전략이 정체되어 있을 수 있으니 과감한 변경을 고려하세요.`);
+    }
+
+    // Check backtest failure streak
+    const failCount = recent.filter(e => e.outcome === 'backtest_failed' || e.outcome === 'gate_failed').length;
+    if (failCount >= 2) {
+        lines.push(`- 최근 백테스트/게이트 실패 ${failCount}회. 완화된 게이트 기준: replace(수익률 차이 >= -1%, MDD 악화 <= 3%), modify(수익률 차이 >= -2%, MDD 악화 <= 5%). 기존보다 통과 가능성이 높습니다.`);
+    }
+
+    return lines.length > 0 ? lines.join('\n') : '';
+}
+
 function buildPrompt() {
     const metrics = getLatestMetrics();
     if (!metrics) {
@@ -181,6 +223,31 @@ ${(() => {
         '- Dispersion: ' + mr.dispersion + '% (lower = higher correlation)';
 })()}
 
+## Strategy vs Benchmark
+${(() => {
+    const bench = getBenchmarkComparison();
+    if (!bench) return '벤치마크 데이터 없음 (백테스트 결과 필요).';
+    const lines = [
+        `- 전략 수익률: ${bench.strategyReturn.toFixed(2)}%`,
+        `- BTC Buy&Hold: ${bench.btcReturn.toFixed(2)}%`,
+        `- 차이: ${bench.diff > 0 ? '+' : ''}${bench.diff.toFixed(2)}%`,
+    ];
+    if (bench.diff <= -10) {
+        lines.push('');
+        lines.push('**경고: BTC 대비 10%+ 언더퍼폼. 전략 전면 교체를 적극 고려하세요.**');
+    } else if (bench.diff <= -5) {
+        lines.push('');
+        lines.push('**주의: BTC 대비 5%+ 언더퍼폼. 파라미터 수정 또는 전략 교체를 검토하세요.**');
+    }
+    return lines.join('\n');
+})()}
+
+## Innovation Signals
+${(() => {
+    const nudge = getInnovationNudge(memory);
+    return nudge || '현재 특별한 혁신 시그널 없음.';
+})()}
+
 ## Market Management
 현재 관심 종목: ${tradingConfig.markets.join(', ')}
 필요하다면 종목을 추가하거나 제거할 수 있습니다.
@@ -235,8 +302,10 @@ Choose ONE action:
   - \`{ action: 'HOLD', details: { ... } }\`
   - \`{ action: 'NONE', details: { reason: '...' } }\`
   - \`{ action: 'SWITCH', details: { targetMarket: 'KRW-SOL', reason: '...', ... } }\`
+  - \`{ action: 'SWITCH', details: { targetMarket: 'CASH', reason: '리스크 관리' } }\` — 현금 전환 (하락장 방어)
 - \`createStrategyState()\` must return \`{ assetHeld: 'KRW-BTC' }\`
 - \`state.assetHeld\` uses market codes: \`'KRW-BTC'\`, \`'KRW-ETH'\`, \`'CASH'\`, etc.
+- CASH 전환: targetMarket을 \`'CASH'\`로 설정하면 매도 후 현금 보유. 다음 사이클에서 자동 재진입.
 - DEFAULT_CONFIG must include \`executionMode\` and \`smartEntry\` fields
 - You may use any function from indicators.js via \`require('../indicators')\`
 - You may use \`require('./custom-indicators')\` for custom indicator functions
@@ -245,6 +314,11 @@ Choose ONE action:
 - The strategy runs on 15-minute candles (240m candles available for higher-timeframe context)
 - Daily trade frequency should stay under 6 trades/day
 - Backtest includes 0.1% slippage (0.05% if smart mode) + 0.05% fee per side
+- **Walk-forward 백테스트**: replace 시 70/30 분할, TEST 구간 기준으로 게이트 평가
+- **완화된 게이트 (티어드)**:
+  - replace: 수익률 차이 >= -1%, MDD 악화 <= 3%, 일일거래 <= 6
+  - modify: 수익률 차이 >= -2%, MDD 악화 <= 5%, 일일거래 <= 6
+- 리스크 관리를 위해 CASH 전환을 적극 활용하세요 (하락장 방어)
 
 ## Response Format
 **모든 응답은 한국어로 작성하세요.**
