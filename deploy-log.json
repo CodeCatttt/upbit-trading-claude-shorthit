@@ -15,5 +15,19 @@
         "Daily trades: 0.32 (need <= 4)"
       ]
     }
+  },
+  {
+    "timestamp": "2026-03-01T03:34:47.814Z",
+    "success": false,
+    "reason": "health_check_failed",
+    "rollback": true,
+    "backupPath": "/home/kook/programming/upbit-trading-claude/backups/strategy-2026-03-01T03-34-16.js"
+  },
+  {
+    "timestamp": "2026-03-01T03:34:51.055Z",
+    "success": false,
+    "reason": "health_check_failed",
+    "rollback": true,
+    "backupPath": "/home/kook/programming/upbit-trading-claude/backups/strategy-2026-03-01T03-34-19.js"
   }
 ]

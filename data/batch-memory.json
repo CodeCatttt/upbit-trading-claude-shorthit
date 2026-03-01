@@ -1,5 +1,28 @@
 {
   "maxEntries": 50,
-  "entries": [],
-  "strategicNotes": ""
+  "entries": [
+    {
+      "timestamp": "2026-03-01T03:59:09.640Z",
+      "action": "replace",
+      "reasoning": "현재 전략이 BTC 단순보유 대비 -24.5%p 언더퍼폼. 하락장에서 빈번한 자산 전환이 거래비용만 누적시키는 구조적 문제. 레짐 필터+BTC 편향+7일 쿨다운으로 거래 빈도를 90% 이상 감소시켜야 함.",
+      "confidence": 0.72,
+      "parameters": null,
+      "markets": null,
+      "backtestResult": {
+        "pass": false,
+        "returnImprovement": -1.0807,
+        "drawdownWorsening": 1.7022,
+        "dailyTrades": 0.06,
+        "reasons": [
+          "FAILED",
+          "Return improvement: -1.08% (need >= 0.5%)",
+          "Drawdown worsening: 1.70% (need <= 2.0%)",
+          "Daily trades: 0.06 (need <= 6)"
+        ]
+      },
+      "outcome": "backtest_failed",
+      "notes": "하락장 대응 전략으로 전면 교체. 핵심은 '거래 안 하는 것'이 최선인 환경 인식. 다음 배치에서 백테스트 결과 확인 후 레짐 임계값 미세조정 필요."
+    }
+  ],
+  "strategicNotes": "1) 하락장에서 높은 상관관계 자산 간 로테이션은 거래비용만 소모함. 2) BTC가 하락장에서 가장 적은 손실(-29%)을 보이므로 기본 보유자산으로 적합. 3) 거래 빈도가 수익에 미치는 영향이 매우 큼 - 58회 거래 시 ~17.4% 비용. 4) 레짐 필터가 가장 중요한 방어 메커니즘. 5) 상승장 전환 시에만 로테이션 활성화해야 함."
 }

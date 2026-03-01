@@ -7,6 +7,10 @@
 
 set -euo pipefail
 
+# Ensure node/claude are available in cron environment
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+
 PROJECT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$PROJECT_DIR"
 
@@ -267,20 +271,18 @@ fi
 # Step 5: Deploy
 echo "[Step 5] Deploying new strategy..."
 
-node -e "
+DEPLOY_RESULT=$(node -e "
     const fs = require('fs');
     const { deploy } = require('./src/batch/deploy');
     const code = fs.readFileSync('$TEMP_STRATEGY', 'utf8');
     const comparison = $COMPARISON;
     deploy(code, comparison).then(r => {
-        console.log(JSON.stringify(r, null, 2));
+        console.log(JSON.stringify(r));
         try { fs.unlinkSync('$TEMP_STRATEGY'); } catch(_){}
         try { fs.unlinkSync('$TEMP_STRATEGY.custom-indicators'); } catch(_){}
         try { fs.unlinkSync('$CUSTOM_INDICATORS_BACKUP'); } catch(_){}
-        process.exit(r.success ? 0 : 1);
     }).catch(e => {
         console.error('Deploy error:', e.message);
-        // Rollback custom indicators on deploy failure
         try {
             if (fs.existsSync('$CUSTOM_INDICATORS_BACKUP')) {
                 fs.copyFileSync('$CUSTOM_INDICATORS_BACKUP', '$CUSTOM_INDICATORS_FILE');
@@ -289,35 +291,63 @@ node -e "
         } catch(_){}
         try { fs.unlinkSync('$TEMP_STRATEGY'); } catch(_){}
         try { fs.unlinkSync('$TEMP_STRATEGY.custom-indicators'); } catch(_){}
-        process.exit(1);
+        console.log(JSON.stringify({success:false,reason:'deploy_exception'}));
     });
-"
+" 2>/dev/null || echo '{"success":false,"reason":"deploy_crash"}')
 
-SUCCESS_JSON=$(node -e "
-    const comp = $COMPARISON;
-    const r = $(echo "$PARSE_RESULT" | node -e "process.stdin.setEncoding('utf8');let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>console.log(JSON.stringify(JSON.parse(d).decision)))");
-    console.log(JSON.stringify({type:'replace_success',reasoning:r.reasoning||'',confidence:r.confidence||0,comparison:comp}));
-")
-notify_batch "$SUCCESS_JSON"
-# Update batch memory with deploy success
-echo "$PARSE_RESULT" | node -e "
-    process.stdin.setEncoding('utf8');let d='';
-    process.stdin.on('data',c=>d+=c);
-    process.stdin.on('end',()=>{
-        const r=JSON.parse(d).decision;
-        const comp=$COMPARISON;
-        const {appendEntry}=require('./src/batch/update-memory');
-        appendEntry({action:'replace',reasoning:r.reasoning,confidence:r.confidence,outcome:'deployed',backtestResult:comp,notes:r.notes||'',strategicNotes:r.strategicNotes});
-    });
-"
+DEPLOY_SUCCESS=$(echo "$DEPLOY_RESULT" | node -e "process.stdin.setEncoding('utf8');let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>console.log(JSON.parse(d).success))")
 
-# Step 6: Git commit & push
-echo "[Step 6] Committing changes to git..."
-cd "$PROJECT_DIR"
-REASONING=$(echo "$PARSE_RESULT" | node -e "process.stdin.setEncoding('utf8');let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const r=JSON.parse(d);console.log(r.decision.reasoning||'strategy replacement')})")
-git add src/strategies/current-strategy.js src/strategies/custom-indicators.js deploy-log.json trading-config.json data/batch-memory.json 2>/dev/null || true
-git commit -m "batch: replace strategy - $REASONING" 2>/dev/null || echo "  No changes to commit."
-git push 2>/dev/null || echo "  Push skipped (no remote configured)."
+echo "[Step 5] Deploy result: success=$DEPLOY_SUCCESS"
+echo "$DEPLOY_RESULT"
+
+if [ "$DEPLOY_SUCCESS" = "true" ]; then
+    # Deploy success: notify + memory + git
+    NOTIFY_JSON=$(node -e "
+        const comp = $COMPARISON;
+        const r = $(echo "$PARSE_RESULT" | node -e "process.stdin.setEncoding('utf8');let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>console.log(JSON.stringify(JSON.parse(d).decision)))");
+        console.log(JSON.stringify({type:'replace_success',reasoning:r.reasoning||'',confidence:r.confidence||0,comparison:comp}));
+    ")
+    notify_batch "$NOTIFY_JSON"
+
+    echo "$PARSE_RESULT" | node -e "
+        process.stdin.setEncoding('utf8');let d='';
+        process.stdin.on('data',c=>d+=c);
+        process.stdin.on('end',()=>{
+            const r=JSON.parse(d).decision;
+            const comp=$COMPARISON;
+            const {appendEntry}=require('./src/batch/update-memory');
+            appendEntry({action:'replace',reasoning:r.reasoning,confidence:r.confidence,outcome:'deployed',backtestResult:comp,notes:r.notes||'',strategicNotes:r.strategicNotes});
+        });
+    "
+
+    # Step 6: Git commit & push
+    echo "[Step 6] Committing changes to git..."
+    cd "$PROJECT_DIR"
+    REASONING=$(echo "$PARSE_RESULT" | node -e "process.stdin.setEncoding('utf8');let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const r=JSON.parse(d);console.log(r.decision.reasoning||'strategy replacement')})")
+    git add src/strategies/current-strategy.js src/strategies/custom-indicators.js deploy-log.json trading-config.json data/batch-memory.json 2>/dev/null || true
+    git commit -m "batch: replace strategy - $REASONING" 2>/dev/null || echo "  No changes to commit."
+    git push 2>/dev/null || echo "  Push skipped (no remote configured)."
+else
+    # Deploy failed: notify failure + memory
+    NOTIFY_JSON=$(node -e "
+        const comp = $COMPARISON;
+        const r = $(echo "$PARSE_RESULT" | node -e "process.stdin.setEncoding('utf8');let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>console.log(JSON.stringify(JSON.parse(d).decision)))");
+        const dr = $DEPLOY_RESULT;
+        console.log(JSON.stringify({type:'replace_fail',reasoning:r.reasoning||'',confidence:r.confidence||0,comparison:comp,deployError:dr.reason||'unknown'}));
+    ")
+    notify_batch "$NOTIFY_JSON"
+
+    echo "$PARSE_RESULT" | node -e "
+        process.stdin.setEncoding('utf8');let d='';
+        process.stdin.on('data',c=>d+=c);
+        process.stdin.on('end',()=>{
+            const r=JSON.parse(d).decision;
+            const comp=$COMPARISON;
+            const {appendEntry}=require('./src/batch/update-memory');
+            appendEntry({action:'replace',reasoning:r.reasoning,confidence:r.confidence,outcome:'deploy_failed',backtestResult:comp,notes:r.notes||'',strategicNotes:r.strategicNotes});
+        });
+    "
+fi
 
 echo "=============================="
 echo "Batch complete: $TIMESTAMP"

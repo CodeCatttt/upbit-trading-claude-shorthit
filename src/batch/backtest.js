@@ -77,24 +77,50 @@ function runBacktest(strategy, candleData, label = 'unnamed') {
     const lookback = (strategy.DEFAULT_CONFIG && strategy.DEFAULT_CONFIG.lookback) || 60;
     const startIdx = Math.max(lookback, 60);
 
+    // Pre-compute 240m timestamps (avoid repeated Date parsing in loop)
+    const timestamps240 = {};
+    for (const market of markets) {
+        timestamps240[market] = get240m(market).map(c => new Date(c.timestamp).getTime());
+    }
+
+    // Pre-build slicedData with candles up to startIdx (O(n) total, not per step)
+    const slicedData = {};
+    const idx240 = {};
+    const startTs = new Date(get15m(markets[0])[startIdx].timestamp).getTime();
+
+    for (const market of markets) {
+        const candles15 = get15m(market);
+        slicedData[market] = {
+            15: candles15.slice(0, startIdx + 1),
+            240: [],
+        };
+
+        // Find initial 240m boundary using pre-computed timestamps
+        const ts240 = timestamps240[market];
+        let j = 0;
+        while (j < ts240.length && ts240[j] <= startTs) {
+            slicedData[market][240].push(get240m(market)[j]);
+            j++;
+        }
+        idx240[market] = j;
+    }
+
     for (let i = startIdx; i < minLength; i++) {
-        // Build nested candleData slice up to index i
-        const slicedData = {};
-        const currentTimestamp = get15m(markets[0])[i].timestamp;
+        // For i > startIdx, incrementally grow arrays (O(1) per step)
+        if (i > startIdx) {
+            const currentTs = new Date(get15m(markets[0])[i].timestamp).getTime();
+            for (const market of markets) {
+                // Push new 15m candle
+                slicedData[market][15].push(get15m(market)[i]);
 
-        for (const market of markets) {
-            const candles15 = get15m(market);
-            const candles240 = get240m(market);
-
-            // Slice 240m candles: only those with timestamp <= current 15m timestamp
-            const sliced240 = candles240.filter(c =>
-                new Date(c.timestamp) <= new Date(currentTimestamp)
-            );
-
-            slicedData[market] = {
-                15: candles15.slice(0, i + 1),
-                240: sliced240,
-            };
+                // Advance 240m pointer
+                const candles240 = get240m(market);
+                const ts240 = timestamps240[market];
+                while (idx240[market] < ts240.length && ts240[idx240[market]] <= currentTs) {
+                    slicedData[market][240].push(candles240[idx240[market]]);
+                    idx240[market]++;
+                }
+            }
         }
 
         const result = strategy.onNewCandle(state, slicedData);

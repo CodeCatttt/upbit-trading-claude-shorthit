@@ -89,7 +89,18 @@ function restartPM2() {
     }
 }
 
-function checkPM2Status() {
+function getPM2RestartCount() {
+    try {
+        const output = execSync(`pm2 jlist`, { encoding: 'utf8' });
+        const processes = JSON.parse(output);
+        const bot = processes.find(p => p.name === PM2_NAME);
+        return bot ? bot.pm2_env.restart_time : -1;
+    } catch {
+        return -1;
+    }
+}
+
+function checkPM2Status(restartsBefore) {
     try {
         const output = execSync(`pm2 jlist`, { encoding: 'utf8' });
         const processes = JSON.parse(output);
@@ -102,11 +113,12 @@ function checkPM2Status() {
             log.error(`Bot status: ${bot.pm2_env.status}`);
             return false;
         }
-        if (bot.pm2_env.restart_time > 2) {
-            log.error(`Too many restarts: ${bot.pm2_env.restart_time}`);
+        const newRestarts = bot.pm2_env.restart_time - restartsBefore;
+        if (newRestarts > 2) {
+            log.error(`Too many new restarts since deploy: ${newRestarts} (before: ${restartsBefore}, now: ${bot.pm2_env.restart_time})`);
             return false;
         }
-        log.info(`PM2 status OK: ${bot.pm2_env.status}, restarts: ${bot.pm2_env.restart_time}`);
+        log.info(`PM2 status OK: ${bot.pm2_env.status}, new restarts since deploy: ${newRestarts}`);
         return true;
     } catch (e) {
         log.error('PM2 status check failed:', e.message);
@@ -116,6 +128,9 @@ function checkPM2Status() {
 
 async function deploy(strategyCode, backtestComparison = null) {
     log.info('=== Starting deployment ===');
+
+    // 0. Record restart count before deploy
+    const restartsBefore = getPM2RestartCount();
 
     // 1. Backup
     const backupPath = backupCurrentStrategy();
@@ -149,7 +164,7 @@ async function deploy(strategyCode, backtestComparison = null) {
     log.info(`Waiting ${HEALTH_CHECK_WAIT_MS / 1000}s for health check...`);
     await new Promise(r => setTimeout(r, HEALTH_CHECK_WAIT_MS));
 
-    const pm2Ok = checkPM2Status();
+    const pm2Ok = checkPM2Status(restartsBefore);
     if (!pm2Ok) {
         log.error('Post-deploy health check FAILED. Rolling back...');
         if (backupPath) {

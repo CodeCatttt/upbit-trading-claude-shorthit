@@ -48,8 +48,8 @@ async function fetchAll(market, unit) {
 
     log.info(`Fetching ${market} ${unit}m candles (existing: ${existing.length})`);
 
-    if (existing.length >= MAX_CANDLES - PAGE_SIZE) {
-        // Incremental update: just fetch latest
+    if (existing.length >= PAGE_SIZE) {
+        // Incremental update: already have data, just fetch latest page and merge
         const latest = await api.getCandles(market, unit, PAGE_SIZE);
         if (latest.length > 0) {
             const merged = store.appendCandles(market, unit, latest, MAX_CANDLES);
