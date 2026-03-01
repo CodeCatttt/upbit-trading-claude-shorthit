@@ -159,7 +159,12 @@ async function runStrategyBoundary() {
 
                 if (amt > MIN_ORDER_KRW) {
                     log.info(`Re-entry: Buying ${getCurrencyFromMarket(targetMarket)}. Reason: ${signal.details.reason || 'strategy'}`);
-                    await api.buyMarketOrder(targetMarket, amt);
+                    const buyResult = await api.buyMarketOrder(targetMarket, amt);
+                    if (!buyResult) {
+                        log.error(`Re-entry buy failed for ${targetMarket}. Staying in CASH.`);
+                        writeHeartbeat('BUY_FAILED');
+                        return;
+                    }
                     state.assetHeld = targetMarket;
                     saveState();
                     appendExecutionLog({
@@ -202,7 +207,12 @@ async function runStrategyBoundary() {
                     const balance = await api.getBalance(currentCurrency);
                     if (balance > 0) {
                         log.info(`SELL_TO_CASH: Selling ${balance} ${currentCurrency}...`);
-                        await api.sellMarketOrder(state.assetHeld, balance);
+                        const sellResult = await api.sellMarketOrder(state.assetHeld, balance);
+                        if (!sellResult) {
+                            log.error(`SELL_TO_CASH failed for ${currentCurrency}. Keeping position.`);
+                            writeHeartbeat('SELL_FAILED');
+                            return;
+                        }
                         state.assetHeld = 'CASH';
                         saveState();
                         log.info(`SELL_TO_CASH complete: ${previousAsset} → CASH`);
@@ -233,7 +243,12 @@ async function runStrategyBoundary() {
                     const balance = await api.getBalance(currentCurrency);
                     if (balance > 0) {
                         log.info(`Selling ${balance} ${currentCurrency} to buy ${targetCurrency}...`);
-                        await api.sellMarketOrder(state.assetHeld, balance);
+                        const sellResult = await api.sellMarketOrder(state.assetHeld, balance);
+                        if (!sellResult) {
+                            log.error(`Sell failed for ${currentCurrency}. Aborting SWITCH.`);
+                            writeHeartbeat('SELL_FAILED');
+                            return;
+                        }
                         await new Promise(r => setTimeout(r, 3000));
                     }
                 }
@@ -267,7 +282,14 @@ async function runStrategyBoundary() {
                     // Market execution: immediate buy
                     const buyAmount = Math.floor(krwBalance * TRADE_RATIO);
                     if (buyAmount > MIN_ORDER_KRW) {
-                        await api.buyMarketOrder(targetMarket, buyAmount);
+                        const buyResult = await api.buyMarketOrder(targetMarket, buyAmount);
+                        if (!buyResult) {
+                            log.error(`Buy failed for ${targetMarket}. Entering CASH state.`);
+                            state.assetHeld = 'CASH';
+                            saveState();
+                            writeHeartbeat('BUY_FAILED');
+                            return;
+                        }
                         state.assetHeld = targetMarket;
                         saveState();
                         log.info(`SWITCH complete (market): ${previousAsset} → ${targetMarket}`);
