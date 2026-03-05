@@ -37,10 +37,10 @@ const DEFAULT_CONFIG = {
     riskGracePeriod: 24,            // 24h grace period after entry (no trailing stop / crash)
 
     // Re-entry from CASH
-    reentryRsiMin: 40,              // RSI must be above this
-    reentryMinScore: 0.05,           // Minimum positive score
+    reentryRsiMin: 38,              // RSI must be above this
+    reentryMinScore: 0.03,           // Minimum positive score
     reentryTrendConfirm: true,      // Require EMA golden cross
-    reentryCooldown: 96,           // 3 days minimum stay in CASH
+    reentryCooldown: 72,           // 3 days minimum stay in CASH
 
     // Scoring weights
     momentumWeight: 0.45,           // Risk-adjusted momentum (Sharpe)
