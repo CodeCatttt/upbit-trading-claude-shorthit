@@ -31,16 +31,16 @@ const DEFAULT_CONFIG = {
     opportunityOverrideMultiplier: 1.3, // Override cooldown if advantage exceeds threshold * this
 
     // Risk management — CASH conversion
-    trailingStopPct: 0.05,          // 12% drop from peak → CASH
+    trailingStopPct: 0.05,          // 5% drop from peak → CASH
     crashWindowCandles: 96,         // 24h of 15m candles
-    crashThreshold: 0.03,           // 8% drop in 24h → CASH
+    crashThreshold: 0.03,           // 3% drop in 24h → CASH
     riskGracePeriod: 24,            // 24h grace period after entry (no trailing stop / crash)
 
     // Re-entry from CASH
     reentryRsiMin: 38,              // RSI must be above this
     reentryMinScore: 0.03,           // Minimum positive score
-    reentryTrendConfirm: true,      // Require EMA golden cross
-    reentryCooldown: 72,           // 3 days minimum stay in CASH
+    reentryTrendConfirm: false,     // Do NOT require EMA golden cross (lagging indicator bottleneck removed)
+    reentryCooldown: 72,           // 18h minimum stay in CASH
 
     // Scoring weights
     momentumWeight: 0.45,           // Risk-adjusted momentum (Sharpe)

@@ -29,5 +29,23 @@
     "reason": "health_check_failed",
     "rollback": true,
     "backupPath": "/home/kook/programming/upbit-trading-claude/backups/strategy-2026-03-01T03-34-19.js"
+  },
+  {
+    "timestamp": "2026-03-05T22:34:39.672Z",
+    "success": true,
+    "backupPath": "/home/kook/programming/upbit-trading-claude/backups/strategy-2026-03-05T22-34-08.js",
+    "backtestComparison": {
+      "pass": true,
+      "gateType": "replace",
+      "returnImprovement": 7.9291,
+      "drawdownWorsening": -1.5501,
+      "dailyTrades": 0.51,
+      "reasons": [
+        "PASSED",
+        "Return improvement: 7.93% (need >= -1%)",
+        "Drawdown worsening: -1.55% (need <= 3%)",
+        "Daily trades: 0.51 (need >= 0.15 and <= 10)"
+      ]
+    }
   }
 ]
