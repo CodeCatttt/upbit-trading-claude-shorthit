@@ -778,6 +778,104 @@ else
     fi
 fi
 
+# =====================================================================
+# Step 7: Shadow strategy auto-promotion check
+# =====================================================================
+echo "[Step 7] Checking shadow strategies for auto-promotion..."
+
+SHADOW_PROMOTION=$(node -e "
+    const fs = require('fs');
+    const { checkAutoPromotion } = require('./src/batch/shadow-manager');
+
+    // Load performance ledger to compute live return
+    let liveReturnPct = 0;
+    try {
+        const ledger = JSON.parse(fs.readFileSync('./data/performance-ledger.json', 'utf8'));
+        if (ledger.summary && ledger.summary.totalReturnPct != null) {
+            liveReturnPct = ledger.summary.totalReturnPct;
+        }
+    } catch(e) {}
+
+    const candidate = checkAutoPromotion(liveReturnPct);
+    console.log(JSON.stringify(candidate || {id:null}));
+" 2>/dev/null || echo '{"id":null}')
+
+SHADOW_ID=$(json_field "$SHADOW_PROMOTION" "o.id||null")
+
+if [ "$SHADOW_ID" != "null" ] && [ -n "$SHADOW_ID" ]; then
+    SHADOW_LABEL=$(json_field "$SHADOW_PROMOTION" "o.label||''")
+    SHADOW_ALPHA=$(json_field "$SHADOW_PROMOTION" "o.alpha||0")
+    SHADOW_RETURN=$(json_field "$SHADOW_PROMOTION" "o.shadowReturn||0")
+    SHADOW_EXP_ID=$(json_field "$SHADOW_PROMOTION" "o.experimentId||''")
+
+    echo "  Shadow promotion candidate: $SHADOW_ID ($SHADOW_LABEL), alpha: $SHADOW_ALPHA%"
+
+    # Read shadow strategy code and deploy
+    SHADOW_CODE=$(node -e "
+        const { getShadowDetails } = require('./src/batch/shadow-manager');
+        const fs = require('fs');
+        const details = getShadowDetails('$SHADOW_ID');
+        if (details && details.filePath && fs.existsSync(details.filePath)) {
+            process.stdout.write(fs.readFileSync(details.filePath, 'utf8'));
+        }
+    " 2>/dev/null || echo "")
+
+    if [ -n "$SHADOW_CODE" ]; then
+        echo "$SHADOW_CODE" > "$TEMP_STRATEGY"
+
+        SHADOW_DEPLOY=$(node -e "
+            const fs = require('fs');
+            const { deploy } = require('./src/batch/deploy');
+            const code = fs.readFileSync('$TEMP_STRATEGY', 'utf8');
+            deploy(code, {pass:true, reasons:['Shadow auto-promotion: alpha $SHADOW_ALPHA%']}).then(r => {
+                console.log(JSON.stringify(r));
+                try { fs.unlinkSync('$TEMP_STRATEGY'); } catch(_){}
+            }).catch(e => {
+                console.log(JSON.stringify({success:false,reason:e.message}));
+                try { fs.unlinkSync('$TEMP_STRATEGY'); } catch(_){}
+            });
+        " 2>/dev/null || echo '{"success":false}')
+
+        SHADOW_DEPLOY_OK=$(json_field "$SHADOW_DEPLOY" "o.success")
+
+        if [ "$SHADOW_DEPLOY_OK" = "true" ]; then
+            echo "  Shadow strategy deployed successfully!"
+
+            # Remove shadow + complete experiment
+            node -e "
+                const { removeShadow } = require('./src/batch/shadow-manager');
+                removeShadow('$SHADOW_ID');
+            " 2>/dev/null || true
+
+            if [ -n "$SHADOW_EXP_ID" ] && [ "$SHADOW_EXP_ID" != "" ]; then
+                node -e "
+                    const { completeExperiment } = require('./src/batch/experiment-manager');
+                    completeExperiment('$SHADOW_EXP_ID', 'confirmed', {
+                        shadowReturn: $SHADOW_RETURN,
+                        alpha: $SHADOW_ALPHA,
+                        autoPromoted: true,
+                    });
+                " 2>/dev/null || true
+            fi
+
+            # Notify
+            notify_batch "{\"type\":\"shadow_promoted\",\"label\":\"$SHADOW_LABEL\",\"alpha\":$SHADOW_ALPHA,\"shadowReturn\":$SHADOW_RETURN,\"experimentId\":\"$SHADOW_EXP_ID\"}"
+
+            # Git commit
+            cd "$PROJECT_DIR"
+            git add src/strategies/current-strategy.js deploy-log.json data/shadow-performance.json data/experiments.json 2>/dev/null || true
+            git commit -m "batch: auto-promote shadow strategy '$SHADOW_LABEL' (alpha +${SHADOW_ALPHA}%)" 2>/dev/null || true
+            git push 2>/dev/null || echo "  Push skipped."
+        else
+            echo "  Shadow deploy failed: $SHADOW_DEPLOY"
+        fi
+    else
+        echo "  Shadow strategy code not found."
+    fi
+else
+    echo "  No shadow strategies eligible for auto-promotion."
+fi
+
 echo "=============================="
 echo "Batch complete: $TIMESTAMP"
 echo "=============================="

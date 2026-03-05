@@ -12,7 +12,7 @@ const querystring = require('querystring');
 const uuid = require('uuid');
 const path = require('path');
 
-require('dotenv').config({ path: path.join(__dirname, '../.env') });
+require('dotenv').config({ path: path.join(__dirname, '../../.env') });
 
 const access_key = process.env.UPBIT_ACCESS_KEY;
 const secret_key = process.env.UPBIT_SECRET_KEY;

@@ -52,7 +52,7 @@ module.exports = {
 - **15m 캔들**: 빠른 리스크 신호 (crash detection, trailing stop)
 - **4h 캔들**: 트렌드 스코어링, 레짐 감지, 스위칭 결정
 - **CASH 전환**: trailing stop (12%) + 24h crash detection (8%) → 자동 현금 전환
-- **적응형 쿨다운**: 트렌딩 시장 3일, 횡보 시장 14일 (choppiness 기반 보간)
+- **적응형 쿨다운**: 트렌딩 시장 3일, 횡보 시장 5일 (choppiness 기반 보간) + 기회 오버라이드 (advantage > threshold × 1.5 시 쿨다운 무시)
 - **스마트 재진입**: RSI > 45 + 양의 스코어 + EMA 골든크로스 확인 후 매수
 - **그레이스 기간**: 진입 후 24h 동안 리스크 체크 비활성화 (whipsaw 방지)
 - **복합 스코어링**: 모멘텀(45%) + EMA 트렌드(25%) + 거래량(15%) + 볼린저(15%)
@@ -101,7 +101,7 @@ module.exports = {
 ## Experiment Framework
 - File: `data/experiments.json`
 - Lifecycle: propose → backtest → deploy/reject → evaluate → learn
-- Max 2 active experiments simultaneously
+- Max 3 active experiments simultaneously
 - Types: `parameter_test`, `shadow_strategy`
 - Batch response `"action": "experiment"` triggers proposal
 - Completed experiments generate knowledge entries (confirmed/rejected)
@@ -111,7 +111,8 @@ module.exports = {
 - Performance: `data/shadow-performance.json`
 - New strategies run in paper-trading mode alongside live strategy
 - Bot executes shadow cycles each 15-minute tick (no real orders)
-- 7-day evaluation period before promotion decision
+- 4-day evaluation period before promotion decision
+- **Auto-promotion**: alpha >= 2% (vs live strategy) 시 배치에서 자동 승격 및 배포
 
 ## Custom Indicators
 - File: `src/strategies/custom-indicators.js`
@@ -133,7 +134,7 @@ module.exports = {
 - `trading-config.json`의 markets 배열로 관리
 
 ### Prohibited Patterns
-- 일일 10회 이상 거래 금지 (백테스트 게이트: 6회/일)
+- 일일 10회 이상 거래 금지 (백테스트 게이트: 10회/일, 최소 0.15회/일)
 - 시가총액 100위 밖 종목 거래 금지
 - 레버리지/마진 거래 불가 (Upbit 현물만)
 - 단일 배치에서 전략 교체 + 종목 변경 동시 수행 자제
@@ -142,8 +143,8 @@ module.exports = {
 - 백테스트에 슬리피지 0.1% (smart 모드 0.05%) + 수수료 0.05% 포함 (per side)
 - Walk-forward 백테스트: 70/30 분할, TEST 구간 기준 평가 (최소 200캔들, 미만 시 단일패스)
 - 티어드 게이트 (완화):
-  - `replace`: 수익률 차이 >= -1%, MDD 악화 <= 3%, 일일거래 <= 6
-  - `modify`: 수익률 차이 >= -2%, MDD 악화 <= 5%, 일일거래 <= 6
+  - `replace`: 수익률 차이 >= -1%, MDD 악화 <= 3%, 일일거래 0.15~10
+  - `modify`: 수익률 차이 >= -2%, MDD 악화 <= 5%, 일일거래 0.1~10
 - PM2 헬스체크 + 자동 롤백
 - 배포 전 드라이런: 실제 캔들 데이터로 onNewCandle 100회 반복, 런타임 에러 사전 차단
 
@@ -236,7 +237,7 @@ For "replace" action, additional code blocks:
 
 ## Safety
 
-- Tiered backtest gates: replace (return diff >= -1%, MDD <= 3% worse), modify (return diff >= -2%, MDD <= 5% worse), both <= 6 trades/day
+- Tiered backtest gates: replace (return diff >= -1%, MDD <= 3% worse, trades 0.15~10/day), modify (return diff >= -2%, MDD <= 5% worse, trades 0.1~10/day)
 - Walk-forward: replace uses 70/30 split, TEST period for gate evaluation
 - Slippage model: 0.1% per trade (market mode), 0.05% (smart mode)
 - Pre-deploy dry-run: 실제 캔들 데이터로 100회 반복 실행하여 런타임 에러 사전 차단
@@ -246,5 +247,5 @@ For "replace" action, additional code blocks:
 - Atomic state file writes (crash-safe)
 - Market removal safety: 보유 종목은 자동으로 관심 리스트에 유지
 - Batch memory: 최근 50개 결정 기록 + 구조화된 학습 지식 추적
-- Shadow strategies: 새 전략을 7일간 페이퍼 트레이딩 후 승격/폐기 결정
+- Shadow strategies: 새 전략을 4일간 페이퍼 트레이딩 후 alpha >= 2% 시 자동 승격
 - Adaptive scheduling: 트리거 기반 배치 실행, 최소 6시간 간격 보장

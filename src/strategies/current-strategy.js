@@ -27,7 +27,8 @@ const DEFAULT_CONFIG = {
 
     // Adaptive cooldown (15m candles)
     cooldownTrending: 288,          // 3 days in trending regime
-    cooldownChoppy: 1344,           // 14 days in choppy regime
+    cooldownChoppy: 480,            // 5 days in choppy regime
+    opportunityOverrideMultiplier: 1.5, // Override cooldown if advantage exceeds threshold * this
 
     // Risk management — CASH conversion
     trailingStopPct: 0.12,          // 12% drop from peak → CASH
@@ -378,9 +379,11 @@ function onNewCandle(state, candleData, config = DEFAULT_CONFIG) {
         };
     }
 
-    // Switch: clear advantage + target is trending + not in cooldown
+    // Switch: clear advantage + target is trending + not in cooldown (or opportunity override)
+    const opportunityOverride = inCooldown &&
+        advantage > config.switchThreshold * (config.opportunityOverrideMultiplier || 1.5);
     const shouldSwitch =
-        !inCooldown &&
+        (!inCooldown || opportunityOverride) &&
         best !== currentAsset &&
         advantage > config.switchThreshold &&
         !bestScore.isChoppy;
@@ -393,9 +396,10 @@ function onNewCandle(state, candleData, config = DEFAULT_CONFIG) {
             action: 'SWITCH',
             details: {
                 targetMarket: best,
-                reason: 'trend_advantage',
+                reason: opportunityOverride ? 'opportunity_override' : 'trend_advantage',
                 advantage: +advantage.toFixed(4),
                 adaptiveCooldown,
+                opportunityOverride,
                 scores: summary,
             },
         };
@@ -410,6 +414,7 @@ function onNewCandle(state, candleData, config = DEFAULT_CONFIG) {
             advantage: +advantage.toFixed(4),
             inCooldown,
             adaptiveCooldown,
+            opportunityOverride,
             peakPrice: state.peakPriceSinceEntry,
             currentPrice,
         },

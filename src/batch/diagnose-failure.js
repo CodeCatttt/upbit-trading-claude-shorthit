@@ -10,8 +10,8 @@
 'use strict';
 
 const GATE_THRESHOLDS = {
-    replace: { minReturn: -1, maxMddWorsening: 3, maxDailyTrades: 6 },
-    modify:  { minReturn: -2, maxMddWorsening: 5, maxDailyTrades: 6 },
+    replace: { minReturn: -1, maxMddWorsening: 3, maxDailyTrades: 10, minDailyTrades: 0.15 },
+    modify:  { minReturn: -2, maxMddWorsening: 5, maxDailyTrades: 10, minDailyTrades: 0.1 },
 };
 
 function diagnoseGateFailure(gateResult, newBacktest, currentBacktest) {
@@ -65,7 +65,19 @@ function diagnoseGateFailure(gateResult, newBacktest, currentBacktest) {
         );
     }
 
-    // 4. Combined analysis
+    // 4. Insufficient trading activity
+    if (gate.minDailyTrades && gateResult.dailyTrades < gate.minDailyTrades) {
+        issues.push({
+            type: 'trade_insufficient',
+            severity: 'major',
+            message: `일일 거래 ${gateResult.dailyTrades.toFixed(2)}회 — 최소 기준 ${gate.minDailyTrades}회 미달 (비활성 전략)`,
+        });
+        suggestions.push(
+            '전략이 거래를 거의 하지 않습니다. 쿨다운을 줄이거나 스위칭 문턱을 낮추세요. 비활성 전략은 시장가 대비 알파를 생성할 수 없습니다.'
+        );
+    }
+
+    // 5. Combined analysis
     const failedCount = issues.length;
     const majorCount = issues.filter(i => i.severity === 'major').length;
 

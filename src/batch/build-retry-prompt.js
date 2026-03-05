@@ -26,7 +26,7 @@ function buildRetryPrompt({ failedCode, gateResult, currentBacktest, newBacktest
         .map((s, i) => `  ${i + 1}. ${s}`)
         .join('\n');
 
-    const thresholds = diagnosis?.thresholds || { minReturn: -1, maxMddWorsening: 3, maxDailyTrades: 6 };
+    const thresholds = diagnosis?.thresholds || { minReturn: -1, maxMddWorsening: 3, maxDailyTrades: 10, minDailyTrades: 0.15 };
 
     const prompt = `## 재시도 요청 (시도 ${attempt + 1}/3)
 
@@ -45,7 +45,8 @@ ${suggestionsList || '  (없음)'}
 ### 게이트 통과 기준 (${diagnosis?.gateType || 'replace'})
 - 수익률 차이: >= ${thresholds.minReturn}% (현재 전략 대비)
 - MDD 악화: <= ${thresholds.maxMddWorsening}%
-- 일일 거래: <= ${thresholds.maxDailyTrades}회
+- 일일 거래: >= ${thresholds.minDailyTrades || 0.15}회 and <= ${thresholds.maxDailyTrades}회
+- **주의**: 거래 0회 전략은 minDailyTrades 게이트에서 자동 탈락합니다.
 
 ### 현재 전략 벤치마크
 - 수익률: ${currentBacktest?.returnPct?.toFixed(2) ?? 'N/A'}%

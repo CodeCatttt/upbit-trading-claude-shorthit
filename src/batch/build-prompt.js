@@ -161,6 +161,21 @@ function buildRecentBatchHistory(memory) {
         if (e.notes) line += ` | ${e.notes.slice(0, 100)}...`;
         lines.push(line);
     }
+
+    // Keep streak detection
+    let keepStreak = 0;
+    for (let i = memory.entries.length - 1; i >= 0; i--) {
+        if (memory.entries[i].action === 'keep') keepStreak++;
+        else break;
+    }
+
+    if (keepStreak >= 10) {
+        lines.push('');
+        lines.push(`**⚠ KEEP ${keepStreak}회 연속 중** — 전략이 정체되어 있을 수 있습니다.`);
+        lines.push('modify, replace, 또는 experiment 액션을 적극 검토하세요.');
+        lines.push('현재 전략의 수익률이 BTC buy-and-hold 대비 우수한지 확인하고, 개선 여지가 있다면 변경을 시도하세요.');
+    }
+
     return lines.join('\n');
 }
 
@@ -168,6 +183,7 @@ function buildExperimentSection(experiments) {
     const lines = ['## 실험 현황'];
     if (experiments.active.length === 0 && experiments.completed.length === 0) {
         lines.push('진행 중인 실험 없음. 새로운 가설이 있다면 "experiment" 액션으로 제안하세요.');
+        lines.push('**shadow_strategy 타입 권장**: 새 전략을 4일간 페이퍼 트레이딩 → alpha >= 2% 시 자동 승격.');
         return lines.join('\n');
     }
 
@@ -254,8 +270,10 @@ function buildFocusSection(triggerType) {
 4. 새로운 실험 가설을 제안해보세요.`,
 
         DAILY_REVIEW: `## 이번 배치의 초점: 일일 정기 점검
-일일 캔들 마감에 따른 정기 점검입니다. 전반적으로 살펴보세요.
-변경이 불필요하면 keep을 선택하세요. 무리한 변경보다 안정이 중요합니다.`,
+일일 캔들 마감에 따른 정기 점검입니다. 성과 데이터를 기반으로 판단하세요.
+- 수익률이 BTC buy-and-hold 대비 저조하면 modify 또는 replace를 적극 검토하세요.
+- 검증하고 싶은 가설이 있다면 "experiment" 액션을 활용하세요.
+- 변경 여부는 실제 성과와 시장 상황에 근거하여 결정하세요.`,
 
         EXPERIMENT_REVIEW: `## 이번 배치의 초점: 실험 결과 평가
 진행 중인 실험이 있습니다. 결과를 평가하고 학습 사항을 정리하세요.
@@ -277,10 +295,32 @@ function buildConstraintsSection() {
 - DEFAULT_CONFIG must include \`executionMode\` and \`smartEntry\` fields
 - Available: \`require('../core/indicators')\`, \`require('./custom-indicators')\`, \`require('../utils/adf-test')\`
 - No external npm packages beyond what exists
-- Daily trade frequency < 6 trades/day
+- Daily trade frequency: >= 0.15 and <= 10 trades/day (0-trade 전략은 게이트 탈락)
 - Backtest: 0.1% slippage (0.05% smart) + 0.05% fee per side
 - Walk-forward: replace uses 70/30 split, TEST period for gate evaluation
-- Gates: replace(return diff >= -1%, MDD <= 3% worse), modify(return diff >= -2%, MDD <= 5% worse)`;
+- Gates: replace(return diff >= -1%, MDD <= 3% worse, trades 0.15~10/day), modify(return diff >= -2%, MDD <= 5% worse, trades 0.1~10/day)`;
+}
+
+function buildExperimentRecommendation(memory, experiments) {
+    const lines = [];
+
+    // Check if there are actionable hypotheses without experiments
+    const kb = memory.knowledge || { hypotheses: [] };
+    const activeExpCount = experiments.active ? experiments.active.length : 0;
+    const maxActive = 3;
+    const pendingHypotheses = kb.hypotheses.filter(h => h.status === 'proposed' && !h.experimentId);
+
+    if (pendingHypotheses.length > 0 && activeExpCount < maxActive) {
+        lines.push('## 실험 권장');
+        lines.push(`검증 대기 중인 가설이 ${pendingHypotheses.length}개 있고, 활성 실험 슬롯이 ${maxActive - activeExpCount}개 남아있습니다.`);
+        lines.push('"experiment" 액션으로 가설을 체계적으로 검증하는 것을 권장합니다.');
+        lines.push('**shadow_strategy 타입을 적극 활용하세요** — 4일간 페이퍼 트레이딩 후 alpha >= 2% 시 자동 승격됩니다.');
+        for (const h of pendingHypotheses.slice(0, 3)) {
+            lines.push(`- 가설: ${h.hypothesis.slice(0, 100)}`);
+        }
+    }
+
+    return lines.length > 0 ? lines.join('\n') : '';
 }
 
 function buildResponseFormat() {
@@ -312,6 +352,8 @@ function buildResponseFormat() {
 \`\`\`
 
 - \`experiment\` 액션: 새 가설 테스트 제안 (백테스트 후 승인)
+  - \`shadow_strategy\` 타입: 4일 페이퍼 트레이딩 후 alpha >= 2% 시 자동 승격 (전략 코드 포함 필수)
+  - \`parameter_test\` 타입: 파라미터 변경 백테스트
 - \`knowledge\`: 이번 분석에서 발견한 인사이트를 구조화하여 기록 (기존 strategicNotes 대체)
 - replace 시 \`\`\`javascript 블록으로 전략 코드 출력 (최대 3 변형, 첫줄에 \`// VARIANT: 라벨\`)
 - replace 시 커스텀 인디케이터는 \`\`\`custom-indicators 블록
@@ -404,6 +446,10 @@ ${customIndicatorsSource}
     if (experiments.active.length > 0 && triggerType !== 'EXPERIMENT_REVIEW') {
         sections.push(buildExperimentSection(experiments));
     }
+
+    // Experiment recommendation (if applicable)
+    const experimentRec = buildExperimentRecommendation(memory, experiments);
+    if (experimentRec) sections.push(experimentRec);
 
     // Constraints + response format (always)
     sections.push(buildConstraintsSection());

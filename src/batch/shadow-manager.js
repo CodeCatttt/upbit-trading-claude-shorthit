@@ -17,7 +17,7 @@ const log = createLogger('SHADOW');
 
 const SHADOW_DIR = path.join(__dirname, '../../data/shadow-strategies');
 const SHADOW_PERF_FILE = path.join(__dirname, '../../data/shadow-performance.json');
-const PROMOTE_THRESHOLD_DAYS = 7;
+const PROMOTE_THRESHOLD_DAYS = 4;
 
 function loadShadowPerformance() {
     try {
@@ -215,6 +215,81 @@ function getShadowDetails(id) {
     return perf.shadows[id] || null;
 }
 
+/**
+ * Check for auto-promotion candidates among shadow strategies.
+ * A shadow is eligible if it has run >= PROMOTE_THRESHOLD_DAYS and its
+ * estimated return beats live strategy by >= 2% alpha.
+ * @param {number} liveReturnPct - Live strategy return % over the shadow's period
+ * @returns {object|null} Best promotion candidate { id, label, experimentId, alpha, shadowReturn }
+ */
+function checkAutoPromotion(liveReturnPct) {
+    const perf = loadShadowPerformance();
+    const candidates = [];
+
+    for (const [id, shadow] of Object.entries(perf.shadows)) {
+        const daysSince = (Date.now() - new Date(shadow.deployedAt).getTime()) / (1000 * 60 * 60 * 24);
+        if (daysSince < PROMOTE_THRESHOLD_DAYS) continue;
+
+        // Estimate shadow return from snapshots
+        const snapshots = shadow.snapshots || [];
+        if (snapshots.length < 2) continue;
+
+        const first = snapshots[0];
+        const last = snapshots[snapshots.length - 1];
+
+        // Simple return estimate: compare first and last snapshot prices
+        // accounting for asset switches tracked in trades
+        if (!first.price || !last.price || first.price === 0) continue;
+
+        // For simplicity, use a price-based return when asset is unchanged,
+        // otherwise count trade P&L from snapshots
+        let shadowReturn;
+        if (first.assetHeld === last.assetHeld) {
+            shadowReturn = ((last.price - first.price) / first.price) * 100;
+        } else {
+            // Multi-asset: approximate from intermediate snapshots
+            let cumReturn = 1;
+            let prevPrice = first.price;
+            let prevAsset = first.assetHeld;
+            for (let i = 1; i < snapshots.length; i++) {
+                const s = snapshots[i];
+                if (s.assetHeld !== prevAsset) {
+                    // Asset switched — lock in return up to switch point
+                    if (prevPrice > 0 && snapshots[i - 1].price > 0) {
+                        cumReturn *= snapshots[i - 1].price / prevPrice;
+                    }
+                    prevPrice = s.price;
+                    prevAsset = s.assetHeld;
+                }
+            }
+            // Final segment
+            if (prevPrice > 0 && last.price > 0) {
+                cumReturn *= last.price / prevPrice;
+            }
+            shadowReturn = (cumReturn - 1) * 100;
+        }
+
+        const alpha = shadowReturn - (liveReturnPct || 0);
+
+        if (alpha >= 2) {
+            candidates.push({
+                id,
+                label: shadow.label,
+                experimentId: shadow.experimentId,
+                alpha: +alpha.toFixed(2),
+                shadowReturn: +shadowReturn.toFixed(2),
+                daysSince: +daysSince.toFixed(1),
+            });
+        }
+    }
+
+    if (candidates.length === 0) return null;
+
+    // Return best by alpha
+    candidates.sort((a, b) => b.alpha - a.alpha);
+    return candidates[0];
+}
+
 // CLI
 if (require.main === module) {
     const cmd = process.argv[2];
@@ -233,4 +308,5 @@ module.exports = {
     evaluateShadows,
     removeShadow,
     getShadowDetails,
+    checkAutoPromotion,
 };

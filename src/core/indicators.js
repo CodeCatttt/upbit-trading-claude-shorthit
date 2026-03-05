@@ -170,6 +170,201 @@ function calcKalmanFilter(prices, Q = 0.0001, R = 0.01) {
     return estimates;
 }
 
+/**
+ * MACD (Moving Average Convergence Divergence).
+ * Returns { macdLine, signalLine, histogram } (latest values).
+ */
+function calcMACD(candles, fast = 12, slow = 26, signal = 9) {
+    if (candles.length < slow + signal) return null;
+
+    const closes = candles.map(c => c.close);
+
+    // Calculate EMA series from close prices
+    function emaSeries(data, period) {
+        const k = 2 / (period + 1);
+        let ema = 0;
+        for (let i = 0; i < period; i++) ema += data[i];
+        ema /= period;
+        const result = new Array(period - 1).fill(null);
+        result.push(ema);
+        for (let i = period; i < data.length; i++) {
+            ema = data[i] * k + ema * (1 - k);
+            result.push(ema);
+        }
+        return result;
+    }
+
+    const fastEma = emaSeries(closes, fast);
+    const slowEma = emaSeries(closes, slow);
+
+    // MACD line = fast EMA - slow EMA (starting from index slow-1)
+    const macdLine = [];
+    for (let i = 0; i < closes.length; i++) {
+        if (fastEma[i] != null && slowEma[i] != null) {
+            macdLine.push(fastEma[i] - slowEma[i]);
+        }
+    }
+
+    if (macdLine.length < signal) return null;
+
+    // Signal line = EMA of MACD line
+    const signalEma = emaSeries(macdLine, signal);
+
+    const lastIdx = macdLine.length - 1;
+    const sigIdx = signalEma.length - 1;
+
+    if (signalEma[sigIdx] == null) return null;
+
+    const macd = macdLine[lastIdx];
+    const sig = signalEma[sigIdx];
+
+    return {
+        macdLine: macd,
+        signalLine: sig,
+        histogram: macd - sig,
+    };
+}
+
+/**
+ * Stochastic Oscillator (%K, %D).
+ * Returns { k, d } (latest values).
+ */
+function calcStochastic(candles, kPeriod = 14, dPeriod = 3) {
+    if (candles.length < kPeriod + dPeriod - 1) return null;
+
+    // Calculate %K series
+    const kValues = [];
+    for (let i = kPeriod - 1; i < candles.length; i++) {
+        const slice = candles.slice(i - kPeriod + 1, i + 1);
+        const highest = Math.max(...slice.map(c => c.high));
+        const lowest = Math.min(...slice.map(c => c.low));
+        const range = highest - lowest;
+        kValues.push(range === 0 ? 50 : ((candles[i].close - lowest) / range) * 100);
+    }
+
+    if (kValues.length < dPeriod) return null;
+
+    // %D = SMA of %K
+    let dSum = 0;
+    for (let i = kValues.length - dPeriod; i < kValues.length; i++) {
+        dSum += kValues[i];
+    }
+
+    return {
+        k: kValues[kValues.length - 1],
+        d: dSum / dPeriod,
+    };
+}
+
+/**
+ * ADX (Average Directional Index) with +DI and -DI.
+ * Returns { adx, plusDI, minusDI } (latest values).
+ */
+function calcADX(candles, period = 14) {
+    if (candles.length < period * 2 + 1) return null;
+
+    const trList = [];
+    const plusDM = [];
+    const minusDM = [];
+
+    for (let i = 1; i < candles.length; i++) {
+        const high = candles[i].high;
+        const low = candles[i].low;
+        const prevClose = candles[i - 1].close;
+        const prevHigh = candles[i - 1].high;
+        const prevLow = candles[i - 1].low;
+
+        trList.push(Math.max(high - low, Math.abs(high - prevClose), Math.abs(low - prevClose)));
+
+        const upMove = high - prevHigh;
+        const downMove = prevLow - low;
+
+        plusDM.push(upMove > downMove && upMove > 0 ? upMove : 0);
+        minusDM.push(downMove > upMove && downMove > 0 ? downMove : 0);
+    }
+
+    // Smoothed averages (Wilder's smoothing)
+    let smoothTR = 0, smoothPlusDM = 0, smoothMinusDM = 0;
+    for (let i = 0; i < period; i++) {
+        smoothTR += trList[i];
+        smoothPlusDM += plusDM[i];
+        smoothMinusDM += minusDM[i];
+    }
+
+    const dxValues = [];
+
+    for (let i = period; i < trList.length; i++) {
+        smoothTR = smoothTR - smoothTR / period + trList[i];
+        smoothPlusDM = smoothPlusDM - smoothPlusDM / period + plusDM[i];
+        smoothMinusDM = smoothMinusDM - smoothMinusDM / period + minusDM[i];
+
+        const pDI = smoothTR === 0 ? 0 : (smoothPlusDM / smoothTR) * 100;
+        const mDI = smoothTR === 0 ? 0 : (smoothMinusDM / smoothTR) * 100;
+        const diSum = pDI + mDI;
+        const dx = diSum === 0 ? 0 : (Math.abs(pDI - mDI) / diSum) * 100;
+
+        dxValues.push({ dx, pDI, mDI });
+    }
+
+    if (dxValues.length < period) return null;
+
+    // ADX = smoothed average of DX
+    let adx = 0;
+    for (let i = 0; i < period; i++) {
+        adx += dxValues[i].dx;
+    }
+    adx /= period;
+
+    for (let i = period; i < dxValues.length; i++) {
+        adx = (adx * (period - 1) + dxValues[i].dx) / period;
+    }
+
+    const last = dxValues[dxValues.length - 1];
+
+    return {
+        adx,
+        plusDI: last.pDI,
+        minusDI: last.mDI,
+    };
+}
+
+/**
+ * On-Balance Volume (OBV).
+ * Returns the current OBV value.
+ */
+function calcOBV(candles) {
+    if (candles.length < 2) return null;
+
+    let obv = 0;
+    for (let i = 1; i < candles.length; i++) {
+        if (candles[i].close > candles[i - 1].close) {
+            obv += candles[i].volume;
+        } else if (candles[i].close < candles[i - 1].close) {
+            obv -= candles[i].volume;
+        }
+    }
+    return obv;
+}
+
+/**
+ * Volume-Weighted Average Price (VWAP).
+ * Returns the current VWAP value.
+ */
+function calcVWAP(candles) {
+    if (candles.length === 0) return null;
+
+    let cumulativeTPV = 0; // typical price * volume
+    let cumulativeVolume = 0;
+
+    for (const c of candles) {
+        const typicalPrice = (c.high + c.low + c.close) / 3;
+        cumulativeTPV += typicalPrice * c.volume;
+        cumulativeVolume += c.volume;
+    }
+
+    return cumulativeVolume === 0 ? null : cumulativeTPV / cumulativeVolume;
+}
+
 module.exports = {
     calcPriceRatio,
     estimateOU,
@@ -181,4 +376,9 @@ module.exports = {
     calcATR,
     calcZScore,
     calcKalmanFilter,
+    calcMACD,
+    calcStochastic,
+    calcADX,
+    calcOBV,
+    calcVWAP,
 };

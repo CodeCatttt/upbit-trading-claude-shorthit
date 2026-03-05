@@ -19,7 +19,7 @@ const { createLogger } = require('../utils/logger');
 const log = createLogger('EXPERIMENT');
 
 const EXPERIMENTS_FILE = path.join(__dirname, '../../data/experiments.json');
-const MAX_ACTIVE = 2;
+const MAX_ACTIVE = 3;
 
 function loadExperiments() {
     try {

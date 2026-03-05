@@ -18,6 +18,7 @@ const COLORS = {
     replace_fail: 0xE74C3C,   // 빨간색
     modify_fail: 0xE67E22,    // 주황색
     experiment: 0x9B59B6,     // 보라색
+    shadow_promoted: 0x00FF88, // 밝은 녹색
 };
 
 function formatKeep(data) {
@@ -108,6 +109,19 @@ function formatExperiment(data) {
     };
 }
 
+function formatShadowPromoted(data) {
+    return {
+        title: '🌟 섀도우 전략 자동 승격',
+        color: COLORS.shadow_promoted,
+        fields: [
+            { name: '승격된 전략', value: data.label || '—', inline: false },
+            { name: '알파', value: `+${data.alpha || 0}%`, inline: true },
+            { name: '섀도우 수익률', value: `${data.shadowReturn || 0}%`, inline: true },
+            { name: '실험 ID', value: data.experimentId || '—', inline: true },
+        ],
+    };
+}
+
 function formatMarketsUpdated(data) {
     return {
         title: '🔄 관심 종목 변경',
@@ -135,6 +149,7 @@ async function main() {
         case 'replace_fail':     embed = formatReplaceFail(data); break;
         case 'markets_updated':  embed = formatMarketsUpdated(data); break;
         case 'experiment':       embed = formatExperiment(data); break;
+        case 'shadow_promoted':  embed = formatShadowPromoted(data); break;
         default:
             console.error('Unknown type:', data.type);
             process.exit(1);

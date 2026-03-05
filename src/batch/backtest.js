@@ -291,8 +291,8 @@ function runBacktest(strategy, candleData, label = 'unnamed', measureFromIdx = n
 
 // Tiered gate thresholds
 const GATE_THRESHOLDS = {
-    replace: { minReturn: -1, maxMddWorsening: 3, maxDailyTrades: 6 },
-    modify:  { minReturn: -2, maxMddWorsening: 5, maxDailyTrades: 6 },
+    replace: { minReturn: -1, maxMddWorsening: 3, maxDailyTrades: 10, minDailyTrades: 0.15 },
+    modify:  { minReturn: -2, maxMddWorsening: 5, maxDailyTrades: 10, minDailyTrades: 0.1 },
 };
 
 function compareStrategies(currentResult, newResult, gateType = 'replace') {
@@ -304,7 +304,8 @@ function compareStrategies(currentResult, newResult, gateType = 'replace') {
     const pass =
         returnImprovement >= gate.minReturn &&
         drawdownWorsening <= gate.maxMddWorsening &&
-        dailyTrades <= gate.maxDailyTrades;
+        dailyTrades <= gate.maxDailyTrades &&
+        dailyTrades >= (gate.minDailyTrades || 0);
 
     return {
         pass,
@@ -316,7 +317,7 @@ function compareStrategies(currentResult, newResult, gateType = 'replace') {
             pass ? 'PASSED' : 'FAILED',
             `Return improvement: ${returnImprovement.toFixed(2)}% (need >= ${gate.minReturn}%)`,
             `Drawdown worsening: ${drawdownWorsening.toFixed(2)}% (need <= ${gate.maxMddWorsening}%)`,
-            `Daily trades: ${dailyTrades} (need <= ${gate.maxDailyTrades})`,
+            `Daily trades: ${dailyTrades} (need >= ${gate.minDailyTrades || 0} and <= ${gate.maxDailyTrades})`,
         ],
     };
 }
