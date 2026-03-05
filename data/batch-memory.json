@@ -2,70 +2,6 @@
   "maxEntries": 50,
   "entries": [
     {
-      "timestamp": "2026-03-03T17:30:53.999Z",
-      "action": "keep",
-      "reasoning": "BTC -0.1%로 알트(-1.75~-1.88%) 대비 선방. 체결 강도 4.2 매수 강세로 전환되어 보유 유지 적합. 피크 대비 -1.49%로 리스크 임계값 이내. 약세 레짐에서 무리한 변경보다 안정 유지.",
-      "confidence": 0.93,
-      "parameters": null,
-      "markets": null,
-      "improvementAreas": [],
-      "backtestResult": null,
-      "outcome": "kept",
-      "notes": "다음 배치 체크: (1) 포트폴리오 가치 0 KRW — collect-metrics.js 잔고 조회 버그 47회 연속 미해결, 별도 디버깅 세션 필요, (2) BTC 체결 강도 4.2 매수 강세 전환 — 이전 매도 우위 패턴 완전 반전, 이 매수 전환이 지속되는지 추적, (3) 전 종목 매수 우위 + 동반 소폭 하락 패턴이 반등 선행 신호인지 관찰",
-      "retryAttempts": null,
-      "variantsTested": null,
-      "diagnosis": null,
-      "triggerType": "DAILY_REVIEW"
-    },
-    {
-      "timestamp": "2026-03-03T18:30:47.665Z",
-      "action": "keep",
-      "reasoning": "약세 레짐(-1.2%)에서 BTC가 유일한 양전 자산(+0.22%). 피크 대비 -1.16%로 리스크 안전 범위 내. 전략 변경 불필요.",
-      "confidence": 0.93,
-      "parameters": null,
-      "markets": null,
-      "improvementAreas": [],
-      "backtestResult": null,
-      "outcome": "kept",
-      "notes": "다음 배치 체크: (1) 포트폴리오 가치 0 KRW — collect-metrics.js 잔고 조회 버그 48회 연속 미해결, 별도 디버깅 세션 필요, (2) SOL만 매수 우위(1.73) + 나머지 3종목 매도 우위(0.64~0.7) 분화 패턴 — SOL 단독 매수 우위 지속 여부 모니터링, (3) BTC 체결 강도 매수 강세(4.2)→매도 우위(0.7) 급반전 후속 관찰",
-      "retryAttempts": null,
-      "variantsTested": null,
-      "diagnosis": null,
-      "triggerType": "DAILY_REVIEW"
-    },
-    {
-      "timestamp": "2026-03-03T19:30:57.445Z",
-      "action": "keep",
-      "reasoning": "약세 레짐(평균 -1.22%)에서 BTC만 보합(+0.06%), 알트 전종목 하락(-1.5~1.8%). BTC 보유 유지가 최적. 전략 파라미터 조정 불필요.",
-      "confidence": 0.93,
-      "parameters": null,
-      "markets": null,
-      "improvementAreas": [],
-      "backtestResult": null,
-      "outcome": "kept",
-      "notes": "다음 배치 체크: (1) 포트폴리오 가치 0 KRW — collect-metrics.js 잔고 조회 버그 49회 연속 미해결, 별도 디버깅 세션 필요, (2) BTC 매도 우위(0.4) + 알트 매수 우위 + 알트 하락 패턴 지속 여부, (3) 알트 매수 흡수력 약화 3회차 — 3일+ 지속 시 추가 하락 가능성 모니터링",
-      "retryAttempts": null,
-      "variantsTested": null,
-      "diagnosis": null,
-      "triggerType": "DAILY_REVIEW"
-    },
-    {
-      "timestamp": "2026-03-03T20:30:52.860Z",
-      "action": "keep",
-      "reasoning": "약세 레짐에서 BTC가 알트 대비 최소 낙폭(-0.63%), 전 종목 매수 우위 + 동반 하락 패턴은 매집 구간 가능성. 피크 대비 -1.46%로 리스크 여유 충분. 변경 불필요.",
-      "confidence": 0.93,
-      "parameters": null,
-      "markets": null,
-      "improvementAreas": [],
-      "backtestResult": null,
-      "outcome": "kept",
-      "notes": "다음 배치 체크: (1) 포트폴리오 가치 0 KRW — collect-metrics.js 잔고 조회 버그 50회 연속 미해결, 별도 디버깅 세션 필요, (2) 전 종목 매수 우위 + 동반 하락 패턴 지속 여부 — XRP 체결 강도 최고(3.87)이므로 반등 시 XRP 아웃퍼폼 가설 검증 기회, (3) BTC 피크(101,968,000) 대비 하락 추이 모니터링",
-      "retryAttempts": null,
-      "variantsTested": null,
-      "diagnosis": null,
-      "triggerType": "DAILY_REVIEW"
-    },
-    {
       "timestamp": "2026-03-03T21:30:50.264Z",
       "action": "keep",
       "reasoning": "BTC 피크 대비 -1.98%로 리스크 신호 없음. 전 종목 체결 강도 매수 강세(BTC 8.16, XRP 7.83) + 동반 하락은 분산 매집 가설 3회차 관측. 약세 레짐이나 매수 흡수력이 유지되고 있어 현 포지션 유지가 적절.",
@@ -811,6 +747,100 @@
       "variantsTested": null,
       "diagnosis": null,
       "triggerType": "DAILY_REVIEW"
+    },
+    {
+      "timestamp": "2026-03-05T17:01:43.850Z",
+      "action": "experiment",
+      "reasoning": "극저분산(0.17~0.45%) 3일+ 지속 후 분산 급확대 시 방향성 트레이드 기회 포착 가설 검증. 현재 BTC 보유는 고상관 약세장에서 5회 검증된 최적 전략이므로 유지하되, 분산 브레이크아웃 감지 로직을 shadow strategy로 테스트",
+      "confidence": 0.85,
+      "parameters": null,
+      "markets": null,
+      "improvementAreas": [
+        "regime",
+        "strategy"
+      ],
+      "backtestResult": null,
+      "outcome": "registered",
+      "notes": "다음 배치 체크: (1) 분산 0.36% — 극저분산 지속 vs 급확대 전환 여부, (2) 역divergence 패턴(알트 매수 우위+가격 하락) 반등 분기점 모니터링, (3) exp-001 진행 상황 확인, (4) BTC peak 107.3M 대비 현재 104.6M — trailing stop 12% 여유 충분",
+      "retryAttempts": null,
+      "variantsTested": null,
+      "diagnosis": null,
+      "triggerType": "STAGNATION"
+    },
+    {
+      "timestamp": "2026-03-05T17:03:49.715Z",
+      "action": "keep",
+      "reasoning": "전 종목 동반 하락(분산 0.35%) + BTC 최소 낙폭 패턴 5회 연속 확인. 스위칭은 수수료 손실만 초래. 피크 대비 -2.38%로 trailing stop 여유 충분. STAGNATION은 전략 결함이 아닌 정상 동작",
+      "confidence": 0.92,
+      "parameters": null,
+      "markets": null,
+      "improvementAreas": [
+        "regime"
+      ],
+      "backtestResult": null,
+      "outcome": "kept",
+      "notes": "다음 배치 체크: (1) 분산 0.35% — 극저분산 지속 vs 급확대 전환 모니터링, (2) SOL/XRP 체결 강도 매수 우위 지속 여부 — 반등 시 알트 상대강세 가능성, (3) 피크 대비 낙폭 추이 — trailing stop 접근 여부, (4) exp-001/002 상태 추적",
+      "retryAttempts": null,
+      "variantsTested": null,
+      "diagnosis": null,
+      "triggerType": "STAGNATION"
+    },
+    {
+      "timestamp": "2026-03-05T17:06:57.910Z",
+      "action": "modify",
+      "reasoning": "474캔들 무거래 — switchThreshold(0.4→0.2), 쿨다운(288/480→144/288), trailingStop(12→8%), crashThreshold(8→5%)로 완화하여 거래 활성화. 극저분산 약세장에서 CASH 전환 가능성을 높여 하방 보호 강화.",
+      "confidence": 0.82,
+      "parameters": {
+        "switchThreshold": 0.2,
+        "cooldownTrending": 144,
+        "cooldownChoppy": 288,
+        "opportunityOverrideMultiplier": 1.3,
+        "trailingStopPct": 0.08,
+        "crashThreshold": 0.05,
+        "crashWindowCandles": 96,
+        "riskGracePeriod": 48,
+        "reentryCooldown": 144,
+        "reentryRsiMin": 42,
+        "reentryMinScore": 0.05
+      },
+      "markets": null,
+      "improvementAreas": [
+        "strategy",
+        "risk"
+      ],
+      "backtestResult": null,
+      "outcome": "applied",
+      "notes": "다음 배치 체크: (1) 파라미터 완화 후 실제 거래 발생 여부 — 특히 trailing stop 8%와 crash 5% 트리거 확인, (2) 분산 급확대 시 switchThreshold 0.2로 스위칭 발생하는지 모니터링, (3) 여전히 무거래 시 replace 고려",
+      "retryAttempts": null,
+      "variantsTested": null,
+      "diagnosis": null,
+      "triggerType": "STAGNATION"
+    },
+    {
+      "timestamp": "2026-03-05T17:09:47.939Z",
+      "action": "modify",
+      "reasoning": "직전 modify(trailing 8%, crash 5%) 후에도 트리거 거리가 너무 멀어 무거래 지속. trailing 5%로 낮추면 피크 대비 -5% 시점(~102M)에서 CASH 전환되어 +8.45% 수익 중 상당 부분 보호 가능. crash 3%로 완화하여 급락 감지 민감도 향상. switchThreshold 0.15로 추가 완화하여 분산 확대 시 즉시 반응.",
+      "confidence": 0.78,
+      "parameters": {
+        "trailingStopPct": 0.05,
+        "crashThreshold": 0.03,
+        "switchThreshold": 0.15,
+        "riskGracePeriod": 24,
+        "reentryCooldown": 96,
+        "reentryRsiMin": 40
+      },
+      "markets": null,
+      "improvementAreas": [
+        "risk",
+        "strategy"
+      ],
+      "backtestResult": null,
+      "outcome": "applied",
+      "notes": "다음 배치 체크: (1) trailing 5% 트리거 여부 — 피크 107.35M 대비 ~102M 도달 시 CASH 전환 확인, (2) crash 3% 민감도 — 24h 내 -3% 하락 시 발동 확인, (3) CASH 전환 후 재진입 쿨다운 96캔들(1일)로 단축 효과, (4) 분산 급확대 시 switchThreshold 0.15 반응성 검증",
+      "retryAttempts": null,
+      "variantsTested": null,
+      "diagnosis": null,
+      "triggerType": "STAGNATION"
     }
   ],
   "strategicNotes": "1) 하락장에서 높은 상관관계 자산 간 로테이션은 거래비용만 소모. 2) BTC가 하락장 기본 보유자산으로 최적. 3) 거래 빈도 영향 극대 — 13회 거래 시 비용만 ~3.9% 추가 손실. 4) 레짐 필터가 핵심 방어 메커니즘. 5) 코드 전면 교체보다 최소 변경이 배포 안정성 우수. 6) 현 전략(10회 거래, BTC 대비 +6.22%)이 검증된 성과. 7) 파라미터 완화(cooldown↓, threshold↓)는 검증 실패 확정 — 거래 증가로 성과 대폭 악화(-15.75%). 8) SOL이 반등 국면에서 최강 모멘텀이나, 단기 스위칭은 비용 대비 효과 미미. 9) MDD 3% 게이트 의식한 점진적 변경 필요. 10) 연속 배포 실패 시 keep 유지가 최선. 11) bot-state/포트폴리오 불일치 해결 완료. 13) 그레이스 기간(96캔들=24h) whipsaw 방지 효과적. 14) XRP 재진입 진동 패턴 — reentryCooldown 288로 억제 중. 16) deploy.js 롤백 시 bot-state.json 보존/복원 로직 개선 필요. 17) 포트폴리오 90K 소규모 — 거래 최소화가 비용 절감에 결정적. 18) 현행 파라미터(288/0.4)가 최적 근처임을 modify 실패로 검증 완료. 19) -9.52% 경고는 실패한 modify 백테스트 결과이며 현행 전략 실제 성과 아님 — 배치 분석 시 혼동 주의. 21) 그레이스 기간 종료 시점이 리스크 관리의 핵심 전환점 — 활성화 후 첫 배치에서 피크 추적 정상 작동 반드시 확인.",
@@ -885,12 +915,27 @@
         "insight": "전 종목 동반 하락(분산 0.37%) 시 BTC 보유 유지가 알트 대비 유리 — 5회차 확인. BTC -1.44% vs ETH -2.05%, SOL -1.88%, XRP -1.1%",
         "evidence": "5회 연속 동일 패턴. XRP(-1.1%)가 BTC(-1.44%)보다 소폭 우위이나 유동성/안정성 고려 시 BTC 유지가 합리적",
         "addedAt": "2026-03-05"
+      },
+      {
+        "insight": "STAGNATION 트리거 시 극저분산(0.35%) + 전 종목 약세 조합에서 BTC 보유 유지가 6회차 연속 최적 — 스위칭 대비 수수료 절약 효과",
+        "evidence": "6회 연속 BTC가 ETH/SOL 대비 최소 낙폭. 분산 0.17~0.45% 구간에서 자산 간 차별화 미미하여 스위칭 수수료(~0.3%) > 기대 초과수익",
+        "addedAt": "2026-03-05"
+      },
+      {
+        "insight": "switchThreshold 0.4 + 분산 0.35% 환경에서는 스위칭이 구조적으로 불가능 — 자산 간 스코어 차이가 임계값을 초과할 수 없음",
+        "evidence": "474캔들 무거래 + 50배치 중 전략 변경 0회. 분산 0.17~0.45% 구간에서 스코어 차이가 0.4 도달 불가",
+        "addedAt": "2026-03-05"
+      },
+      {
+        "insight": "trailing stop 8% + crash 5%는 피크 대비 -2.75% 낙폭 환경에서 트리거 불가 — 약세장 보호에 부족",
+        "evidence": "modify 적용 후에도 trailing까지 5.25%, crash까지 2.68% 추가 하락 필요. 475캔들 무거래 지속",
+        "addedAt": "2026-03-05"
       }
     ],
     "hypotheses": [
       {
-        "hypothesis": "역divergence(알트 매수 우위 + 전종목 가격 하락) 5회차 연속 관측 — BTC 체결 강도 0.87 매도 소폭 우위, 알트 전종목 매수 우위(ETH 1.05, SOL 2.52, XRP 2.19). 매수 세력 장기 축적 후 반등 시 알트가 BTC 대비 강한 반등 가능성",
-        "status": "testing",
+        "hypothesis": "역divergence 6회차 이상 지속 — SOL(2.13)/XRP(1.97) 매수 우위 장기 축적 후 분산 급확대 시점에 알트가 BTC 대비 2%+ 초과 반등 가능",
+        "status": "proposed",
         "experimentId": null,
         "addedAt": "2026-03-05"
       },
@@ -913,19 +958,27 @@
         "status": "proposed",
         "experimentId": null,
         "addedAt": "2026-03-05"
+      },
+      {
+        "hypothesis": "STAGNATION 트리거 시 극저분산(0.36%) + 전 종목 약세 조합에서는 거래 부재가 전략 결함이 아닌 정상 동작임 — 고상관 약세장에서 스위칭은 수수료 손실만 초래",
+        "status": "proposed",
+        "experimentId": null,
+        "addedAt": "2026-03-05"
+      },
+      {
+        "hypothesis": "trailing stop 8% + crash 5%로 완화하면 약세장에서 CASH 전환 빈도 증가 → 하방 MDD 개선 가능. 재진입 쿨다운 144(1.5일)로 단축 시 반등 포착력도 향상",
+        "status": "proposed",
+        "experimentId": null,
+        "addedAt": "2026-03-05"
+      },
+      {
+        "hypothesis": "trailing 5% + crash 3% 조합이 현재 약세장(-2.38% avg)에서 1-3일 내 CASH 전환을 유발하여 수익 보호 + 재진입 기회 창출",
+        "status": "proposed",
+        "experimentId": null,
+        "addedAt": "2026-03-05"
       }
     ],
     "rejected": [
-      {
-        "hypothesis": "BTC 체결 강도 매도 우위(0.11~0.74) + 알트 전종목 매수 우위 반전 (4회차)",
-        "reason": "5회차 통합 가설(0.11~0.74, ETH 1.1+)로 범위 확장 병합",
-        "rejectedAt": "2026-03-03"
-      },
-      {
-        "hypothesis": "BTC 체결 강도 3.0+ 매수 우위 + 전 종목 동반 상승(분산 1% 이하) 구간에서 BTC 보유 유지가 최적 — 5회차",
-        "reason": "이미 confirmed 지식(전 종목 매수 우위 1.0+ 구간 BTC 보유 최적)에 포함됨. 별도 가설 불필요",
-        "rejectedAt": "2026-03-03"
-      },
       {
         "hypothesis": "BTC 체결 강도 1.0~1.5 균형~소폭 매수 우위 구간에서의 전 종목 동반 상승은 안정적 상승 국면",
         "reason": "이미 confirmed 지식(전 종목 매수 우위 1.0+ 구간)에 포함됨",
@@ -1015,6 +1068,16 @@
         "hypothesis": "BTC 체결 강도 매수 강세(4.2)→매도 우위(0.7) 1일 내 급반전 시, 매수 세력 소진으로 단기 횡보 또는 소폭 하락(-1~2%) 가능성",
         "reason": "6.45→0.69 급반전에서 오히려 +3.5% 상승. 체결 강도 급락이 매수 세력 소진으로 이어지지 않고 가격 관성(momentum inertia)으로 상승 지속. 기존 가설의 '소폭 하락' 예측 반증됨",
         "rejectedAt": "2026-03-04"
+      },
+      {
+        "hypothesis": "STAGNATION 트리거 시 극저분산(0.36%) + 전 종목 약세 조합에서는 거래 부재가 전략 결함이 아닌 정상 동작임",
+        "reason": "50배치 연속 keep + 0회 거래는 파라미터가 시장 조건 대비 과도하게 보수적인 것이 원인. 정상 동작이 아닌 구조적 비활성 상태",
+        "rejectedAt": "2026-03-05"
+      },
+      {
+        "hypothesis": "trailing stop 8% + crash 5%로 완화하면 약세장에서 CASH 전환 빈도 증가 → 하방 MDD 개선 가능",
+        "reason": "피크 대비 -2.75% 상태에서 8% trailing은 트리거 거리가 너무 멀어 실질적 보호 효과 없음. 5%+ 추가 하락이 필요하여 약세장 CASH 전환 빈도 증가 미발생",
+        "rejectedAt": "2026-03-05"
       }
     ]
   }

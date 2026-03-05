@@ -252,12 +252,11 @@ if [ "$ACTION" = "experiment" ]; then
     echo "  Experiment registered: $EXP_SUCCESS"
 
     if [ "$EXP_SUCCESS" = "true" ]; then
-        # If experiment includes strategy code (parameter_test with code), backtest it
         HAS_STRATEGY_CODE=$(json_field "$PARSE_RESULT" "o.strategyCode?'true':'false'")
+        EXP_ID=$(json_field "$EXPERIMENT_RESULT" "o.experiment.id")
 
         if [ "$HAS_STRATEGY_CODE" = "true" ]; then
-            echo "  Backtesting experiment strategy..."
-            EXP_ID=$(json_field "$EXPERIMENT_RESULT" "o.experiment.id")
+            echo "  Strategy code found. Extracting..."
 
             echo "$PARSE_RESULT" | node -e "
                 process.stdin.setEncoding('utf8');let d='';
@@ -268,7 +267,47 @@ if [ "$ACTION" = "experiment" ]; then
                 });
             "
 
-            if [ -f "$TEMP_STRATEGY" ]; then
+            if [ -f "$TEMP_STRATEGY" ] && [ "$DESIGN_TYPE" = "shadow_strategy" ]; then
+                # === SHADOW STRATEGY: deploy as shadow for paper-trading ===
+                echo "  Deploying as shadow strategy for paper-trading..."
+                SHADOW_CODE=$(cat "$TEMP_STRATEGY")
+
+                SHADOW_DEPLOY_RESULT=$(node -e "
+                    const { deployShadow } = require('./src/batch/shadow-manager');
+                    const fs = require('fs');
+                    const code = fs.readFileSync('$TEMP_STRATEGY', 'utf8');
+                    const id = deployShadow(code, '$HYPOTHESIS', '$EXP_ID');
+                    if (id) {
+                        console.log(JSON.stringify({success:true, shadowId:id}));
+                    } else {
+                        console.log(JSON.stringify({success:false, reason:'deploy_failed'}));
+                    }
+                " 2>/dev/null || echo '{"success":false,"reason":"shadow_error"}')
+
+                SHADOW_OK=$(json_field "$SHADOW_DEPLOY_RESULT" "o.success")
+                echo "  Shadow deploy: $SHADOW_OK"
+
+                if [ "$SHADOW_OK" = "true" ]; then
+                    SHADOW_ID=$(json_field "$SHADOW_DEPLOY_RESULT" "o.shadowId")
+                    echo "  Shadow ID: $SHADOW_ID"
+                    node -e "
+                        const { updateExperimentStatus } = require('./src/batch/experiment-manager');
+                        updateExperimentStatus('$EXP_ID', 'shadow_running', {
+                            shadowId: '$SHADOW_ID',
+                        });
+                    " 2>/dev/null || true
+                else
+                    echo "  Shadow deploy failed. Falling back to backtest..."
+                    node -e "
+                        const { updateExperimentStatus } = require('./src/batch/experiment-manager');
+                        updateExperimentStatus('$EXP_ID', 'shadow_deploy_failed', {});
+                    " 2>/dev/null || true
+                fi
+                rm -f "$TEMP_STRATEGY"
+
+            elif [ -f "$TEMP_STRATEGY" ]; then
+                # === PARAMETER_TEST or other: backtest only ===
+                echo "  Backtesting experiment strategy..."
                 EXP_BACKTEST=$(node src/batch/backtest.js --walk-forward "$TEMP_STRATEGY" 2>/dev/null || echo '{"test":{"error":"backtest failed"}}')
                 CURRENT_WF=$(node src/batch/backtest.js --walk-forward src/strategies/current-strategy.js 2>/dev/null || echo '{"test":{"error":"backtest failed"}}')
 
@@ -287,7 +326,6 @@ if [ "$ACTION" = "experiment" ]; then
                     }
                 ")
 
-                # Update experiment with backtest results
                 node -e "
                     const { updateExperimentStatus } = require('./src/batch/experiment-manager');
                     const comp = $EXP_COMPARISON;

@@ -20,6 +20,27 @@
       "startedAt": "2026-03-05T16:11:03.064Z",
       "completedAt": null,
       "outcome": null
+    },
+    {
+      "id": "exp-002",
+      "hypothesis": "분산 0.37%로 극저분산 3일 이상 지속 후 분산 급확대(>1.0%) 발생 시, 최고 모멘텀 자산으로 즉시 스위칭하면 BTC hold 대비 초과수익 달성 가능. 분산 브레이크아웃을 추가 스위칭 트리거로 활용",
+      "design": {
+        "type": "shadow_strategy",
+        "changes": {
+          "description": "기존 전략에 분산 브레이크아웃 감지 추가: (1) 최근 3일 평균 분산 계산, (2) 현재 분산이 평균의 2.5배 초과 시 브레이크아웃 판정, (3) 브레이크아웃 시 최고 스코어 자산으로 쿨다운 무시 스위칭",
+          "dispersionBreakoutMultiplier": 2.5,
+          "dispersionWindow": 18,
+          "minDispersionHistory": 12
+        },
+        "duration": "4d",
+        "successCriteria": "alpha >= 2% vs live strategy"
+      },
+      "status": "proposed",
+      "successCriteria": "alpha >= 2% vs live strategy",
+      "results": null,
+      "startedAt": "2026-03-05T17:01:43.592Z",
+      "completedAt": null,
+      "outcome": null
     }
   ],
   "completed": [],

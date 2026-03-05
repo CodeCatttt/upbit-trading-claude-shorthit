@@ -162,18 +162,22 @@ function buildRecentBatchHistory(memory) {
         lines.push(line);
     }
 
-    // Keep streak detection
-    let keepStreak = 0;
-    for (let i = memory.entries.length - 1; i >= 0; i--) {
-        if (memory.entries[i].action === 'keep') keepStreak++;
-        else break;
-    }
+    // Inaction detection — ratio-based (not just streak)
+    const totalEntries = memory.entries.length;
+    if (totalEntries >= 5) {
+        const keepCount = memory.entries.filter(e => e.action === 'keep').length;
+        const modifyReplaceCount = memory.entries.filter(e => e.action === 'modify' || e.action === 'replace').length;
+        const keepPct = Math.round(keepCount / totalEntries * 100);
 
-    if (keepStreak >= 10) {
-        lines.push('');
-        lines.push(`**⚠ KEEP ${keepStreak}회 연속 중** — 전략이 정체되어 있을 수 있습니다.`);
-        lines.push('modify, replace, 또는 experiment 액션을 적극 검토하세요.');
-        lines.push('현재 전략의 수익률이 BTC buy-and-hold 대비 우수한지 확인하고, 개선 여지가 있다면 변경을 시도하세요.');
+        if (keepPct >= 80) {
+            lines.push('');
+            lines.push(`**🚨 경고: 최근 ${totalEntries}배치 중 keep ${keepCount}회 (${keepPct}%), 전략 변경(modify/replace) ${modifyReplaceCount}회**`);
+            lines.push('전략이 장기 정체 중입니다. 현재 BTC buy-and-hold 대비 수익률을 확인하세요.');
+            if (modifyReplaceCount === 0) {
+                lines.push('**전략이 단 한 번도 자율적으로 변경되지 않았습니다.** modify 또는 replace를 강력히 권장합니다.');
+                lines.push('keep은 명확한 근거가 있을 때만 선택하세요. 변경 시도 자체가 학습이 됩니다.');
+            }
+        }
     }
 
     return lines.join('\n');
@@ -263,11 +267,11 @@ function buildFocusSection(triggerType) {
 3. 리스크 파라미터 강화 필요 여부`,
 
         STAGNATION: `## 이번 배치의 초점: 기회 탐색 (장기 미거래)
-7일 이상 거래가 없었습니다. 다음에 집중하세요:
-1. 현재 보유 자산이 여전히 최적인가?
-2. 놓치고 있는 시장 기회가 있는가?
-3. 쿨다운/임계값이 과도하게 보수적이지 않은가?
-4. 새로운 실험 가설을 제안해보세요.`,
+7일 이상 거래가 없었습니다. **keep은 권장하지 않습니다.** 다음 중 하나를 실행하세요:
+1. modify: 쿨다운/임계값을 낮춰 거래 활성화
+2. replace: 더 적극적인 전략으로 교체 (minDailyTrades >= 0.15 필수)
+3. experiment (shadow_strategy): 새 전략을 4일 페이퍼 트레이딩으로 검증
+거래 0 상태에서는 알파 생성이 불가능합니다. 변경을 시도하세요.`,
 
         DAILY_REVIEW: `## 이번 배치의 초점: 일일 정기 점검
 일일 캔들 마감에 따른 정기 점검입니다. 성과 데이터를 기반으로 판단하세요.
