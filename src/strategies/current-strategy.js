@@ -23,24 +23,24 @@ const DEFAULT_CONFIG = {
     rsiPeriod: 14,                  // RSI on 4h
     choppinessPeriod: 20,           // 20 × 4h = ~3.3 days regime detection
     choppinessThreshold: 0.45,      // Above = choppy, block switching
-    switchThreshold: 0.4,           // Minimum score advantage to switch
+    switchThreshold: 0.2,           // Minimum score advantage to switch
 
     // Adaptive cooldown (15m candles)
-    cooldownTrending: 288,          // 3 days in trending regime
-    cooldownChoppy: 480,            // 5 days in choppy regime
-    opportunityOverrideMultiplier: 1.5, // Override cooldown if advantage exceeds threshold * this
+    cooldownTrending: 144,          // 3 days in trending regime
+    cooldownChoppy: 288,            // 5 days in choppy regime
+    opportunityOverrideMultiplier: 1.3, // Override cooldown if advantage exceeds threshold * this
 
     // Risk management — CASH conversion
-    trailingStopPct: 0.12,          // 12% drop from peak → CASH
+    trailingStopPct: 0.08,          // 12% drop from peak → CASH
     crashWindowCandles: 96,         // 24h of 15m candles
-    crashThreshold: 0.08,           // 8% drop in 24h → CASH
-    riskGracePeriod: 96,            // 24h grace period after entry (no trailing stop / crash)
+    crashThreshold: 0.05,           // 8% drop in 24h → CASH
+    riskGracePeriod: 48,            // 24h grace period after entry (no trailing stop / crash)
 
     // Re-entry from CASH
-    reentryRsiMin: 45,              // RSI must be above this
-    reentryMinScore: 0.1,           // Minimum positive score
+    reentryRsiMin: 42,              // RSI must be above this
+    reentryMinScore: 0.05,           // Minimum positive score
     reentryTrendConfirm: true,      // Require EMA golden cross
-    reentryCooldown: 288,           // 3 days minimum stay in CASH
+    reentryCooldown: 144,           // 3 days minimum stay in CASH
 
     // Scoring weights
     momentumWeight: 0.45,           // Risk-adjusted momentum (Sharpe)
