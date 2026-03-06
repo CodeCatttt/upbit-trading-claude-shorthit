@@ -1,3 +1,4 @@
+// VARIANT: intensity-per-market-filter
 /**
  * adaptive-regime-mt.js
  * Multi-timeframe adaptive strategy with CASH management.
@@ -9,6 +10,7 @@
  * - CASH conversion: trailing stop + 24h crash detection
  * - Smart re-entry: RSI + ADX trend strength + Stochastic confirmation
  * - Enhanced scoring: momentum(35%) + trend(35%) + volume(15%) + Bollinger(15%)
+ * - Per-market intensity filtering: prevents high-score low-intensity market from blocking all re-entry
  */
 
 'use strict';
@@ -17,40 +19,40 @@ const { calcEMASeries, calcRSI, calcBollingerBands, calcATR, calcADX, calcStocha
 
 const DEFAULT_CONFIG = {
     // 4h trend scoring
-    trendLookback: 72,              // 72 x 4h = 12 days momentum window
-    emaFast: 9,                     // Fast EMA on 4h (~36h)
-    emaSlow: 26,                    // Slow EMA on 4h (~4.3 days)
-    rsiPeriod: 14,                  // RSI on 4h
-    choppinessPeriod: 20,           // 20 x 4h = ~3.3 days regime detection
-    choppinessThreshold: 0.45,      // Above = choppy, block switching
-    switchThreshold: 0.15,          // Minimum score advantage to switch
-    adxPeriod: 14,                  // ADX period for trend strength
-    adxMinTrend: 20,                // Minimum ADX for "trending" confirmation
+    trendLookback: 72,
+    emaFast: 9,
+    emaSlow: 26,
+    rsiPeriod: 14,
+    choppinessPeriod: 20,
+    choppinessThreshold: 0.45,
+    switchThreshold: 0.15,
+    adxPeriod: 14,
+    adxMinTrend: 20,
 
     // Adaptive cooldown (15m candles)
-    cooldownTrending: 144,          // 3 days in trending regime
-    cooldownChoppy: 288,            // 5 days in choppy regime
+    cooldownTrending: 144,
+    cooldownChoppy: 288,
     opportunityOverrideMultiplier: 1.3,
 
     // Risk management — CASH conversion
-    trailingStopPct: 0.07,          // 7% drop from peak -> CASH (was 5%, too tight)
-    crashWindowCandles: 96,         // 24h of 15m candles
-    crashThreshold: 0.04,           // 4% drop in 24h -> CASH (was 3%, too sensitive)
-    riskGracePeriod: 48,            // 12h grace period after entry (was 24h)
+    trailingStopPct: 0.07,
+    crashWindowCandles: 96,
+    crashThreshold: 0.04,
+    riskGracePeriod: 48,
 
     // Re-entry from CASH
-    reentryRsiMin: 50,              // RSI must be above 50 (uptrend confirmed, was 38)
-    reentryMinScore: 0.05,          // Minimum positive score (was 0.03)
-    reentryTrendConfirm: false,     // Do NOT require EMA golden cross
-    reentryCooldown: 72,            // 18h minimum stay in CASH
-    reentryIntensityMin: 0.5,       // Block re-entry when trade intensity < this
-    reentryStochMax: 85,            // Block re-entry when Stochastic > this (overbought)
+    reentryRsiMin: 50,
+    reentryMinScore: 0.05,
+    reentryTrendConfirm: false,
+    reentryCooldown: 48,            // 12h minimum stay in CASH (was 72/18h)
+    reentryIntensityMin: 0.3,       // Block only extreme capitulation (was 0.5)
+    reentryStochMax: 85,
 
-    // Scoring weights — increased trend weight, reduced momentum
-    momentumWeight: 0.35,           // Risk-adjusted momentum (Sharpe)
-    trendWeight: 0.35,              // EMA cross + ADX strength
-    volumeWeight: 0.15,             // Volume trend confirmation
-    bollingerWeight: 0.15,          // Bollinger band position
+    // Scoring weights
+    momentumWeight: 0.35,
+    trendWeight: 0.35,
+    volumeWeight: 0.15,
+    bollingerWeight: 0.15,
 
     executionMode: 'market',
     smartEntry: {
@@ -71,9 +73,6 @@ function createStrategyState() {
     };
 }
 
-/**
- * Choppiness Index (0-1). Higher = choppier/ranging market.
- */
 function calcChoppiness(candles, period) {
     if (candles.length < period + 1) return null;
     const slice = candles.slice(-(period + 1));
@@ -95,17 +94,12 @@ function calcChoppiness(candles, period) {
     return Math.min(1, Math.max(0, Math.log10(trSum / range) / Math.log10(period)));
 }
 
-/**
- * Enhanced market scoring using 4h candles.
- * Combines momentum, trend (with ADX), volume, and Bollinger position.
- */
 function scoreMarket(candles4h, config) {
     if (!candles4h || candles4h.length < config.trendLookback) return null;
 
     const choppiness = calcChoppiness(candles4h, config.choppinessPeriod);
     if (choppiness === null) return null;
 
-    // 1. Risk-adjusted momentum (Sharpe-like)
     const slice = candles4h.slice(-config.trendLookback);
     const totalReturn = (slice[slice.length - 1].close - slice[0].close) / slice[0].close;
     const returns = [];
@@ -116,7 +110,6 @@ function scoreMarket(candles4h, config) {
     const vol = Math.sqrt(returns.reduce((s, r) => s + (r - mean) ** 2, 0) / returns.length);
     const sharpe = vol > 0 ? totalReturn / vol : 0;
 
-    // 2. EMA trend alignment + ADX trend strength
     const fastEma = calcEMASeries(candles4h, config.emaFast);
     const slowEma = calcEMASeries(candles4h, config.emaSlow);
     const fLast = fastEma[fastEma.length - 1];
@@ -124,14 +117,11 @@ function scoreMarket(candles4h, config) {
     const price = candles4h[candles4h.length - 1].close;
     const trendCross = (fLast !== null && sLast !== null) ? (fLast - sLast) / price : 0;
 
-    // ADX: scale trend signal by trend strength
     const adxResult = calcADX(candles4h, config.adxPeriod || 14);
     const adxValue = adxResult ? adxResult.adx : 0;
-    // Normalize ADX: 0-100 -> 0-1, then use to amplify/dampen trend signal
-    const adxFactor = Math.min(1, adxValue / 50); // ADX 50+ = full strength
+    const adxFactor = Math.min(1, adxValue / 50);
     const trendSignal = trendCross * 100 * adxFactor;
 
-    // 3. Volume trend — recent vs older volume ratio
     const volSlice = candles4h.slice(-20);
     let volumeSignal = 0;
     if (volSlice.length >= 15) {
@@ -142,28 +132,21 @@ function scoreMarket(candles4h, config) {
         }
     }
 
-    // 4. Bollinger band position — CORRECTED: lower band = oversold = bullish
     const bb = calcBollingerBands(candles4h, 20, 2);
     let bollingerSignal = 0;
     if (bb) {
         const range = bb.upper - bb.lower;
         if (range > 0) {
             const percentB = (price - bb.lower) / range;
-            // Near lower band (percentB < 0.3) = oversold = bullish signal
-            // Near upper band (percentB > 0.7) = overbought = bearish signal
-            // Middle (0.5) = neutral
             bollingerSignal = percentB < 0.5
-                ? (0.5 - percentB) * 2    // Below middle: positive (mean reversion up)
-                : -(percentB - 0.5) * 0.5; // Above middle: slight negative (extended)
+                ? (0.5 - percentB) * 2
+                : -(percentB - 0.5) * 0.5;
         }
     }
 
     const rsi = calcRSI(candles4h, config.rsiPeriod);
-
-    // Stochastic for re-entry gating
     const stoch = calcStochastic(candles4h, 14, 3);
 
-    // Combined score
     const score =
         sharpe * config.momentumWeight +
         trendSignal * config.trendWeight +
@@ -186,9 +169,6 @@ function scoreMarket(candles4h, config) {
     };
 }
 
-/**
- * Adaptive cooldown based on average regime across markets.
- */
 function getAdaptiveCooldown(scores, config) {
     const choppyValues = Object.values(scores)
         .map(s => s.choppiness)
@@ -196,14 +176,10 @@ function getAdaptiveCooldown(scores, config) {
     if (choppyValues.length === 0) return config.cooldownChoppy;
 
     const avgChoppiness = choppyValues.reduce((a, b) => a + b, 0) / choppyValues.length;
-    // Interpolate: 0.3 -> trending cooldown, 0.6 -> choppy cooldown
     const t = Math.min(1, Math.max(0, (avgChoppiness - 0.3) / 0.3));
     return Math.round(config.cooldownTrending + t * (config.cooldownChoppy - config.cooldownTrending));
 }
 
-/**
- * Fast risk check on 15m candles — 24h crash detection.
- */
 function checkCrashSignal(candles15m, config) {
     if (!candles15m || candles15m.length < config.crashWindowCandles) return null;
 
@@ -218,9 +194,6 @@ function checkCrashSignal(candles15m, config) {
     return null;
 }
 
-/**
- * Trailing stop check — exit to CASH if price drops too far from peak.
- */
 function checkTrailingStop(state, currentPrice, config) {
     if (!state.peakPriceSinceEntry) return null;
 
@@ -232,8 +205,9 @@ function checkTrailingStop(state, currentPrice, config) {
 }
 
 /**
- * Re-entry logic when in CASH — check if conditions are right to buy back.
- * Enhanced with ADX trend strength and Stochastic overbought filter.
+ * Re-entry logic — per-market intensity filtering.
+ * Markets with trade intensity below threshold are excluded BEFORE selecting best candidate.
+ * This prevents a high-score but low-intensity market from blocking re-entry into other markets.
  */
 function checkReentry(state, candleData, markets, config) {
     const scores = {};
@@ -248,12 +222,7 @@ function checkReentry(state, candleData, markets, config) {
         return { action: 'NONE', details: { reason: 'no_scoreable_markets' } };
     }
 
-    const best = scoredMarkets.reduce((a, b) => scores[a].score > scores[b].score ? a : b);
-    const bestScore = scores[best];
-
-    // Get trade intensity for the best candidate
-    const bestIntensity = candleData[best] && candleData[best]._tradeIntensity;
-
+    // Build summary for all scored markets (before filtering)
     const summary = {};
     for (const m of scoredMarkets) {
         summary[m] = {
@@ -266,16 +235,35 @@ function checkReentry(state, candleData, markets, config) {
         };
     }
 
+    // Filter markets by trade intensity BEFORE selecting best candidate
+    const intensityThreshold = config.reentryIntensityMin || 0.5;
+    const eligibleMarkets = scoredMarkets.filter(m => {
+        const intensity = candleData[m] && candleData[m]._tradeIntensity;
+        return intensity == null || intensity >= intensityThreshold;
+    });
+
+    if (eligibleMarkets.length === 0) {
+        return {
+            action: 'HOLD',
+            details: {
+                asset: 'CASH',
+                reason: 'all_markets_low_intensity',
+                threshold: intensityThreshold,
+                scores: summary,
+            },
+        };
+    }
+
+    const best = eligibleMarkets.reduce((a, b) => scores[a].score > scores[b].score ? a : b);
+    const bestScore = scores[best];
+    const bestIntensity = candleData[best] && candleData[best]._tradeIntensity;
+
     const cashCooldownMet = state.candlesSinceLastTrade >= (config.reentryCooldown || 288);
-    const intensityOk = bestIntensity == null || bestIntensity >= (config.reentryIntensityMin || 0.5);
-    // Block re-entry when Stochastic is overbought (avoid buying the top of a bounce)
     const stochOk = bestScore.stochK == null || bestScore.stochK < (config.reentryStochMax || 85);
-    // ADX must show some trend (not range-bound)
     const adxOk = bestScore.adx == null || bestScore.adx >= (config.adxMinTrend || 20);
 
     const canReenter =
         cashCooldownMet &&
-        intensityOk &&
         stochOk &&
         !bestScore.isChoppy &&
         bestScore.rsi !== null && bestScore.rsi > config.reentryRsiMin &&
@@ -313,7 +301,6 @@ function checkReentry(state, candleData, markets, config) {
             choppy: bestScore.isChoppy,
             trendCross: +bestScore.trendCross.toFixed(4),
             intensity: bestIntensity,
-            intensityOk,
             stochOk,
             adxOk,
             cooldownMet: cashCooldownMet,
@@ -354,7 +341,6 @@ function onNewCandle(state, candleData, config = DEFAULT_CONFIG) {
     const pastGracePeriod = state.candlesSinceLastTrade > gracePeriod;
 
     if (pastGracePeriod) {
-        // RISK CHECK 1: 24h crash detection (15m)
         const crash = checkCrashSignal(candles15, config);
         if (crash && crash.triggered) {
             state.assetHeld = 'CASH';
@@ -370,7 +356,6 @@ function onNewCandle(state, candleData, config = DEFAULT_CONFIG) {
             };
         }
 
-        // RISK CHECK 2: trailing stop
         if (currentPrice !== null) {
             const trailing = checkTrailingStop(state, currentPrice, config);
             if (trailing && trailing.triggered) {
@@ -404,7 +389,6 @@ function onNewCandle(state, candleData, config = DEFAULT_CONFIG) {
         return { action: 'NONE', details: { reason: 'no_scoreable_markets' } };
     }
 
-    // Adaptive cooldown
     const adaptiveCooldown = getAdaptiveCooldown(scores, config);
     const inCooldown = state.candlesSinceLastTrade < adaptiveCooldown;
 
@@ -424,8 +408,6 @@ function onNewCandle(state, candleData, config = DEFAULT_CONFIG) {
         };
     }
 
-    // Switch: clear advantage + target is trending + not in cooldown (or opportunity override)
-    // Also require ADX > minimum to confirm real trend (not noise)
     const opportunityOverride = inCooldown &&
         advantage > config.switchThreshold * (config.opportunityOverrideMultiplier || 1.5);
     const shouldSwitch =

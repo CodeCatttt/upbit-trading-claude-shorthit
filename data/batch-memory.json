@@ -2,22 +2,6 @@
   "maxEntries": 50,
   "entries": [
     {
-      "timestamp": "2026-03-04T22:30:51.002Z",
-      "action": "keep",
-      "reasoning": "전 종목 동반 강세(+5.54%) bullish 레짐에서 BTC 홀딩 중. 고점 대비 -0.94%로 리스크 신호 없음. 체결 강도 극단 매도(0.1)에도 가격 +5.8% divergence 패턴 17회차 지속, 전략 변경 사유 없음.",
-      "confidence": 0.93,
-      "parameters": null,
-      "markets": null,
-      "improvementAreas": [],
-      "backtestResult": null,
-      "outcome": "kept",
-      "notes": "다음 배치 체크: (1) 포트폴리오 가치 0 KRW — collect-metrics.js 잔고 조회 버그 76회 연속 미해결, 별도 디버깅 세션 필요, (2) BTC 체결 강도 0.1 극단 매도 후 반등 vs 지속 추적, (3) 저분산 bullish 구간 18회차 — 분산 1.04%로 소폭 확대, 1.5%+ 분화 임계점 모니터링",
-      "retryAttempts": null,
-      "variantsTested": null,
-      "diagnosis": null,
-      "triggerType": "DAILY_REVIEW"
-    },
-    {
       "timestamp": "2026-03-04T23:30:52.770Z",
       "action": "keep",
       "reasoning": "Bullish 레짐 19일차 지속, 전 종목 매수 우위(BTC 2.58, ETH 9.36, SOL 3.05, XRP 3.37) + 동반 강세(+3.25~5.81%). BTC 고점 대비 -1.88%로 trailing stop 여유 충분. 전략 변경 불필요.",
@@ -910,6 +894,36 @@
       "variantsTested": null,
       "diagnosis": null,
       "triggerType": "DAILY_REVIEW"
+    },
+    {
+      "timestamp": "2026-03-06T16:39:09.784Z",
+      "action": "replace",
+      "reasoning": "재진입 로직에서 최고 스코어 마켓의 체결 강도만 검사하는 버그 수정. BTC 매도 우위(0.2) 시 알트(ETH 5.81, SOL 2.89) 매수 우위 마켓까지 재진입 차단되는 문제. 시장별 개별 필터링으로 수정하고, 쿨다운을 18h→12h로 단축하여 반응성 향상.",
+      "confidence": 0.75,
+      "parameters": null,
+      "markets": null,
+      "improvementAreas": [
+        "strategy"
+      ],
+      "backtestResult": {
+        "pass": true,
+        "gateType": "replace",
+        "returnImprovement": 0,
+        "drawdownWorsening": 0,
+        "dailyTrades": 0.33,
+        "reasons": [
+          "PASSED",
+          "Return improvement: 0.00% (need >= 0%)",
+          "Drawdown worsening: 0.00% (need <= 2%)",
+          "Daily trades: 0.33 (need >= 0.15 and <= 10)"
+        ]
+      },
+      "outcome": "deployed",
+      "notes": "다음 배치 체크: (1) 재진입 발생 여부 — 쿨다운 48캔들(12h) 경과 후 조건 충족 모니터링, (2) 알트 재진입 실현 — BTC 체결 강도 저조 시 알트로 재진입하는 새 경로 활용 여부, (3) BTC 체결 강도 추이 — 0.2에서 0.3+ 회복 여부",
+      "retryAttempts": 1,
+      "variantsTested": 1,
+      "diagnosis": null,
+      "triggerType": "DAILY_REVIEW"
     }
   ],
   "strategicNotes": "1) 하락장에서 높은 상관관계 자산 간 로테이션은 거래비용만 소모. 2) BTC가 하락장 기본 보유자산으로 최적. 3) 거래 빈도 영향 극대 — 13회 거래 시 비용만 ~3.9% 추가 손실. 4) 레짐 필터가 핵심 방어 메커니즘. 5) 코드 전면 교체보다 최소 변경이 배포 안정성 우수. 6) 현 전략(10회 거래, BTC 대비 +6.22%)이 검증된 성과. 7) 파라미터 완화(cooldown↓, threshold↓)는 검증 실패 확정 — 거래 증가로 성과 대폭 악화(-15.75%). 8) SOL이 반등 국면에서 최강 모멘텀이나, 단기 스위칭은 비용 대비 효과 미미. 9) MDD 3% 게이트 의식한 점진적 변경 필요. 10) 연속 배포 실패 시 keep 유지가 최선. 11) bot-state/포트폴리오 불일치 해결 완료. 13) 그레이스 기간(96캔들=24h) whipsaw 방지 효과적. 14) XRP 재진입 진동 패턴 — reentryCooldown 288로 억제 중. 16) deploy.js 롤백 시 bot-state.json 보존/복원 로직 개선 필요. 17) 포트폴리오 90K 소규모 — 거래 최소화가 비용 절감에 결정적. 18) 현행 파라미터(288/0.4)가 최적 근처임을 modify 실패로 검증 완료. 19) -9.52% 경고는 실패한 modify 백테스트 결과이며 현행 전략 실제 성과 아님 — 배치 분석 시 혼동 주의. 21) 그레이스 기간 종료 시점이 리스크 관리의 핵심 전환점 — 활성화 후 첫 배치에서 피크 추적 정상 작동 반드시 확인.",
@@ -941,8 +955,8 @@
         "addedAt": "2026-03-04"
       },
       {
-        "insight": "BTC 체결 강도 0.52→0.16으로 급락하여 관측 이래 최저치 기록 — 극단적 매도 우위 구간에서 CASH 보유 전략이 손실 회피에 유효",
-        "evidence": "CASH 전환 후 BTC -1.49% 추가 하락 중 97,210 KRW 유지. 체결 강도 0.16 (매수 1.1 vs 매도 6.8)",
+        "insight": "checkReentry에서 최고 스코어 마켓의 체결 강도만 검사하면, 해당 마켓이 매도 우위일 때 체결 강도 우수한 다른 마켓도 전부 차단되는 구조적 결함 존재",
+        "evidence": "BTC 체결 강도 0.2(매도 우위)가 best market으로 선정되면 intensityOk=false → ETH 5.81, SOL 2.89, XRP 6.44 모두 재진입 불가. 시장별 개별 필터링으로 수정 필요 (2026-03-07)",
         "addedAt": "2026-03-06"
       },
       {
@@ -1067,10 +1081,10 @@
         "addedAt": "2026-03-05"
       },
       {
-        "hypothesis": "BTC 체결 강도 0.93→0.6으로 매도 우위 재심화. 균형 복원 가설 보류 — 0.6 수준 지속 시 추가 하락 가능, 1.5+ 돌파 전까지 CASH 유지가 유리",
+        "hypothesis": "재진입 시 체결 강도 시장별 개별 필터링 + 쿨다운 12h 조합이 기존 대비 반등 포착력 향상 — BTC 매도 우위 구간에서 알트 재진입 경로 활성화",
         "status": "proposed",
         "experimentId": null,
-        "addedAt": "2026-03-05"
+        "addedAt": "2026-03-06"
       },
       {
         "hypothesis": "BTC 체결 강도 0.93→0.6→0.52로 3연속 하락 추세 — 매도 압력 소진이 아닌 심화 패턴. 0.3 이하로 추가 하락 시 capitulation 후 반등 가능성, 1.0+ 회복 시 매도 소진 시작",
