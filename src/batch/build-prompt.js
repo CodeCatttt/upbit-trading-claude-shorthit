@@ -97,9 +97,18 @@ function buildPerformanceSection(metrics, performance) {
         lines.push('## 실제 수익률 (Performance Tracker)');
         lines.push(`- 총 수익률: ${s.totalReturnPct != null ? s.totalReturnPct + '%' : 'N/A'}`);
         lines.push(`- BTC Buy&Hold: ${s.btcReturnPct != null ? s.btcReturnPct + '%' : 'N/A'}`);
-        lines.push(`- 알파: ${s.alphaPct != null ? (s.alphaPct > 0 ? '+' : '') + s.alphaPct + '%' : 'N/A'}`);
+        lines.push(`- **알파 (vs BTC)**: ${s.alphaPct != null ? (s.alphaPct > 0 ? '+' : '') + s.alphaPct + '%' : 'N/A'}`);
         lines.push(`- 최대 MDD: ${s.maxMdd != null ? s.maxMdd + '%' : 'N/A'}`);
         lines.push(`- 총 거래: ${s.totalTrades || 0}회, 승률: ${s.winRate != null ? (s.winRate * 100).toFixed(1) + '%' : 'N/A'}`);
+        lines.push(`- 추적 일수: ${s.daysTracked || 0}일`);
+
+        // Explicit underperformance flag
+        if (s.alphaPct != null && s.alphaPct < 0) {
+            lines.push(`**주의: BTC buy-and-hold 대비 ${Math.abs(s.alphaPct)}% 언더퍼폼 중입니다. 전략 개선을 검토하세요.**`);
+        }
+        if (s.totalTrades === 0 && s.daysTracked >= 3) {
+            lines.push(`**경고: ${s.daysTracked}일간 거래 0회 — 전략이 비활성 상태입니다. 반드시 modify 또는 replace를 검토하세요.**`);
+        }
     }
 
     // Recent 7d/30d entries
@@ -152,31 +161,51 @@ function buildKnowledgeSection(memory) {
 }
 
 function buildRecentBatchHistory(memory) {
-    const recentEntries = memory.entries.slice(-5);
+    const recentEntries = memory.entries.slice(-10);
     if (recentEntries.length === 0) return '## 최근 배치 결정\n기록 없음.';
 
-    const lines = ['## 최근 배치 결정 (최신 5건)'];
+    const lines = ['## 최근 배치 결정 (최신 10건)'];
     for (const e of recentEntries) {
-        let line = `- [${e.timestamp}] ${e.action} (confidence: ${e.confidence}) → ${e.outcome}`;
-        if (e.notes) line += ` | ${e.notes.slice(0, 100)}...`;
+        let line = `- [${e.timestamp}] **${e.action}** (confidence: ${e.confidence}) → ${e.outcome}`;
+        if (e.notes) line += ` | ${e.notes.slice(0, 150)}`;
         lines.push(line);
     }
 
-    // Inaction detection — ratio-based (not just streak)
+    // Decision distribution across ALL entries
     const totalEntries = memory.entries.length;
     if (totalEntries >= 5) {
-        const keepCount = memory.entries.filter(e => e.action === 'keep').length;
-        const modifyReplaceCount = memory.entries.filter(e => e.action === 'modify' || e.action === 'replace').length;
+        const distribution = {};
+        for (const e of memory.entries) {
+            distribution[e.action] = (distribution[e.action] || 0) + 1;
+        }
+        lines.push('');
+        lines.push(`### 결정 분포 (전체 ${totalEntries}건)`);
+        for (const [action, count] of Object.entries(distribution).sort((a, b) => b[1] - a[1])) {
+            lines.push(`- ${action}: ${count}회 (${Math.round(count / totalEntries * 100)}%)`);
+        }
+
+        const keepCount = distribution.keep || 0;
         const keepPct = Math.round(keepCount / totalEntries * 100);
+
+        // Count consecutive recent keeps
+        let consecutiveKeeps = 0;
+        for (let i = memory.entries.length - 1; i >= 0; i--) {
+            if (memory.entries[i].action === 'keep') consecutiveKeeps++;
+            else break;
+        }
+
+        // ANTI-KEEP ENFORCEMENT: mandatory action after streak
+        if (consecutiveKeeps >= 3) {
+            lines.push('');
+            lines.push(`**MANDATORY: ${consecutiveKeeps}회 연속 keep — 이번에는 반드시 modify 또는 replace를 선택하세요.**`);
+            lines.push('3회 이상 연속 keep은 전략 정체입니다. 파라미터 하나라도 변경하세요.');
+            lines.push('keep을 선택하려면 반드시 200자 이상의 구체적 근거를 제시해야 합니다.');
+        }
 
         if (keepPct >= 80) {
             lines.push('');
-            lines.push(`**🚨 경고: 최근 ${totalEntries}배치 중 keep ${keepCount}회 (${keepPct}%), 전략 변경(modify/replace) ${modifyReplaceCount}회**`);
-            lines.push('전략이 장기 정체 중입니다. 현재 BTC buy-and-hold 대비 수익률을 확인하세요.');
-            if (modifyReplaceCount === 0) {
-                lines.push('**전략이 단 한 번도 자율적으로 변경되지 않았습니다.** modify 또는 replace를 강력히 권장합니다.');
-                lines.push('keep은 명확한 근거가 있을 때만 선택하세요. 변경 시도 자체가 학습이 됩니다.');
-            }
+            lines.push(`**경고: 전체 ${totalEntries}배치 중 keep ${keepCount}회 (${keepPct}%)**`);
+            lines.push('전략이 장기 정체 중입니다. 작은 modify라도 시도가 학습 데이터를 생성합니다.');
         }
     }
 
@@ -302,7 +331,9 @@ function buildConstraintsSection() {
 - Daily trade frequency: >= 0.15 and <= 10 trades/day (0-trade 전략은 게이트 탈락)
 - Backtest: 0.1% slippage (0.05% smart) + 0.05% fee per side
 - Walk-forward: replace uses 70/30 split, TEST period for gate evaluation
-- Gates: replace(return diff >= -1%, MDD <= 3% worse, trades 0.15~10/day), modify(return diff >= -2%, MDD <= 5% worse, trades 0.1~10/day)`;
+- Gates: replace(return diff >= 0%, MDD <= 2% worse, trades 0.15~10/day), modify(return diff >= -1%, MDD <= 3% worse, trades 0.1~10/day)
+- Walk-forward: test 구간에서 fresh state로 평가 (train 오염 방지)
+- **3회 연속 keep 후에는 반드시 modify 또는 replace 선택 필수**`;
 }
 
 function buildExperimentRecommendation(memory, experiments) {

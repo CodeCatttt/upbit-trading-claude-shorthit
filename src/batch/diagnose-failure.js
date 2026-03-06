@@ -10,8 +10,8 @@
 'use strict';
 
 const GATE_THRESHOLDS = {
-    replace: { minReturn: -1, maxMddWorsening: 3, maxDailyTrades: 10, minDailyTrades: 0.15 },
-    modify:  { minReturn: -2, maxMddWorsening: 5, maxDailyTrades: 10, minDailyTrades: 0.1 },
+    replace: { minReturn: 0, maxMddWorsening: 2, maxDailyTrades: 10, minDailyTrades: 0.15 },
+    modify:  { minReturn: -1, maxMddWorsening: 3, maxDailyTrades: 10, minDailyTrades: 0.1 },
 };
 
 function diagnoseGateFailure(gateResult, newBacktest, currentBacktest) {

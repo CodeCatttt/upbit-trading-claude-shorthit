@@ -4,6 +4,11 @@
  * Simulates strategy over historical candle data.
  * Calculates return, max drawdown, trade frequency, per-market benchmarks.
  *
+ * Key improvements:
+ * - Next-candle open for trade execution (no same-candle close bias)
+ * - Correct fee accounting (0.05% per side, not double on SWITCH)
+ * - Walk-forward: fresh state at split point for true OOS evaluation
+ *
  * Usage:
  *   node backtest.js [strategyPath]
  *   If no path given, backtests current-strategy.js.
@@ -17,7 +22,7 @@ const store = require('../data/candle-store');
 const { createLogger } = require('../utils/logger');
 
 const log = createLogger('BACKTEST');
-const FEE_RATE = 0.0005;    // 0.05% per trade (Upbit)
+const FEE_RATE = 0.0005;    // 0.05% per trade side (Upbit)
 const SLIPPAGE_RATE = 0.001; // 0.1% slippage (market order assumption)
 const RESULTS_DIR = path.join(__dirname, '../../data/backtest-results');
 const CONFIG_FILE = path.join(__dirname, '../../trading-config.json');
@@ -122,6 +127,9 @@ function runBacktest(strategy, candleData, label = 'unnamed', measureFromIdx = n
         idx240[market] = j;
     }
 
+    // Track pending trades to execute on NEXT candle's open
+    let pendingTrade = null;
+
     for (let i = startIdx; i < minLength; i++) {
         // For i > startIdx, incrementally grow arrays (O(1) per step)
         if (i > startIdx) {
@@ -140,68 +148,60 @@ function runBacktest(strategy, candleData, label = 'unnamed', measureFromIdx = n
             }
         }
 
+        // Execute pending trade at this candle's open price (next-candle execution)
+        if (pendingTrade !== null) {
+            const pt = pendingTrade;
+            pendingTrade = null;
+
+            if (pt.type === 'SELL_TO_CASH' && currentAsset !== 'CASH') {
+                const sellPrice = get15m(pt.from)[i].open || get15m(pt.from)[i].close;
+                portfolio = holdings * sellPrice * (1 - effectiveSlippage) * (1 - FEE_RATE);
+                trades.push({
+                    idx: i, timestamp: get15m(pt.from)[i].timestamp,
+                    action: 'SELL_TO_CASH', from: pt.from, to: 'CASH',
+                    sellPrice, buyPrice: null,
+                });
+                currentAsset = 'CASH';
+                holdings = 0;
+            } else if (pt.type === 'BUY_FROM_CASH' && currentAsset === 'CASH' && candleData[pt.to]) {
+                const buyPrice = get15m(pt.to)[i].open || get15m(pt.to)[i].close;
+                const effectiveBuyPrice = buyPrice * (1 + effectiveSlippage);
+                holdings = (portfolio * (1 - FEE_RATE)) / effectiveBuyPrice;
+                trades.push({
+                    idx: i, timestamp: get15m(markets[0])[i].timestamp,
+                    action: 'BUY_FROM_CASH', from: 'CASH', to: pt.to,
+                    sellPrice: null, buyPrice,
+                });
+                currentAsset = pt.to;
+                portfolio = 0;
+            } else if (pt.type === 'SWITCH' && currentAsset !== 'CASH' && candleData[pt.to]) {
+                const sellPrice = get15m(pt.from)[i].open || get15m(pt.from)[i].close;
+                const buyPrice = get15m(pt.to)[i].open || get15m(pt.to)[i].close;
+                // Correct fee: 0.05% on sell side + 0.05% on buy side (not double)
+                const krwAfterSell = holdings * sellPrice * (1 - effectiveSlippage) * (1 - FEE_RATE);
+                const effectiveBuyPrice = buyPrice * (1 + effectiveSlippage);
+                holdings = (krwAfterSell * (1 - FEE_RATE)) / effectiveBuyPrice;
+                trades.push({
+                    idx: i, timestamp: get15m(pt.from)[i].timestamp,
+                    action: 'SWITCH', from: pt.from, to: pt.to,
+                    sellPrice, buyPrice,
+                });
+                currentAsset = pt.to;
+            }
+        }
+
         const result = strategy.onNewCandle(state, slicedData);
 
         if (result.action === 'SWITCH' && result.details && result.details.targetMarket) {
             const target = result.details.targetMarket;
             if (target !== currentAsset) {
-                // SELL_TO_CASH: sell current asset, hold KRW
+                // Queue trade for next candle's open (realistic execution)
                 if (target === 'CASH' && currentAsset !== 'CASH') {
-                    const sellPrice = get15m(currentAsset)[i].close;
-                    portfolio = holdings * sellPrice * (1 - effectiveSlippage) * (1 - FEE_RATE);
-
-                    trades.push({
-                        idx: i,
-                        timestamp: get15m(currentAsset)[i].timestamp,
-                        action: 'SELL_TO_CASH',
-                        from: currentAsset,
-                        to: 'CASH',
-                        sellPrice,
-                        buyPrice: null,
-                    });
-
-                    currentAsset = 'CASH';
-                    holdings = 0;
-                }
-                // BUY_FROM_CASH: buy target asset with KRW
-                else if (currentAsset === 'CASH' && target !== 'CASH' && candleData[target]) {
-                    const buyPrice = get15m(target)[i].close;
-                    const effectiveBuyPrice = buyPrice * (1 + effectiveSlippage);
-                    holdings = (portfolio * (1 - FEE_RATE)) / effectiveBuyPrice;
-
-                    trades.push({
-                        idx: i,
-                        timestamp: get15m(markets[0])[i].timestamp,
-                        action: 'BUY_FROM_CASH',
-                        from: 'CASH',
-                        to: target,
-                        sellPrice: null,
-                        buyPrice,
-                    });
-
-                    currentAsset = target;
-                    portfolio = 0;
-                }
-                // Normal SWITCH: sell current, buy target
-                else if (currentAsset !== 'CASH' && target !== 'CASH' && candleData[target]) {
-                    const sellPrice = get15m(currentAsset)[i].close;
-                    const buyPrice = get15m(target)[i].close;
-
-                    const krwAfterSell = holdings * sellPrice * (1 - effectiveSlippage) * (1 - FEE_RATE);
-                    const effectiveBuyPrice = buyPrice * (1 + effectiveSlippage);
-                    holdings = (krwAfterSell * (1 - FEE_RATE)) / effectiveBuyPrice;
-
-                    trades.push({
-                        idx: i,
-                        timestamp: get15m(currentAsset)[i].timestamp,
-                        action: 'SWITCH',
-                        from: currentAsset,
-                        to: target,
-                        sellPrice,
-                        buyPrice,
-                    });
-
-                    currentAsset = target;
+                    pendingTrade = { type: 'SELL_TO_CASH', from: currentAsset };
+                } else if (currentAsset === 'CASH' && target !== 'CASH' && candleData[target]) {
+                    pendingTrade = { type: 'BUY_FROM_CASH', to: target };
+                } else if (currentAsset !== 'CASH' && target !== 'CASH' && candleData[target]) {
+                    pendingTrade = { type: 'SWITCH', from: currentAsset, to: target };
                 }
             }
         }
@@ -289,17 +289,22 @@ function runBacktest(strategy, candleData, label = 'unnamed', measureFromIdx = n
     return result;
 }
 
-// Tiered gate thresholds
+// Tiered gate thresholds — tightened to prevent regression
 const GATE_THRESHOLDS = {
-    replace: { minReturn: -1, maxMddWorsening: 3, maxDailyTrades: 10, minDailyTrades: 0.15 },
-    modify:  { minReturn: -2, maxMddWorsening: 5, maxDailyTrades: 10, minDailyTrades: 0.1 },
+    replace: { minReturn: 0, maxMddWorsening: 2, maxDailyTrades: 10, minDailyTrades: 0.15 },
+    modify:  { minReturn: -1, maxMddWorsening: 3, maxDailyTrades: 10, minDailyTrades: 0.1 },
 };
 
 function compareStrategies(currentResult, newResult, gateType = 'replace') {
     const gate = GATE_THRESHOLDS[gateType] || GATE_THRESHOLDS.replace;
-    const returnImprovement = newResult.returnPct - currentResult.returnPct;
-    const drawdownWorsening = newResult.maxDrawdown - currentResult.maxDrawdown;
-    const dailyTrades = newResult.dailyTrades;
+
+    // Use measure period (OOS) metrics if available, otherwise full backtest
+    const newMetrics = newResult.measurePeriod || newResult;
+    const currentMetrics = currentResult.measurePeriod || currentResult;
+
+    const returnImprovement = newMetrics.returnPct - currentMetrics.returnPct;
+    const drawdownWorsening = newMetrics.maxDrawdown - currentMetrics.maxDrawdown;
+    const dailyTrades = newMetrics.dailyTrades;
 
     const pass =
         returnImprovement >= gate.minReturn &&
@@ -361,8 +366,32 @@ function runWalkForwardBacktest(strategy, candleData, label = 'unnamed') {
     }
     const train = runBacktest(strategy, trainData, label + '-train');
 
-    // Test: run on full data, measure from splitIndex
-    const test = runBacktest(strategy, candleData, label + '-test', splitIndex);
+    // Test: run on ONLY the test portion with FRESH state
+    // This prevents strategy state leaking from train to test
+    const testData = {};
+    const lookback = (strategy.DEFAULT_CONFIG && strategy.DEFAULT_CONFIG.lookback) || 60;
+    const warmupStart = Math.max(0, splitIndex - lookback);
+
+    for (const market of markets) {
+        if (isNested) {
+            testData[market] = {};
+            for (const interval of Object.keys(candleData[market])) {
+                const candles = candleData[market][interval];
+                if (interval === '15') {
+                    // Include lookback warmup candles before split point
+                    testData[market][interval] = candles.slice(warmupStart);
+                } else {
+                    // For 240m, include candles from warmup period onward
+                    const warmupTs = new Date(get15m(market)[warmupStart].timestamp).getTime();
+                    testData[market][interval] = candles.filter(c => new Date(c.timestamp).getTime() >= warmupTs);
+                }
+            }
+        } else {
+            testData[market] = candleData[market].slice(warmupStart);
+        }
+    }
+    // Run fresh backtest on test data — new strategy state, no train contamination
+    const test = runBacktest(strategy, testData, label + '-test');
 
     return { train, test, splitUsed: true, splitIndex };
 }
