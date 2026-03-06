@@ -97,6 +97,10 @@ function calcChoppiness(candles, period) {
 function scoreMarket(candles4h, config) {
     if (!candles4h || candles4h.length < config.trendLookback) return null;
 
+    // Trim to last 200 candles — all indicators need at most ~100 warmup.
+    // Prevents O(n) recomputation on 9000+ historical candles each tick.
+    if (candles4h.length > 200) candles4h = candles4h.slice(-200);
+
     const choppiness = calcChoppiness(candles4h, config.choppinessPeriod);
     if (choppiness === null) return null;
 
@@ -210,11 +214,20 @@ function checkTrailingStop(state, currentPrice, config) {
  * This prevents a high-score but low-intensity market from blocking re-entry into other markets.
  */
 function checkReentry(state, candleData, markets, config) {
-    const scores = {};
-    for (const market of markets) {
-        const candles4h = candleData[market] && candleData[market][240];
-        const result = scoreMarket(candles4h, config);
-        if (result) scores[market] = result;
+    // Cache: reuse scores if 240m data unchanged (same as onNewCandle)
+    const candles4hKey = markets.map(m => (candleData[m] && candleData[m][240] ? candleData[m][240].length : 0)).join(',');
+    let scores;
+    if (state._cachedScoresKey === candles4hKey && state._cachedScores) {
+        scores = state._cachedScores;
+    } else {
+        scores = {};
+        for (const market of markets) {
+            const candles4h = candleData[market] && candleData[market][240];
+            const result = scoreMarket(candles4h, config);
+            if (result) scores[market] = result;
+        }
+        state._cachedScoresKey = candles4hKey;
+        state._cachedScores = scores;
     }
 
     const scoredMarkets = Object.keys(scores);
@@ -377,11 +390,20 @@ function onNewCandle(state, candleData, config = DEFAULT_CONFIG) {
     }
 
     // === TREND SCORING + SWITCH (4h) ===
-    const scores = {};
-    for (const market of markets) {
-        const candles4h = candleData[market] && candleData[market][240];
-        const result = scoreMarket(candles4h, config);
-        if (result) scores[market] = result;
+    // Cache: skip expensive indicator recalculation if 240m data unchanged
+    const candles4hKey = markets.map(m => (candleData[m] && candleData[m][240] ? candleData[m][240].length : 0)).join(',');
+    let scores;
+    if (state._cachedScoresKey === candles4hKey && state._cachedScores) {
+        scores = state._cachedScores;
+    } else {
+        scores = {};
+        for (const market of markets) {
+            const candles4h = candleData[market] && candleData[market][240];
+            const result = scoreMarket(candles4h, config);
+            if (result) scores[market] = result;
+        }
+        state._cachedScoresKey = candles4hKey;
+        state._cachedScores = scores;
     }
 
     const scoredMarkets = Object.keys(scores);
