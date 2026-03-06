@@ -2,22 +2,6 @@
   "maxEntries": 50,
   "entries": [
     {
-      "timestamp": "2026-03-04T23:30:52.770Z",
-      "action": "keep",
-      "reasoning": "Bullish 레짐 19일차 지속, 전 종목 매수 우위(BTC 2.58, ETH 9.36, SOL 3.05, XRP 3.37) + 동반 강세(+3.25~5.81%). BTC 고점 대비 -1.88%로 trailing stop 여유 충분. 전략 변경 불필요.",
-      "confidence": 0.93,
-      "parameters": null,
-      "markets": null,
-      "improvementAreas": [],
-      "backtestResult": null,
-      "outcome": "kept",
-      "notes": "다음 배치 체크: (1) 포트폴리오 가치 0 KRW — collect-metrics.js 잔고 조회 버그 77회 연속 미해결, 별도 디버깅 세션 필요, (2) ETH 체결 강도 9.36 극단 매수 — SOL 극단 매수(7.39) 시리즈와 유사 패턴 여부 추적, 후속 냉각 vs 지속 관찰, (3) 저분산 bullish 구간 장기화에 따른 분화 임계점(1.5%+) 모니터링 지속",
-      "retryAttempts": null,
-      "variantsTested": null,
-      "diagnosis": null,
-      "triggerType": "DAILY_REVIEW"
-    },
-    {
       "timestamp": "2026-03-05T00:30:51.998Z",
       "action": "keep",
       "reasoning": "Bullish 레짐 지속(평균 +4.35%), BTC 보유 안정(피크 대비 -1.15%), 전략 정상 작동. 분산 1.26%로 1.25% 임계점 첫 돌파했으나 급격한 분화 징후 없음. 변경 불필요.",
@@ -924,6 +908,24 @@
       "variantsTested": 1,
       "diagnosis": null,
       "triggerType": "DAILY_REVIEW"
+    },
+    {
+      "timestamp": "2026-03-06T16:50:25.323Z",
+      "action": "keep",
+      "reasoning": "전략 교체 16h 경과, 재진입 쿨다운(48캔들) 미도달 상태에서 성과 판단 불가. 전 종목 Stochastic 3~7 극단적 과매도로 바운스 시 RSI·choppiness 조건 자연 충족 예상. CASH 보호로 BTC -2.55% 하락 회피 중이므로 현 전략 유지 적절.",
+      "confidence": 0.8,
+      "parameters": null,
+      "markets": null,
+      "improvementAreas": [
+        "regime"
+      ],
+      "backtestResult": null,
+      "outcome": "kept",
+      "notes": "다음 배치 체크: (1) 쿨다운 48캔들 도달 여부 — ~9h 후 충족, (2) RSI 50+ 회복 여부 — 현재 42~46에서 바운스 시 상승 경로, (3) Stochastic 3~7 극과매도에서 반등 발생 여부 — 반등 시 choppiness 하락 동반 가능, (4) BTC 체결 강도 0.51에서 1.0+ 회복 여부 — 알트 divergence(ETH 5.13, XRP 6.76) 지속 관찰",
+      "retryAttempts": null,
+      "variantsTested": null,
+      "diagnosis": null,
+      "triggerType": "DAILY_REVIEW"
     }
   ],
   "strategicNotes": "1) 하락장에서 높은 상관관계 자산 간 로테이션은 거래비용만 소모. 2) BTC가 하락장 기본 보유자산으로 최적. 3) 거래 빈도 영향 극대 — 13회 거래 시 비용만 ~3.9% 추가 손실. 4) 레짐 필터가 핵심 방어 메커니즘. 5) 코드 전면 교체보다 최소 변경이 배포 안정성 우수. 6) 현 전략(10회 거래, BTC 대비 +6.22%)이 검증된 성과. 7) 파라미터 완화(cooldown↓, threshold↓)는 검증 실패 확정 — 거래 증가로 성과 대폭 악화(-15.75%). 8) SOL이 반등 국면에서 최강 모멘텀이나, 단기 스위칭은 비용 대비 효과 미미. 9) MDD 3% 게이트 의식한 점진적 변경 필요. 10) 연속 배포 실패 시 keep 유지가 최선. 11) bot-state/포트폴리오 불일치 해결 완료. 13) 그레이스 기간(96캔들=24h) whipsaw 방지 효과적. 14) XRP 재진입 진동 패턴 — reentryCooldown 288로 억제 중. 16) deploy.js 롤백 시 bot-state.json 보존/복원 로직 개선 필요. 17) 포트폴리오 90K 소규모 — 거래 최소화가 비용 절감에 결정적. 18) 현행 파라미터(288/0.4)가 최적 근처임을 modify 실패로 검증 완료. 19) -9.52% 경고는 실패한 modify 백테스트 결과이며 현행 전략 실제 성과 아님 — 배치 분석 시 혼동 주의. 21) 그레이스 기간 종료 시점이 리스크 관리의 핵심 전환점 — 활성화 후 첫 배치에서 피크 추적 정상 작동 반드시 확인.",
@@ -1136,6 +1138,12 @@
       },
       {
         "hypothesis": "체결 강도 이중 바닥(0.16→0.19) 후 1.32 복귀가 6회차 1.0+ 복귀인데, 이번에는 이중 바닥 구조를 거쳤으므로 이전 단발 반등과 달리 안정적 유지 가능성. 4h+ 1.0 유지 시 가격 반등 선행 지표로 최초 유효 확인",
+        "status": "proposed",
+        "experimentId": null,
+        "addedAt": "2026-03-06"
+      },
+      {
+        "hypothesis": "전 종목 Stochastic 3~7 극과매도 + RSI 42~46 조합은 단기 바운스(4~24h 내) 발생 가능성 높음. 바운스 시 RSI 50+ 회복으로 재진입 경로 활성화 여부 관찰",
         "status": "proposed",
         "experimentId": null,
         "addedAt": "2026-03-06"
