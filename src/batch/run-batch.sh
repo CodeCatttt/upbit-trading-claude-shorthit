@@ -15,6 +15,20 @@ export NVM_DIR="$HOME/.nvm"
 PROJECT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$PROJECT_DIR"
 
+# --- Lockfile: prevent concurrent/overlapping batch runs ---
+LOCKFILE="$PROJECT_DIR/data/.batch-lock"
+if [ -f "$LOCKFILE" ]; then
+    LOCK_AGE=$(( $(date +%s) - $(stat -c %Y "$LOCKFILE" 2>/dev/null || echo 0) ))
+    if [ "$LOCK_AGE" -lt 600 ]; then
+        echo "Batch already running (lock age: ${LOCK_AGE}s). Exiting."
+        exit 0
+    fi
+    echo "Stale lock found (age: ${LOCK_AGE}s). Removing."
+    rm -f "$LOCKFILE"
+fi
+echo $$ > "$LOCKFILE"
+trap 'rm -f "$LOCKFILE"' EXIT
+
 TIMESTAMP=$(date +"%Y-%m-%d-%H%M")
 LOG_DIR="$PROJECT_DIR/logs/batch"
 LOG_FILE="$LOG_DIR/$TIMESTAMP.log"

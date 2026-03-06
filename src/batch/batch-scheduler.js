@@ -143,18 +143,24 @@ function checkStagnation() {
 }
 
 /**
- * Check if any active experiment needs review
+ * Check if any active experiment needs review.
+ * Triggers on: live_testing past duration, or proposed stuck > 3 days (needs cleanup).
  */
 function checkExperimentReview() {
     const experiments = loadJSON(EXPERIMENTS_FILE, { active: [] });
     for (const exp of experiments.active) {
-        if (exp.status === 'live_testing' && exp.startedAt) {
-            const daysSinceStart = (Date.now() - new Date(exp.startedAt).getTime()) / (1000 * 60 * 60 * 24);
-            const durationDays = parseInt(exp.design?.duration) || 7;
-            if (daysSinceStart >= durationDays) {
-                log.info(`Experiment ${exp.id} ready for review (${daysSinceStart.toFixed(1)}d / ${durationDays}d)`);
-                return true;
-            }
+        if (!exp.startedAt) continue;
+        const daysSinceStart = (Date.now() - new Date(exp.startedAt).getTime()) / (1000 * 60 * 60 * 24);
+        const durationDays = parseInt(exp.design?.duration) || 7;
+
+        if (exp.status === 'live_testing' && daysSinceStart >= durationDays) {
+            log.info(`Experiment ${exp.id} ready for review (${daysSinceStart.toFixed(1)}d / ${durationDays}d)`);
+            return true;
+        }
+        // Trigger cleanup for experiments stuck in proposed status
+        if (exp.status === 'proposed' && daysSinceStart >= 3) {
+            log.info(`Experiment ${exp.id} stuck in proposed for ${daysSinceStart.toFixed(1)}d — triggering review`);
+            return true;
         }
     }
     return false;

@@ -41,6 +41,7 @@ const DEFAULT_CONFIG = {
     reentryMinScore: 0.03,           // Minimum positive score
     reentryTrendConfirm: false,     // Do NOT require EMA golden cross (lagging indicator bottleneck removed)
     reentryCooldown: 72,           // 18h minimum stay in CASH
+    reentryIntensityMin: 0.5,       // Block re-entry when trade intensity < this (extreme selling)
 
     // Scoring weights
     momentumWeight: 0.45,           // Risk-adjusted momentum (Sharpe)
@@ -228,21 +229,29 @@ function checkReentry(state, candleData, markets, config) {
     const best = scoredMarkets.reduce((a, b) => scores[a].score > scores[b].score ? a : b);
     const bestScore = scores[best];
 
+    // Get trade intensity for the best candidate (from orderbook data)
+    const bestIntensity = candleData[best] && candleData[best]._tradeIntensity;
+
     const summary = {};
     for (const m of scoredMarkets) {
         summary[m] = {
             score: +scores[m].score.toFixed(4),
             ret: +(scores[m].totalReturn * 100).toFixed(2),
             choppy: scores[m].isChoppy,
+            intensity: candleData[m] && candleData[m]._tradeIntensity,
         };
     }
 
     // Must wait reentryCooldown candles in CASH before buying back
     const cashCooldownMet = state.candlesSinceLastTrade >= (config.reentryCooldown || 288);
 
+    // Block re-entry during extreme selling pressure
+    const intensityOk = bestIntensity == null || bestIntensity >= (config.reentryIntensityMin || 0.5);
+
     // Re-entry conditions
     const canReenter =
         cashCooldownMet &&
+        intensityOk &&
         !bestScore.isChoppy &&
         bestScore.rsi !== null && bestScore.rsi > config.reentryRsiMin &&
         bestScore.score > config.reentryMinScore &&
@@ -274,6 +283,9 @@ function checkReentry(state, candleData, markets, config) {
             rsi: bestScore.rsi !== null ? +bestScore.rsi.toFixed(1) : null,
             choppy: bestScore.isChoppy,
             trendCross: +bestScore.trendCross.toFixed(4),
+            intensity: bestIntensity,
+            intensityOk,
+            cooldownMet: cashCooldownMet,
             scores: summary,
         },
     };
@@ -331,6 +343,7 @@ function onNewCandle(state, candleData, config = DEFAULT_CONFIG) {
         if (currentPrice !== null) {
             const trailing = checkTrailingStop(state, currentPrice, config);
             if (trailing && trailing.triggered) {
+                const peakBeforeReset = state.peakPriceSinceEntry;
                 state.assetHeld = 'CASH';
                 state.candlesSinceLastTrade = 0;
                 state.peakPriceSinceEntry = null;
@@ -340,7 +353,7 @@ function onNewCandle(state, candleData, config = DEFAULT_CONFIG) {
                         targetMarket: 'CASH',
                         reason: 'trailing_stop',
                         drawdown: +(trailing.drawdown * 100).toFixed(2),
-                        peak: state.peakPriceSinceEntry,
+                        peak: peakBeforeReset,
                     },
                 };
             }

@@ -1,5 +1,6 @@
 {
-  "active": [
+  "active": [],
+  "completed": [
     {
       "id": "exp-001",
       "hypothesis": "역divergence(전 종목 매수 우위 + 가격 하락) 3회 연속 후 반등 발생 시, 볼린저 하단 터치 + 체결 강도 매수 우위 조합을 재진입 보조 신호로 활용하면 CASH→재진입 타이밍 개선 가능",
@@ -14,12 +15,14 @@
         "duration": "7d",
         "successCriteria": "재진입 타이밍이 기존 대비 평균 1% 이상 유리한 가격에 진입 (백테스트 기준)"
       },
-      "status": "proposed",
+      "status": "completed",
       "successCriteria": "재진입 시점의 평균 가격이 기존 전략 대비 1% 이상 낮고, 진입 후 24h 수익률이 양수",
-      "results": null,
+      "results": {
+        "reason": "Proposed without strategy code - parameter_test experiments need manual coding or batch code generation to execute"
+      },
       "startedAt": "2026-03-05T16:11:03.064Z",
-      "completedAt": null,
-      "outcome": null
+      "completedAt": "2026-03-06T14:53:53.762Z",
+      "outcome": "inconclusive"
     },
     {
       "id": "exp-002",
@@ -35,14 +38,15 @@
         "duration": "4d",
         "successCriteria": "alpha >= 2% vs live strategy"
       },
-      "status": "proposed",
+      "status": "completed",
       "successCriteria": "alpha >= 2% vs live strategy",
-      "results": null,
+      "results": {
+        "reason": "Proposed without strategy code - shadow_strategy requires implementable code to deploy as shadow"
+      },
       "startedAt": "2026-03-05T17:01:43.592Z",
-      "completedAt": null,
-      "outcome": null
+      "completedAt": "2026-03-06T14:53:53.789Z",
+      "outcome": "inconclusive"
     }
   ],
-  "completed": [],
   "maxActive": 2
 }

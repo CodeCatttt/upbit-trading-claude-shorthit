@@ -116,6 +116,17 @@ async function fetchCandleData(markets, intervals) {
             }
         }
     }
+
+    // Fetch orderbook trade intensity (bid/ask ratio) for each market
+    for (const market of markets) {
+        try {
+            const ob = await api.getOrderbook(market);
+            if (ob && ob.totalAskSize > 0) {
+                candleData[market]._tradeIntensity = +(ob.totalBidSize / ob.totalAskSize).toFixed(2);
+            }
+        } catch {}
+    }
+
     return candleData;
 }
 
@@ -159,7 +170,9 @@ async function runStrategyBoundary() {
         // Re-entry from CASH — let strategy decide
         if (state.assetHeld === 'CASH') {
             log.info('In CASH state. Checking re-entry conditions...');
+            // Strategy may mutate state.assetHeld on SWITCH — save and restore if buy fails
             const signal = strategy.onNewCandle(state, candleData);
+            state.assetHeld = 'CASH'; // Always restore — bot controls state transitions
 
             if (signal.action === 'SWITCH' && signal.details && signal.details.targetMarket && signal.details.targetMarket !== 'CASH') {
                 const targetMarket = signal.details.targetMarket;
@@ -171,6 +184,7 @@ async function runStrategyBoundary() {
                     const buyResult = await api.buyMarketOrder(targetMarket, amt);
                     if (!buyResult) {
                         log.error(`Re-entry buy failed for ${targetMarket}. Staying in CASH.`);
+                        saveState();
                         writeHeartbeat('BUY_FAILED');
                         return;
                     }
@@ -191,6 +205,7 @@ async function runStrategyBoundary() {
                 }
             } else {
                 log.info(`Staying in CASH. ${signal.details ? signal.details.reason || '' : ''}`);
+                saveState(); // Persist candlesSinceLastTrade counter to survive PM2 restarts
                 writeHeartbeat('CASH_HOLD');
             }
             return;

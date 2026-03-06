@@ -63,7 +63,8 @@ async function recordDaily() {
     const balances = await api.getBalances();
     let totalValueKrw = 0;
     for (const b of balances) {
-        const bal = parseFloat(b.balance);
+        // Include both available and locked balance
+        const bal = parseFloat(b.balance) + parseFloat(b.locked || '0');
         if (bal === 0) continue;
         if (b.currency === 'KRW') {
             totalValueKrw += bal;
@@ -71,7 +72,7 @@ async function recordDaily() {
             const market = `KRW-${b.currency}`;
             try {
                 const price = await api.getCurrentPrice(market);
-                if (price) totalValueKrw += bal * price;
+                if (price && price > 0) totalValueKrw += bal * price;
             } catch {}
         }
     }

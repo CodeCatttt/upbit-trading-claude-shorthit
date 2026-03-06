@@ -243,7 +243,8 @@ async function collectMetrics() {
     let totalValueKrw = 0;
     const holdings = [];
     for (const b of balances) {
-        const bal = parseFloat(b.balance);
+        // Include both available and locked balance (locked = in pending orders)
+        const bal = parseFloat(b.balance) + parseFloat(b.locked || '0');
         if (bal === 0) continue;
         if (b.currency === 'KRW') {
             totalValueKrw += bal;
@@ -253,6 +254,10 @@ async function collectMetrics() {
             let price = marketPrices[market];
             if (!price) {
                 try { price = await api.getCurrentPrice(market); } catch { continue; }
+            }
+            if (!price || price === 0) {
+                log.warn(`Price is 0 for ${market}, skipping value calculation`);
+                continue;
             }
             const val = bal * price;
             totalValueKrw += val;
@@ -265,6 +270,12 @@ async function collectMetrics() {
                 pnlPct: ((price - parseFloat(b.avg_buy_price)) / parseFloat(b.avg_buy_price) * 100),
             });
         }
+    }
+
+    // Sanity check: if bot holds an asset but totalValueKrw is 0, log a warning
+    const earlyBotState = safeReadJSON(STATE_FILE);
+    if (totalValueKrw === 0 && earlyBotState && earlyBotState.assetHeld && earlyBotState.assetHeld !== 'CASH') {
+        log.warn(`Portfolio value is 0 but bot holds ${earlyBotState.assetHeld} — possible API error. Balances: ${JSON.stringify(balances.map(b => ({ c: b.currency, b: b.balance, l: b.locked })))}`);
     }
 
     // 2. Current strategy (resolve re-exports to get actual code)

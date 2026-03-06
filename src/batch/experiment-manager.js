@@ -159,9 +159,46 @@ function completeExperiment(experimentId, outcome, finalResults) {
 }
 
 /**
+ * Auto-expire experiments stuck in 'proposed' status for too long (> 3 days).
+ * Moves them to completed with outcome 'expired'.
+ */
+function autoExpireStaleExperiments() {
+    const experiments = loadExperiments();
+    const EXPIRY_MS = 3 * 24 * 60 * 60 * 1000; // 3 days
+    const now = Date.now();
+    const stale = [];
+
+    experiments.active = experiments.active.filter(exp => {
+        if (exp.status === 'proposed' && exp.startedAt) {
+            const age = now - new Date(exp.startedAt).getTime();
+            if (age > EXPIRY_MS) {
+                exp.status = 'completed';
+                exp.outcome = 'expired';
+                exp.completedAt = new Date().toISOString();
+                exp.results = { reason: 'Auto-expired: stuck in proposed status for >3 days without code/execution' };
+                experiments.completed.push(exp);
+                stale.push(exp.id);
+                return false;
+            }
+        }
+        return true;
+    });
+
+    if (stale.length > 0) {
+        if (experiments.completed.length > 20) {
+            experiments.completed = experiments.completed.slice(-20);
+        }
+        saveExperiments(experiments);
+        log.info(`Auto-expired ${stale.length} stale experiments: ${stale.join(', ')}`);
+    }
+    return stale;
+}
+
+/**
  * List all active experiments.
  */
 function listActive() {
+    autoExpireStaleExperiments();
     return loadExperiments().active;
 }
 
@@ -229,4 +266,5 @@ module.exports = {
     listActive,
     getExperiment,
     loadExperiments,
+    autoExpireStaleExperiments,
 };
