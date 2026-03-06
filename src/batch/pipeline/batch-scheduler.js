@@ -33,7 +33,8 @@ const SCHEDULER_STATE_FILE = path.join(PROJECT_DIR, 'data/scheduler-state.json')
 const PERFORMANCE_FILE = path.join(PROJECT_DIR, 'data/performance-ledger.json');
 
 const CHECK_INTERVAL_MS = 15 * 60 * 1000; // 15 minutes
-const MIN_BATCH_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6 hours minimum between batches
+const MIN_BATCH_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6 hours minimum between batches (normal)
+const MIN_URGENT_INTERVAL_MS = 3 * 60 * 60 * 1000; // 3 hours for urgent triggers (DRAWDOWN, REGIME)
 const PRICE_CHANGE_THRESHOLD = 5; // 5%
 const MDD_THRESHOLD = 8; // 8%
 const STAGNATION_DAYS = 7;
@@ -104,12 +105,14 @@ function checkDrawdown() {
 }
 
 /**
- * Check if enough time has passed since last batch (6h minimum)
+ * Check if enough time has passed since last batch.
+ * Normal triggers: 6h, urgent triggers (DRAWDOWN, REGIME): 3h.
  */
-function checkMinInterval(schedulerState) {
+function checkMinInterval(schedulerState, urgent = false) {
     if (!schedulerState.lastBatchTime) return true;
     const elapsed = Date.now() - new Date(schedulerState.lastBatchTime).getTime();
-    return elapsed >= MIN_BATCH_INTERVAL_MS;
+    const minInterval = urgent ? MIN_URGENT_INTERVAL_MS : MIN_BATCH_INTERVAL_MS;
+    return elapsed >= minInterval;
 }
 
 /**
@@ -173,21 +176,18 @@ function checkExperimentReview() {
 async function evaluateTriggers() {
     const schedulerState = loadSchedulerState();
 
-    // Must respect minimum interval
-    if (!checkMinInterval(schedulerState)) {
-        return null;
+    // Urgent triggers: 3h minimum interval
+    if (checkMinInterval(schedulerState, true)) {
+        if (checkDrawdown()) return 'DRAWDOWN_ALERT';
+        if (await checkRegimeChange()) return 'REGIME_CHANGE';
     }
 
-    // Priority-ordered checks
-    if (checkDrawdown()) return 'DRAWDOWN_ALERT';
-
-    if (await checkRegimeChange()) return 'REGIME_CHANGE';
-
-    if (checkExperimentReview()) return 'EXPERIMENT_REVIEW';
-
-    if (checkStagnation()) return 'STAGNATION';
-
-    if (checkDailyClose(schedulerState)) return 'DAILY_REVIEW';
+    // Normal triggers: 6h minimum interval
+    if (checkMinInterval(schedulerState, false)) {
+        if (checkExperimentReview()) return 'EXPERIMENT_REVIEW';
+        if (checkStagnation()) return 'STAGNATION';
+        if (checkDailyClose(schedulerState)) return 'DAILY_REVIEW';
+    }
 
     return null;
 }
