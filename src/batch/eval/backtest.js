@@ -18,14 +18,14 @@
 
 const fs = require('fs');
 const path = require('path');
-const store = require('../data/candle-store');
-const { createLogger } = require('../utils/logger');
+const store = require('../../data/candle-store');
+const { createLogger } = require('../../utils/logger');
 
 const log = createLogger('BACKTEST');
 const FEE_RATE = 0.0005;    // 0.05% per trade side (Upbit)
 const SLIPPAGE_RATE = 0.001; // 0.1% slippage (market order assumption)
-const RESULTS_DIR = path.join(__dirname, '../../data/backtest-results');
-const CONFIG_FILE = path.join(__dirname, '../../trading-config.json');
+const RESULTS_DIR = path.join(__dirname, '../../../data/backtest-results');
+const CONFIG_FILE = path.join(__dirname, '../../../trading-config.json');
 
 function ensureDir(dir) {
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
@@ -410,7 +410,7 @@ function saveResult(result, comparison = null) {
 if (require.main === module) {
     const args = process.argv.slice(2);
     const walkForward = args.includes('--walk-forward');
-    const strategyPath = args.find(a => !a.startsWith('--')) || path.join(__dirname, '../strategies/current-strategy.js');
+    const strategyPath = args.find(a => !a.startsWith('--')) || path.join(__dirname, '../../strategies/current-strategy.js');
     const resolvedPath = path.resolve(strategyPath);
 
     process.stderr.write(`[BACKTEST] Strategy: ${resolvedPath}${walkForward ? ' (walk-forward)' : ''}\n`);

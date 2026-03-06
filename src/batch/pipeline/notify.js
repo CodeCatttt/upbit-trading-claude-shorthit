@@ -9,7 +9,7 @@
 
 'use strict';
 
-const { sendEmbed } = require('../utils/discord');
+const { sendEmbed } = require('../../utils/discord');
 
 const COLORS = {
     keep: 0x808080,           // 회색

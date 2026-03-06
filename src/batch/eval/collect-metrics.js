@@ -10,18 +10,18 @@
 
 const fs = require('fs');
 const path = require('path');
-const api = require('../core/upbit-api');
-const { createLogger } = require('../utils/logger');
+const api = require('../../core/upbit-api');
+const { createLogger } = require('../../utils/logger');
 
 const log = createLogger('METRICS');
 
-const STATE_FILE = path.join(__dirname, '../../bot-state.json');
-const HEARTBEAT_FILE = path.join(__dirname, '../../data/bot-heartbeat.json');
-const STRATEGY_FILE = path.join(__dirname, '../strategies/current-strategy.js');
-const METRICS_DIR = path.join(__dirname, '../../data/metrics');
-const DEPLOY_LOG = path.join(__dirname, '../../deploy-log.json');
-const CONFIG_FILE = path.join(__dirname, '../../trading-config.json');
-const EXECUTION_LOG_FILE = path.join(__dirname, '../../data/execution-log.json');
+const STATE_FILE = path.join(__dirname, '../../../bot-state.json');
+const HEARTBEAT_FILE = path.join(__dirname, '../../../data/bot-heartbeat.json');
+const STRATEGY_FILE = path.join(__dirname, '../../strategies/current-strategy.js');
+const METRICS_DIR = path.join(__dirname, '../../../data/metrics');
+const DEPLOY_LOG = path.join(__dirname, '../../../deploy-log.json');
+const CONFIG_FILE = path.join(__dirname, '../../../trading-config.json');
+const EXECUTION_LOG_FILE = path.join(__dirname, '../../../data/execution-log.json');
 
 function ensureDir(dir) {
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
@@ -219,7 +219,7 @@ async function collectMetrics() {
 
     // Record daily performance (idempotent — skips if already recorded today)
     try {
-        const { recordDaily } = require('./performance-tracker');
+        const { recordDaily } = require('../learning/performance-tracker');
         await recordDaily();
     } catch (e) {
         log.warn('Performance tracking skipped:', e.message);

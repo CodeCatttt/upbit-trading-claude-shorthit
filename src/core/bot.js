@@ -151,7 +151,7 @@ async function runStrategyBoundary() {
 
         // Run shadow strategies (paper trading, no real orders)
         try {
-            const { runShadowCycle } = require('../batch/shadow-manager');
+            const { runShadowCycle } = require('../batch/learning/shadow-manager');
             runShadowCycle(candleData);
         } catch (e) {
             // Shadow execution is non-critical

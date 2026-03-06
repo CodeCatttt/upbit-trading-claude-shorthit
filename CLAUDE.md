@@ -8,12 +8,12 @@ Upbit 멀티에셋 트레이딩 봇 with Claude-powered batch strategy analysis.
 - **Execution** (`src/execution/smart-entry.js`): Smart entry module — monitors short-term price for optimal buy timing
 - **Strategy** (`src/strategies/current-strategy.js`): Hot-swappable strategy file
 - **Custom Indicators** (`src/strategies/custom-indicators.js`): Claude-managed custom indicator functions
-- **Batch Scheduler** (`src/batch/batch-scheduler.js`): PM2 process — trigger-based adaptive batch scheduling (replaces fixed cron)
-- **Batch** (`src/batch/run-batch.sh`): Pipeline orchestrator — collects metrics → calls Claude → backtests → deploys (retry loop + multi-variant)
+- **Batch Scheduler** (`src/batch/pipeline/batch-scheduler.js`): PM2 process — trigger-based adaptive batch scheduling (replaces fixed cron)
+- **Batch** (`src/batch/pipeline/run-batch.sh`): Pipeline orchestrator — collects metrics → calls Claude → backtests → deploys (retry loop + multi-variant)
 - **Batch Memory** (`data/batch-memory.json`): Decision history + structured knowledge base for cross-batch learning
-- **Performance Tracker** (`src/batch/performance-tracker.js`): Daily real P&L vs BTC benchmark tracking
-- **Experiment Manager** (`src/batch/experiment-manager.js`): Structured hypothesis → test → learn cycle
-- **Shadow Manager** (`src/batch/shadow-manager.js`): Paper-trading parallel strategy evaluation
+- **Performance Tracker** (`src/batch/learning/performance-tracker.js`): Daily real P&L vs BTC benchmark tracking
+- **Experiment Manager** (`src/batch/learning/experiment-manager.js`): Structured hypothesis → test → learn cycle
+- **Shadow Manager** (`src/batch/learning/shadow-manager.js`): Paper-trading parallel strategy evaluation
 - **Config** (`trading-config.json`): Dynamic market list, updated by Claude at each batch
 
 ## Strategy Interface (Multi-Timeframe)
@@ -90,7 +90,7 @@ module.exports = {
   - `knowledge.confirmed`: 백테스트+실거래로 검증된 사실 (max 20)
   - `knowledge.hypotheses`: 검증 대기 중인 가설 (max 20)
   - `knowledge.rejected`: 실험으로 반증된 가설 (max 20)
-- Helper: `src/batch/update-memory.js` — auto-called by run-batch.sh
+- Helper: `src/batch/learning/update-memory.js` — auto-called by run-batch.sh
 
 ## Performance Tracking
 - File: `data/performance-ledger.json`
@@ -160,25 +160,33 @@ module.exports = {
 
 | File | Purpose |
 |------|---------|
+| **Core** | |
 | `src/core/bot.js` | Main bot (PM2 24/7, multi-timeframe + shadow execution) |
 | `src/core/upbit-api.js` | Upbit API wrapper (+ orderbook, ticker) |
 | `src/core/indicators.js` | Technical indicators library |
 | `src/execution/smart-entry.js` | Smart entry module (RSI dip, pullback, Bollinger) |
 | `src/strategies/current-strategy.js` | Active strategy (replaced on deploy) |
 | `src/strategies/custom-indicators.js` | Custom indicator functions (Claude-managed) |
-| `src/batch/batch-scheduler.js` | Adaptive batch scheduler (PM2, trigger-based) |
-| `src/batch/run-batch.sh` | Batch pipeline orchestrator (retry + multi-variant + experiment) |
-| `src/batch/backtest.js` | Multi-timeframe backtest engine with slippage |
-| `src/batch/diagnose-failure.js` | Gate failure diagnosis for retry prompts |
-| `src/batch/build-retry-prompt.js` | Focused retry prompt builder |
-| `src/batch/collect-metrics.js` | Enhanced metrics (Sharpe, win rate, orderbook, trade intensity) |
-| `src/batch/build-prompt.js` | Trigger-based focused prompt assembly |
-| `src/batch/deploy.js` | Safe deploy with dry-run + rollback (strategy + custom indicators) |
-| `src/batch/update-memory.js` | Batch memory + structured knowledge management |
-| `src/batch/parse-response.js` | Response parsing (+ experiment action) |
-| `src/batch/performance-tracker.js` | Real P&L vs BTC benchmark daily tracking |
-| `src/batch/experiment-manager.js` | Structured experiment lifecycle management |
-| `src/batch/shadow-manager.js` | Shadow (paper-trading) strategy parallel execution |
+| **Batch — Pipeline** | |
+| `src/batch/pipeline/batch-scheduler.js` | Adaptive batch scheduler (PM2, trigger-based) |
+| `src/batch/pipeline/run-batch.sh` | Batch pipeline orchestrator (retry + multi-variant + experiment) |
+| `src/batch/pipeline/notify.js` | Discord batch result notifications |
+| **Batch — Prompt** | |
+| `src/batch/prompt/build-prompt.js` | Trigger-based focused prompt assembly |
+| `src/batch/prompt/parse-response.js` | Response parsing (+ experiment action) |
+| `src/batch/prompt/build-retry-prompt.js` | Focused retry prompt builder |
+| `src/batch/prompt/diagnose-failure.js` | Gate failure diagnosis for retry prompts |
+| **Batch — Eval** | |
+| `src/batch/eval/backtest.js` | Multi-timeframe backtest engine with slippage |
+| `src/batch/eval/collect-metrics.js` | Enhanced metrics (Sharpe, win rate, orderbook, trade intensity) |
+| `src/batch/eval/deploy.js` | Safe deploy with dry-run + rollback (strategy + custom indicators) |
+| `src/batch/eval/apply-modify.js` | Strategy parameter modification |
+| **Batch — Learning** | |
+| `src/batch/learning/update-memory.js` | Batch memory + structured knowledge management |
+| `src/batch/learning/performance-tracker.js` | Real P&L vs BTC benchmark daily tracking |
+| `src/batch/learning/experiment-manager.js` | Structured experiment lifecycle management |
+| `src/batch/learning/shadow-manager.js` | Shadow (paper-trading) strategy parallel execution |
+| **Data & Config** | |
 | `trading-config.json` | Dynamic market list + intervals |
 | `data/batch-memory.json` | Batch decisions + structured knowledge base |
 | `data/performance-ledger.json` | Daily portfolio performance records |

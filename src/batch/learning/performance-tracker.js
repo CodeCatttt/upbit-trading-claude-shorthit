@@ -12,14 +12,14 @@
 
 const fs = require('fs');
 const path = require('path');
-const api = require('../core/upbit-api');
-const { createLogger } = require('../utils/logger');
+const api = require('../../core/upbit-api');
+const { createLogger } = require('../../utils/logger');
 
 const log = createLogger('PERF-TRACKER');
 
-const LEDGER_FILE = path.join(__dirname, '../../data/performance-ledger.json');
-const STATE_FILE = path.join(__dirname, '../../bot-state.json');
-const EXECUTION_LOG_FILE = path.join(__dirname, '../../data/execution-log.json');
+const LEDGER_FILE = path.join(__dirname, '../../../data/performance-ledger.json');
+const STATE_FILE = path.join(__dirname, '../../../bot-state.json');
+const EXECUTION_LOG_FILE = path.join(__dirname, '../../../data/execution-log.json');
 
 function loadLedger() {
     try {

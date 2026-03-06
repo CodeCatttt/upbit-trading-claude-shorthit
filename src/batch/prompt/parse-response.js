@@ -13,7 +13,7 @@
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
-const { createLogger } = require('../utils/logger');
+const { createLogger } = require('../../utils/logger');
 
 const log = createLogger('PARSE-RESPONSE');
 
@@ -57,7 +57,7 @@ function validateCustomIndicators(code) {
     const errors = [];
     if (!code) return errors;
 
-    const tmpFile = path.join(__dirname, '../strategies/.tmp-custom-indicators-check.js');
+    const tmpFile = path.join(__dirname, '../../strategies/.tmp-custom-indicators-check.js');
     try {
         fs.writeFileSync(tmpFile, code);
         execSync(`node -c "${tmpFile}"`, { stdio: 'pipe' });
@@ -160,7 +160,7 @@ function validateStrategyCode(code) {
     }
 
     // 1. Syntax check via node -c
-    const tmpFile = path.join(__dirname, '../strategies/.tmp-strategy-check.js');
+    const tmpFile = path.join(__dirname, '../../strategies/.tmp-strategy-check.js');
     try {
         fs.writeFileSync(tmpFile, code);
         execSync(`node -c "${tmpFile}"`, { stdio: 'pipe' });

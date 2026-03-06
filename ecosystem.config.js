@@ -10,7 +10,7 @@ module.exports = {
         },
     }, {
         name: 'batch-scheduler',
-        script: 'src/batch/batch-scheduler.js',
+        script: 'src/batch/pipeline/batch-scheduler.js',
         cwd: '/home/kook/programming/upbit-trading-claude',
         max_restarts: 3,
         restart_delay: 60000,

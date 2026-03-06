@@ -15,16 +15,16 @@
 
 const fs = require('fs');
 const path = require('path');
-const { createLogger } = require('../utils/logger');
+const { createLogger } = require('../../utils/logger');
 
 const log = createLogger('BUILD-PROMPT');
 
-const METRICS_DIR = path.join(__dirname, '../../data/metrics');
-const CUSTOM_INDICATORS_FILE = path.join(__dirname, '../strategies/custom-indicators.js');
-const CONFIG_FILE = path.join(__dirname, '../../trading-config.json');
-const MEMORY_FILE = path.join(__dirname, '../../data/batch-memory.json');
-const PERFORMANCE_FILE = path.join(__dirname, '../../data/performance-ledger.json');
-const EXPERIMENTS_FILE = path.join(__dirname, '../../data/experiments.json');
+const METRICS_DIR = path.join(__dirname, '../../../data/metrics');
+const CUSTOM_INDICATORS_FILE = path.join(__dirname, '../../strategies/custom-indicators.js');
+const CONFIG_FILE = path.join(__dirname, '../../../trading-config.json');
+const MEMORY_FILE = path.join(__dirname, '../../../data/batch-memory.json');
+const PERFORMANCE_FILE = path.join(__dirname, '../../../data/performance-ledger.json');
+const EXPERIMENTS_FILE = path.join(__dirname, '../../../data/experiments.json');
 
 // --- Data loaders ---
 

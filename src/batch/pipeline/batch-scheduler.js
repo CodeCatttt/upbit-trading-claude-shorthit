@@ -11,7 +11,7 @@
  *   - 7+ days since last trade (STAGNATION)
  *   - Active experiment ready for review (EXPERIMENT_REVIEW)
  *
- * Run via PM2: pm2 start src/batch/batch-scheduler.js --name batch-scheduler
+ * Run via PM2: pm2 start src/batch/pipeline/batch-scheduler.js --name batch-scheduler
  */
 
 'use strict';
@@ -19,12 +19,12 @@
 const { execSync, spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
-const api = require('../core/upbit-api');
-const { createLogger } = require('../utils/logger');
+const api = require('../../core/upbit-api');
+const { createLogger } = require('../../utils/logger');
 
 const log = createLogger('SCHEDULER');
 
-const PROJECT_DIR = path.join(__dirname, '../..');
+const PROJECT_DIR = path.join(__dirname, '../../..');
 const CONFIG_FILE = path.join(PROJECT_DIR, 'trading-config.json');
 const STATE_FILE = path.join(PROJECT_DIR, 'bot-state.json');
 const EXECUTION_LOG_FILE = path.join(PROJECT_DIR, 'data/execution-log.json');
@@ -205,7 +205,7 @@ function executeBatch(triggerType) {
     }
     saveSchedulerState(schedulerState);
 
-    const batchScript = path.join(PROJECT_DIR, 'src/batch/run-batch.sh');
+    const batchScript = path.join(PROJECT_DIR, 'src/batch/pipeline/run-batch.sh');
 
     const child = spawn('bash', [batchScript], {
         cwd: PROJECT_DIR,

@@ -11,12 +11,12 @@
 
 const fs = require('fs');
 const path = require('path');
-const { createLogger } = require('../utils/logger');
+const { createLogger } = require('../../utils/logger');
 
 const log = createLogger('SHADOW');
 
-const SHADOW_DIR = path.join(__dirname, '../../data/shadow-strategies');
-const SHADOW_PERF_FILE = path.join(__dirname, '../../data/shadow-performance.json');
+const SHADOW_DIR = path.join(__dirname, '../../../data/shadow-strategies');
+const SHADOW_PERF_FILE = path.join(__dirname, '../../../data/shadow-performance.json');
 const PROMOTE_THRESHOLD_DAYS = 4;
 
 function loadShadowPerformance() {

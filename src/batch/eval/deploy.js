@@ -11,13 +11,13 @@
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
-const { createLogger } = require('../utils/logger');
+const { createLogger } = require('../../utils/logger');
 
 const log = createLogger('DEPLOY');
 
-const PROJECT_ROOT = path.join(__dirname, '../..');
-const CURRENT_STRATEGY = path.join(__dirname, '../strategies/current-strategy.js');
-const CUSTOM_INDICATORS = path.join(__dirname, '../strategies/custom-indicators.js');
+const PROJECT_ROOT = path.join(__dirname, '../../..');
+const CURRENT_STRATEGY = path.join(__dirname, '../../strategies/current-strategy.js');
+const CUSTOM_INDICATORS = path.join(__dirname, '../../strategies/custom-indicators.js');
 const BACKUP_DIR = path.join(PROJECT_ROOT, 'backups');
 const DEPLOY_LOG_FILE = path.join(PROJECT_ROOT, 'deploy-log.json');
 const HEARTBEAT_FILE = path.join(PROJECT_ROOT, 'data/bot-heartbeat.json');
@@ -128,7 +128,7 @@ function checkPM2Status(restartsBefore) {
 
 function preDeployValidation(strategyCode) {
     log.info('Running pre-deploy dry-run validation...');
-    const tmpFile = path.join(__dirname, '../strategies/.tmp-dryrun-strategy.js');
+    const tmpFile = path.join(__dirname, '../../strategies/.tmp-dryrun-strategy.js');
     const errors = [];
 
     try {

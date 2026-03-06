@@ -12,7 +12,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const MEMORY_FILE = path.join(__dirname, '../../data/batch-memory.json');
+const MEMORY_FILE = path.join(__dirname, '../../../data/batch-memory.json');
 
 const DEFAULT_MEMORY = {
     maxEntries: 50,

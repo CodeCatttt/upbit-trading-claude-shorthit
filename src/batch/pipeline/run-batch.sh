@@ -12,7 +12,7 @@ set -euo pipefail
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
 
-PROJECT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
+PROJECT_DIR="$(cd "$(dirname "$0")/../../.." && pwd)"
 cd "$PROJECT_DIR"
 
 # --- Lockfile: prevent concurrent/overlapping batch runs ---
@@ -38,7 +38,7 @@ exec > >(tee -a "$LOG_FILE") 2>&1
 
 # Discord notification helper — pipes JSON to notify.js
 notify_batch() {
-    echo "$1" | node src/batch/notify.js 2>/dev/null || true
+    echo "$1" | node src/batch/pipeline/notify.js 2>/dev/null || true
 }
 
 # --- Helper: extract JSON field via node ---
@@ -63,13 +63,13 @@ echo "[Step 0] Done."
 
 # Step 1: Collect metrics
 echo "[Step 1] Collecting metrics..."
-node src/batch/collect-metrics.js > /dev/null
+node src/batch/eval/collect-metrics.js > /dev/null
 echo "[Step 1] Done."
 
 # Step 2: Build prompt and call Claude
 TRIGGER_TYPE="${BATCH_TRIGGER:-DAILY_REVIEW}"
 echo "[Step 2] Building prompt (trigger: $TRIGGER_TYPE) and calling Claude..."
-PROMPT=$(BATCH_TRIGGER="$TRIGGER_TYPE" node src/batch/build-prompt.js)
+PROMPT=$(BATCH_TRIGGER="$TRIGGER_TYPE" node src/batch/prompt/build-prompt.js)
 
 CLAUDE_OUTPUT=$(echo "$PROMPT" | timeout 600 env -u CLAUDECODE claude --model claude-opus-4-6 --allowedTools "WebSearch" -p 2>/dev/null || true)
 
@@ -81,7 +81,7 @@ echo "[Step 2] Claude response received (${#CLAUDE_OUTPUT} chars)."
 
 # Step 3: Parse response
 echo "[Step 3] Parsing Claude response..."
-PARSE_RESULT=$(echo "$CLAUDE_OUTPUT" | node src/batch/parse-response.js 2>/dev/null || echo '{"valid":false,"errors":["parse failed"]}')
+PARSE_RESULT=$(echo "$CLAUDE_OUTPUT" | node src/batch/prompt/parse-response.js 2>/dev/null || echo '{"valid":false,"errors":["parse failed"]}')
 
 VALID=$(json_field "$PARSE_RESULT" "o.valid")
 ACTION=$(json_field "$PARSE_RESULT" "o.decision?o.decision.action:'none'")
@@ -132,7 +132,7 @@ if [ "$ACTION" = "keep" ]; then
         process.stdin.on('data',c=>d+=c);
         process.stdin.on('end',()=>{
             const r=JSON.parse(d).decision;
-            const {appendEntry}=require('./src/batch/update-memory');
+            const {appendEntry}=require('./src/batch/learning/update-memory');
             appendEntry({action:'keep',reasoning:r.reasoning,confidence:r.confidence,outcome:'kept',improvementAreas:r.improvementAreas||null,notes:r.notes||'',strategicNotes:r.strategicNotes,knowledge:r.knowledge||null,triggerType:'$TRIGGER_TYPE'});
         });
     "
@@ -167,20 +167,20 @@ if [ "$ACTION" = "modify" ]; then
 
     # Step M1: Baseline backtest BEFORE modification
     echo "  [Modify Gate] Backtesting baseline strategy..."
-    MODIFY_BASELINE=$(node src/batch/backtest.js src/strategies/current-strategy.js 2>/dev/null || echo '{"error":"backtest failed"}')
+    MODIFY_BASELINE=$(node src/batch/eval/backtest.js src/strategies/current-strategy.js 2>/dev/null || echo '{"error":"backtest failed"}')
 
     echo "  Applying parameter modifications: $PARAMS"
 
     # Read current strategy, update DEFAULT_CONFIG values
-    node src/batch/apply-modify.js "$PARAMS"
+    node src/batch/eval/apply-modify.js "$PARAMS"
 
     # Step M2: Backtest AFTER modification
     echo "  [Modify Gate] Backtesting modified strategy..."
-    MODIFY_AFTER=$(node src/batch/backtest.js src/strategies/current-strategy.js 2>/dev/null || echo '{"error":"backtest failed"}')
+    MODIFY_AFTER=$(node src/batch/eval/backtest.js src/strategies/current-strategy.js 2>/dev/null || echo '{"error":"backtest failed"}')
 
     # Step M3: Compare with modify gate
     MODIFY_COMPARISON=$(node -e "
-        const { compareStrategies } = require('./src/batch/backtest');
+        const { compareStrategies } = require('./src/batch/eval/backtest');
         const baseline = $MODIFY_BASELINE;
         const modified = $MODIFY_AFTER;
         if (baseline.error || modified.error) {
@@ -205,7 +205,7 @@ if [ "$ACTION" = "modify" ]; then
             process.stdin.on('end',()=>{
                 const r=JSON.parse(d).decision;
                 const comp=$MODIFY_COMPARISON;
-                const {appendEntry}=require('./src/batch/update-memory');
+                const {appendEntry}=require('./src/batch/learning/update-memory');
                 appendEntry({action:'modify',reasoning:r.reasoning,confidence:r.confidence,parameters:r.parameters,outcome:'gate_failed',improvementAreas:r.improvementAreas||null,backtestResult:comp,notes:r.notes||'',strategicNotes:r.strategicNotes,knowledge:r.knowledge||null,triggerType:'$TRIGGER_TYPE'});
             });
         "
@@ -232,7 +232,7 @@ if [ "$ACTION" = "modify" ]; then
         process.stdin.on('data',c=>d+=c);
         process.stdin.on('end',()=>{
             const r=JSON.parse(d).decision;
-            const {appendEntry}=require('./src/batch/update-memory');
+            const {appendEntry}=require('./src/batch/learning/update-memory');
             appendEntry({action:'modify',reasoning:r.reasoning,confidence:r.confidence,parameters:r.parameters,outcome:'applied',improvementAreas:r.improvementAreas||null,notes:r.notes||'',strategicNotes:r.strategicNotes,knowledge:r.knowledge||null,triggerType:'$TRIGGER_TYPE'});
         });
     "
@@ -256,7 +256,7 @@ if [ "$ACTION" = "experiment" ]; then
 
     # Process experiment via experiment-manager
     EXPERIMENT_RESULT=$(node -e "
-        const { processExperimentAction } = require('./src/batch/experiment-manager');
+        const { processExperimentAction } = require('./src/batch/learning/experiment-manager');
         const expData = $EXPERIMENT_DATA;
         const result = processExperimentAction(expData, null);
         console.log(JSON.stringify(result));
@@ -287,7 +287,7 @@ if [ "$ACTION" = "experiment" ]; then
                 SHADOW_CODE=$(cat "$TEMP_STRATEGY")
 
                 SHADOW_DEPLOY_RESULT=$(node -e "
-                    const { deployShadow } = require('./src/batch/shadow-manager');
+                    const { deployShadow } = require('./src/batch/learning/shadow-manager');
                     const fs = require('fs');
                     const code = fs.readFileSync('$TEMP_STRATEGY', 'utf8');
                     const id = deployShadow(code, '$HYPOTHESIS', '$EXP_ID');
@@ -305,7 +305,7 @@ if [ "$ACTION" = "experiment" ]; then
                     SHADOW_ID=$(json_field "$SHADOW_DEPLOY_RESULT" "o.shadowId")
                     echo "  Shadow ID: $SHADOW_ID"
                     node -e "
-                        const { updateExperimentStatus } = require('./src/batch/experiment-manager');
+                        const { updateExperimentStatus } = require('./src/batch/learning/experiment-manager');
                         updateExperimentStatus('$EXP_ID', 'shadow_running', {
                             shadowId: '$SHADOW_ID',
                         });
@@ -313,7 +313,7 @@ if [ "$ACTION" = "experiment" ]; then
                 else
                     echo "  Shadow deploy failed. Falling back to backtest..."
                     node -e "
-                        const { updateExperimentStatus } = require('./src/batch/experiment-manager');
+                        const { updateExperimentStatus } = require('./src/batch/learning/experiment-manager');
                         updateExperimentStatus('$EXP_ID', 'shadow_deploy_failed', {});
                     " 2>/dev/null || true
                 fi
@@ -322,11 +322,11 @@ if [ "$ACTION" = "experiment" ]; then
             elif [ -f "$TEMP_STRATEGY" ]; then
                 # === PARAMETER_TEST or other: backtest only ===
                 echo "  Backtesting experiment strategy..."
-                EXP_BACKTEST=$(node src/batch/backtest.js --walk-forward "$TEMP_STRATEGY" 2>/dev/null || echo '{"test":{"error":"backtest failed"}}')
-                CURRENT_WF=$(node src/batch/backtest.js --walk-forward src/strategies/current-strategy.js 2>/dev/null || echo '{"test":{"error":"backtest failed"}}')
+                EXP_BACKTEST=$(node src/batch/eval/backtest.js --walk-forward "$TEMP_STRATEGY" 2>/dev/null || echo '{"test":{"error":"backtest failed"}}')
+                CURRENT_WF=$(node src/batch/eval/backtest.js --walk-forward src/strategies/current-strategy.js 2>/dev/null || echo '{"test":{"error":"backtest failed"}}')
 
                 EXP_COMPARISON=$(node -e "
-                    const { compareStrategies } = require('./src/batch/backtest');
+                    const { compareStrategies } = require('./src/batch/eval/backtest');
                     const currentWF = $CURRENT_WF;
                     const newWF = $EXP_BACKTEST;
                     const cTest = currentWF.test || {};
@@ -341,7 +341,7 @@ if [ "$ACTION" = "experiment" ]; then
                 ")
 
                 node -e "
-                    const { updateExperimentStatus } = require('./src/batch/experiment-manager');
+                    const { updateExperimentStatus } = require('./src/batch/learning/experiment-manager');
                     const comp = $EXP_COMPARISON;
                     const status = comp.pass ? 'backtest_passed' : 'backtest_failed';
                     updateExperimentStatus('$EXP_ID', status, {
@@ -361,7 +361,7 @@ if [ "$ACTION" = "experiment" ]; then
         process.stdin.on('data',c=>d+=c);
         process.stdin.on('end',()=>{
             const r=JSON.parse(d).decision;
-            const {appendEntry}=require('./src/batch/update-memory');
+            const {appendEntry}=require('./src/batch/learning/update-memory');
             appendEntry({action:'experiment',reasoning:r.reasoning,confidence:r.confidence,outcome:'registered',improvementAreas:r.improvementAreas||null,notes:r.notes||'',strategicNotes:r.strategicNotes,knowledge:r.knowledge||null,triggerType:'$TRIGGER_TYPE'});
         });
     "
@@ -381,7 +381,7 @@ echo "[Step 4] REPLACE path — retry loop enabled (max $((MAX_RETRIES + 1)) att
 
 # Baseline: walk-forward backtest of current strategy (done once)
 echo "  Backtesting current strategy (baseline)..."
-CURRENT_WF=$(node src/batch/backtest.js --walk-forward src/strategies/current-strategy.js 2>/dev/null || echo '{"test":{"error":"backtest failed"}}')
+CURRENT_WF=$(node src/batch/eval/backtest.js --walk-forward src/strategies/current-strategy.js 2>/dev/null || echo '{"test":{"error":"backtest failed"}}')
 
 # Extract current baseline metrics for comparison and retry prompts
 CURRENT_METRICS=$(node -e "
@@ -418,7 +418,7 @@ for ATTEMPT in $(seq 0 $MAX_RETRIES); do
 
         RETRY_PROMPT=$(node -e "
             const fs = require('fs');
-            const { buildRetryPrompt } = require('./src/batch/build-retry-prompt');
+            const { buildRetryPrompt } = require('./src/batch/prompt/build-retry-prompt');
             const failedCode = fs.readFileSync('$FAILED_CODE_FILE', 'utf8');
             const prompt = buildRetryPrompt({
                 failedCode,
@@ -440,7 +440,7 @@ for ATTEMPT in $(seq 0 $MAX_RETRIES); do
         fi
         echo "  Retry response received (${#RETRY_OUTPUT} chars)."
 
-        CURRENT_PARSE=$(echo "$RETRY_OUTPUT" | node src/batch/parse-response.js 2>/dev/null || echo '{"valid":false,"errors":["parse failed"]}')
+        CURRENT_PARSE=$(echo "$RETRY_OUTPUT" | node src/batch/prompt/parse-response.js 2>/dev/null || echo '{"valid":false,"errors":["parse failed"]}')
 
         RETRY_VALID=$(json_field "$CURRENT_PARSE" "o.valid")
         if [ "$RETRY_VALID" != "true" ]; then
@@ -479,10 +479,10 @@ for ATTEMPT in $(seq 0 $MAX_RETRIES); do
             cp "$TEMP_STRATEGY.custom-indicators" "$CUSTOM_INDICATORS_FILE"
         fi
 
-        NEW_WF=$(node src/batch/backtest.js --walk-forward "$TEMP_STRATEGY" 2>/dev/null || echo '{"test":{"error":"backtest failed"}}')
+        NEW_WF=$(node src/batch/eval/backtest.js --walk-forward "$TEMP_STRATEGY" 2>/dev/null || echo '{"test":{"error":"backtest failed"}}')
 
         COMPARISON=$(node -e "
-            const { compareStrategies } = require('./src/batch/backtest');
+            const { compareStrategies } = require('./src/batch/eval/backtest');
             const currentWF = $CURRENT_WF;
             const newWF = $NEW_WF;
             const cTest = currentWF.test || {};
@@ -533,7 +533,7 @@ for ATTEMPT in $(seq 0 $MAX_RETRIES); do
 
             # Diagnose failure
             DIAGNOSIS=$(node -e "
-                const { diagnoseGateFailure } = require('./src/batch/diagnose-failure');
+                const { diagnoseGateFailure } = require('./src/batch/prompt/diagnose-failure');
                 const d = diagnoseGateFailure($COMPARISON, $LAST_NEW_METRICS, $CURRENT_METRICS);
                 console.log(d.summary);
             ")
@@ -589,10 +589,10 @@ for ATTEMPT in $(seq 0 $MAX_RETRIES); do
                 continue
             fi
 
-            V_WF=$(node src/batch/backtest.js --walk-forward "$TEMP_STRATEGY" 2>/dev/null || echo '{"test":{"error":"backtest failed"}}')
+            V_WF=$(node src/batch/eval/backtest.js --walk-forward "$TEMP_STRATEGY" 2>/dev/null || echo '{"test":{"error":"backtest failed"}}')
 
             V_COMPARISON=$(node -e "
-                const { compareStrategies } = require('./src/batch/backtest');
+                const { compareStrategies } = require('./src/batch/eval/backtest');
                 const currentWF = $CURRENT_WF;
                 const newWF = $V_WF;
                 const cTest = currentWF.test || {};
@@ -657,7 +657,7 @@ for ATTEMPT in $(seq 0 $MAX_RETRIES); do
             " 2>/dev/null || echo '{"returnPct":0,"maxDrawdown":0,"dailyTrades":0,"tradeDays":0}')
 
             DIAGNOSIS=$(node -e "
-                const { diagnoseGateFailure } = require('./src/batch/diagnose-failure');
+                const { diagnoseGateFailure } = require('./src/batch/prompt/diagnose-failure');
                 const gate = ${LAST_GATE_RESULT:-'{}'};
                 const nm = ${LAST_NEW_METRICS:-'{}'};
                 const cm = $CURRENT_METRICS;
@@ -680,7 +680,7 @@ if [ -z "${WINNING_CODE:-}" ]; then
         process.stdin.on('data',c=>d+=c);
         process.stdin.on('end',()=>{
             const r=JSON.parse(d).decision || {};
-            const {appendEntry}=require('./src/batch/update-memory');
+            const {appendEntry}=require('./src/batch/learning/update-memory');
             appendEntry({
                 action:'replace',
                 reasoning:r.reasoning||'',
@@ -695,7 +695,7 @@ if [ -z "${WINNING_CODE:-}" ]; then
                 retryAttempts:$((MAX_RETRIES + 1)),
                 variantsTested:$TOTAL_VARIANTS_TESTED,
                 diagnosis:$(node -e "
-                    const { diagnoseGateFailure } = require('./src/batch/diagnose-failure');
+                    const { diagnoseGateFailure } = require('./src/batch/prompt/diagnose-failure');
                     try {
                         const d = diagnoseGateFailure(${LAST_GATE_RESULT:-'{}'}, ${LAST_NEW_METRICS:-'{}'}, $CURRENT_METRICS);
                         console.log(JSON.stringify(d.summary));
@@ -748,7 +748,7 @@ fi
 
 DEPLOY_RESULT=$(node -e "
     const fs = require('fs');
-    const { deploy } = require('./src/batch/deploy');
+    const { deploy } = require('./src/batch/eval/deploy');
     const code = fs.readFileSync('$TEMP_STRATEGY', 'utf8');
     const comparison = $WINNING_COMPARISON;
     deploy(code, comparison).then(r => {
@@ -790,7 +790,7 @@ if [ "$DEPLOY_SUCCESS" = "true" ]; then
         process.stdin.on('end',()=>{
             const r=JSON.parse(d).decision;
             const comp=$WINNING_COMPARISON;
-            const {appendEntry}=require('./src/batch/update-memory');
+            const {appendEntry}=require('./src/batch/learning/update-memory');
             appendEntry({action:'replace',reasoning:r.reasoning,confidence:r.confidence,outcome:'deployed',improvementAreas:r.improvementAreas||null,backtestResult:comp,notes:r.notes||'',strategicNotes:r.strategicNotes,knowledge:r.knowledge||null,triggerType:'$TRIGGER_TYPE',retryAttempts:$((ATTEMPT + 1)),variantsTested:$TOTAL_VARIANTS_TESTED});
         });
     "
@@ -818,7 +818,7 @@ else
         process.stdin.on('end',()=>{
             const r=JSON.parse(d).decision;
             const comp=$WINNING_COMPARISON;
-            const {appendEntry}=require('./src/batch/update-memory');
+            const {appendEntry}=require('./src/batch/learning/update-memory');
             appendEntry({action:'replace',reasoning:r.reasoning,confidence:r.confidence,outcome:'deploy_failed',improvementAreas:r.improvementAreas||null,backtestResult:comp,notes:r.notes||'',strategicNotes:r.strategicNotes,knowledge:r.knowledge||null,triggerType:'$TRIGGER_TYPE',retryAttempts:$((ATTEMPT + 1)),variantsTested:$TOTAL_VARIANTS_TESTED});
         });
     "
@@ -837,7 +837,7 @@ echo "[Step 7] Checking shadow strategies for auto-promotion..."
 
 SHADOW_PROMOTION=$(node -e "
     const fs = require('fs');
-    const { checkAutoPromotion } = require('./src/batch/shadow-manager');
+    const { checkAutoPromotion } = require('./src/batch/learning/shadow-manager');
 
     // Load performance ledger to compute live return
     let liveReturnPct = 0;
@@ -864,7 +864,7 @@ if [ "$SHADOW_ID" != "null" ] && [ -n "$SHADOW_ID" ]; then
 
     # Read shadow strategy code and deploy
     SHADOW_CODE=$(node -e "
-        const { getShadowDetails } = require('./src/batch/shadow-manager');
+        const { getShadowDetails } = require('./src/batch/learning/shadow-manager');
         const fs = require('fs');
         const details = getShadowDetails('$SHADOW_ID');
         if (details && details.filePath && fs.existsSync(details.filePath)) {
@@ -877,7 +877,7 @@ if [ "$SHADOW_ID" != "null" ] && [ -n "$SHADOW_ID" ]; then
 
         SHADOW_DEPLOY=$(node -e "
             const fs = require('fs');
-            const { deploy } = require('./src/batch/deploy');
+            const { deploy } = require('./src/batch/eval/deploy');
             const code = fs.readFileSync('$TEMP_STRATEGY', 'utf8');
             deploy(code, {pass:true, reasons:['Shadow auto-promotion: alpha $SHADOW_ALPHA%']}).then(r => {
                 console.log(JSON.stringify(r));
@@ -895,13 +895,13 @@ if [ "$SHADOW_ID" != "null" ] && [ -n "$SHADOW_ID" ]; then
 
             # Remove shadow + complete experiment
             node -e "
-                const { removeShadow } = require('./src/batch/shadow-manager');
+                const { removeShadow } = require('./src/batch/learning/shadow-manager');
                 removeShadow('$SHADOW_ID');
             " 2>/dev/null || true
 
             if [ -n "$SHADOW_EXP_ID" ] && [ "$SHADOW_EXP_ID" != "" ]; then
                 node -e "
-                    const { completeExperiment } = require('./src/batch/experiment-manager');
+                    const { completeExperiment } = require('./src/batch/learning/experiment-manager');
                     completeExperiment('$SHADOW_EXP_ID', 'confirmed', {
                         shadowReturn: $SHADOW_RETURN,
                         alpha: $SHADOW_ALPHA,
