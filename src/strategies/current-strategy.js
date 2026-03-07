@@ -24,7 +24,7 @@ const DEFAULT_CONFIG = {
     emaSlow: 26,
     rsiPeriod: 14,
     choppinessPeriod: 20,
-    choppinessThreshold: 0.45,
+    choppinessThreshold: 0.52,
     switchThreshold: 0.15,
     adxPeriod: 14,
     adxMinTrend: 20,
@@ -41,7 +41,7 @@ const DEFAULT_CONFIG = {
     riskGracePeriod: 48,
 
     // Re-entry from CASH
-    reentryRsiMin: 50,
+    reentryRsiMin: 45,
     reentryMinScore: 0.05,
     reentryTrendConfirm: false,
     reentryCooldown: 48,            // 12h minimum stay in CASH (was 72/18h)
