@@ -113,20 +113,27 @@ function runShadowCycle(candleData) {
                 shadow.state = strategy.createStrategyState();
             }
 
+            // Save pre-mutation state (strategy mutates state.assetHeld internally)
+            const prevAsset = shadow.state.assetHeld;
+
             // Run strategy
             const result = strategy.onNewCandle(shadow.state, candleData);
 
             // Simulate trade (paper trading)
             if (result.action === 'SWITCH' && result.details && result.details.targetMarket) {
-                const from = shadow.state.assetHeld;
+                const from = prevAsset;
                 const to = result.details.targetMarket;
 
                 // Get current prices for paper P&L
-                const fromMarket = candleData[from];
-                const toMarket = candleData[to];
+                const fromMarket = from !== 'CASH' ? candleData[from] : null;
                 const fromCandles = fromMarket && fromMarket[15];
                 const fromPrice = (fromCandles && fromCandles.length > 0)
                     ? fromCandles[fromCandles.length - 1].close : 0;
+
+                const toMarket = to !== 'CASH' ? candleData[to] : null;
+                const toCandles = toMarket && toMarket[15];
+                const toPrice = (toCandles && toCandles.length > 0)
+                    ? toCandles[toCandles.length - 1].close : 0;
 
                 shadow.trades.push({
                     timestamp: new Date().toISOString(),
@@ -134,19 +141,18 @@ function runShadowCycle(candleData) {
                     to,
                     reason: result.details.reason || '',
                     fromPrice,
+                    toPrice,
                 });
 
                 shadow.state.assetHeld = to;
             }
 
-            // Snapshot current state — for CASH, use KRW-BTC price as reference
+            // Snapshot current state
             const currentAsset = shadow.state.assetHeld;
             let currentPrice;
             if (currentAsset === 'CASH') {
-                // CASH has no price — use a stable reference (BTC) to track re-entry timing
-                const btcData = candleData['KRW-BTC'];
-                currentPrice = btcData && btcData[15] && btcData[15].length > 0
-                    ? btcData[15][btcData[15].length - 1].close : 0;
+                // CASH — no market exposure, value is flat (price=0 signals CASH to return calc)
+                currentPrice = 0;
             } else {
                 const assetData = candleData[currentAsset];
                 currentPrice = assetData && assetData[15] && assetData[15].length > 0
@@ -246,35 +252,39 @@ function checkAutoPromotion(liveReturnPct) {
         const first = snapshots[0];
         const last = snapshots[snapshots.length - 1];
 
-        // Simple return estimate: compare first and last snapshot prices
-        // accounting for asset switches tracked in trades
-        if (!first.price || !last.price || first.price === 0) continue;
-
         // Estimate return accounting for trade costs (0.1% slippage + 0.05% fee per side)
         const TRADE_COST = 0.003; // 0.15% per side × 2 sides = 0.3% round-trip
         const tradeCount = (shadow.trades || []).length;
 
+        // Pure CASH with no trades — nothing to measure
+        if (first.assetHeld === 'CASH' && last.assetHeld === 'CASH' && tradeCount === 0) continue;
+        // Need valid prices for non-CASH positions
+        if (first.assetHeld !== 'CASH' && (!first.price || first.price === 0)) continue;
+        if (last.assetHeld !== 'CASH' && (!last.price || last.price === 0)) continue;
+
         let shadowReturn;
         if (first.assetHeld === last.assetHeld && tradeCount === 0) {
+            if (first.assetHeld === 'CASH') continue;
             shadowReturn = ((last.price - first.price) / first.price) * 100;
         } else {
             // Multi-asset: approximate from intermediate snapshots
+            // CASH periods contribute 0% return (no market exposure)
             let cumReturn = 1;
             let prevPrice = first.price;
             let prevAsset = first.assetHeld;
             for (let i = 1; i < snapshots.length; i++) {
                 const s = snapshots[i];
                 if (s.assetHeld !== prevAsset) {
-                    if (prevPrice > 0 && snapshots[i - 1].price > 0) {
+                    if (prevAsset !== 'CASH' && prevPrice > 0 && snapshots[i - 1].price > 0) {
                         cumReturn *= snapshots[i - 1].price / prevPrice;
-                        cumReturn *= (1 - TRADE_COST); // deduct trade cost on each switch
                     }
+                    cumReturn *= (1 - TRADE_COST);
                     prevPrice = s.price;
                     prevAsset = s.assetHeld;
                 }
             }
             // Final segment
-            if (prevPrice > 0 && last.price > 0) {
+            if (prevAsset !== 'CASH' && prevPrice > 0 && last.price > 0) {
                 cumReturn *= last.price / prevPrice;
             }
             shadowReturn = (cumReturn - 1) * 100;

@@ -106,14 +106,18 @@ for (const [key, value] of Object.entries(params)) {
 
 code = beforeConfig + configBlock + afterConfig;
 
-fs.writeFileSync(targetPath, code);
+// Atomic write: tmp + rename to prevent corruption
+const tmpPath = targetPath + '.tmp';
+fs.writeFileSync(tmpPath, code);
 
 // Verify the write succeeded by reading back
-const verifyCode = fs.readFileSync(targetPath, 'utf8');
+const verifyCode = fs.readFileSync(tmpPath, 'utf8');
 if (verifyCode !== code) {
+    try { fs.unlinkSync(tmpPath); } catch {}
     console.error('  ERROR: File verification failed — written content does not match');
     process.exit(1);
 }
+fs.renameSync(tmpPath, targetPath);
 
 console.log('  Strategy parameters updated: ' + targetPath);
 if (failCount > 0) {
