@@ -14,24 +14,10 @@ const { createLogger } = require('../utils/logger');
 const log = createLogger('SMART-ENTRY');
 
 /**
- * Build mini candles from price polls for RSI/Bollinger calculation.
- * Each "candle" covers one poll interval with open=high=low=close=price.
- */
-function buildMiniCandles(priceHistory) {
-    return priceHistory.map(p => ({
-        open: p.price,
-        high: p.price,
-        low: p.price,
-        close: p.price,
-        volume: 0,
-        timestamp: new Date(p.ts).toISOString(),
-    }));
-}
-
-/**
  * Check if entry condition is met based on the configured method.
+ * Uses real 1-minute candles from API for indicator-based methods.
  */
-function checkEntryCondition(method, priceHistory, signalPrice, config) {
+async function checkEntryCondition(method, priceHistory, signalPrice, config, targetMarket) {
     if (priceHistory.length < 2) return false;
 
     const currentPrice = priceHistory[priceHistory.length - 1].price;
@@ -41,19 +27,20 @@ function checkEntryCondition(method, priceHistory, signalPrice, config) {
         return dropPct >= config.pullbackPct;
     }
 
-    // RSI and Bollinger need enough data points
-    const miniCandles = buildMiniCandles(priceHistory);
-
     if (method === 'rsi_dip') {
-        if (miniCandles.length < 15) return false;
-        const rsi = calcRSI(miniCandles, 14);
+        // Fetch 30 candles for accurate RSI-14 (Wilder smoothing needs ~2x period)
+        const candles = await api.getCandles(targetMarket, 1, 30);
+        if (!candles || candles.length < 15) return false;
+        const rsi = calcRSI(candles, 14);
         if (rsi === null) return false;
         return rsi <= config.rsiThreshold;
     }
 
     if (method === 'bollinger_touch') {
-        if (miniCandles.length < 20) return false;
-        const bb = calcBollingerBands(miniCandles, 20, 2);
+        // Fetch real 1-minute candles for Bollinger Bands
+        const candles = await api.getCandles(targetMarket, 1, 21);
+        if (!candles || candles.length < 21) return false;
+        const bb = calcBollingerBands(candles, 20, 2);
         if (!bb) return false;
         return currentPrice <= bb.lower;
     }
@@ -97,7 +84,7 @@ async function executeSmartEntry(targetMarket, krwBalance, config, tradeRatio = 
 
         priceHistory.push({ price: currentPrice, ts: Date.now() });
 
-        const conditionMet = checkEntryCondition(method, priceHistory, signalPrice, config);
+        const conditionMet = await checkEntryCondition(method, priceHistory, signalPrice, config, targetMarket);
 
         if (conditionMet) {
             log.info(`Entry condition met: ${method}, price=${currentPrice} (signal=${signalPrice})`);
@@ -107,7 +94,11 @@ async function executeSmartEntry(targetMarket, krwBalance, config, tradeRatio = 
                 return { executed: false, method, priceAtSignal: signalPrice, executionPrice: 0, improvement: 0, waitedMs: Date.now() - startTime };
             }
 
-            await api.buyMarketOrder(targetMarket, buyAmount);
+            const buyResult = await api.buyMarketOrder(targetMarket, buyAmount);
+            if (!buyResult) {
+                log.error(`Smart entry buy failed for ${targetMarket}`);
+                return { executed: false, method, priceAtSignal: signalPrice, executionPrice: currentPrice, improvement: 0, waitedMs: Date.now() - startTime };
+            }
             const improvement = ((signalPrice - currentPrice) / signalPrice) * 100;
             return {
                 executed: true,
@@ -130,7 +121,11 @@ async function executeSmartEntry(targetMarket, krwBalance, config, tradeRatio = 
         return { executed: false, method: 'timeout', priceAtSignal: signalPrice, executionPrice: 0, improvement: 0, waitedMs: Date.now() - startTime };
     }
 
-    await api.buyMarketOrder(targetMarket, buyAmount);
+    const buyResult = await api.buyMarketOrder(targetMarket, buyAmount);
+    if (!buyResult) {
+        log.error(`Fallback buy failed for ${targetMarket}`);
+        return { executed: false, method: 'timeout', priceAtSignal: signalPrice, executionPrice: finalPrice || 0, improvement: 0, waitedMs: Date.now() - startTime };
+    }
     const improvement = finalPrice ? ((signalPrice - finalPrice) / signalPrice) * 100 : 0;
 
     return {

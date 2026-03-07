@@ -192,18 +192,25 @@ async function evaluateTriggers() {
     return null;
 }
 
+let batchRunning = false;
+
 /**
  * Execute the batch pipeline with the given trigger type
  */
 function executeBatch(triggerType) {
+    if (batchRunning) {
+        log.info(`Batch already running, skipping trigger: ${triggerType}`);
+        return;
+    }
+    batchRunning = true;
     log.info(`Executing batch with trigger: ${triggerType}`);
 
-    const schedulerState = loadSchedulerState();
-    schedulerState.lastBatchTime = new Date().toISOString();
+    // Set daily review date early (idempotent), but defer lastBatchTime to completion
     if (triggerType === 'DAILY_REVIEW') {
+        const schedulerState = loadSchedulerState();
         schedulerState.lastDailyReviewDate = new Date().toISOString().slice(0, 10);
+        saveSchedulerState(schedulerState);
     }
-    saveSchedulerState(schedulerState);
 
     const batchScript = path.join(PROJECT_DIR, 'src/batch/pipeline/run-batch.sh');
 
@@ -224,10 +231,16 @@ function executeBatch(triggerType) {
     });
 
     child.on('close', (code) => {
+        batchRunning = false;
         log.info(`Batch completed with exit code: ${code}`);
+        // Only update lastBatchTime after batch completes — failed batches don't block retries
+        const schedulerState = loadSchedulerState();
+        schedulerState.lastBatchTime = new Date().toISOString();
+        saveSchedulerState(schedulerState);
     });
 
     child.on('error', (err) => {
+        batchRunning = false;
         log.error(`Batch spawn error: ${err.message}`);
     });
 }

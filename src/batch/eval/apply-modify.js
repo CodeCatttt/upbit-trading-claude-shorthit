@@ -23,28 +23,47 @@ if (reExport) {
     code = fs.readFileSync(targetPath, 'utf8');
 }
 
-// Replace values in DEFAULT_CONFIG
+// Extract DEFAULT_CONFIG block to scope replacements
+const configStart = code.indexOf('const DEFAULT_CONFIG');
+const configEnd = configStart >= 0 ? code.indexOf('};', configStart) + 2 : -1;
+
+if (configStart < 0 || configEnd <= configStart) {
+    console.error('  ERROR: DEFAULT_CONFIG not found in strategy file');
+    process.exit(1);
+}
+
+let configBlock = code.slice(configStart, configEnd);
+const beforeConfig = code.slice(0, configStart);
+const afterConfig = code.slice(configEnd);
+
+// Replace values ONLY within DEFAULT_CONFIG block
 // Supports nested keys (e.g. "smartEntry.rsiThreshold") and string values (e.g. "executionMode": "smart")
 for (const [key, value] of Object.entries(params)) {
-    // For nested keys like "smartEntry.rsiThreshold", use the leaf key for matching
     const leafKey = key.includes('.') ? key.split('.').pop() : key;
     const isString = typeof value === 'string';
 
     let replaced = false;
     if (isString) {
-        // Match string values: key: 'value' or key: "value"
         const strRegex = new RegExp("(" + leafKey + "\\s*:\\s*)['\"]([^'\"]*)['\"]");
-        if (strRegex.test(code)) {
-            code = code.replace(strRegex, "$1'" + value + "'");
+        if (strRegex.test(configBlock)) {
+            configBlock = configBlock.replace(strRegex, "$1'" + value + "'");
             replaced = true;
         }
     }
 
     if (!replaced) {
-        // Match numeric values: key: 123 or key: 1.5
         const numRegex = new RegExp('(' + leafKey + '\\s*:\\s*)([\\d.]+)');
-        if (numRegex.test(code)) {
-            code = code.replace(numRegex, '$1' + value);
+        if (numRegex.test(configBlock)) {
+            configBlock = configBlock.replace(numRegex, '$1' + value);
+            replaced = true;
+        }
+    }
+
+    // Also match boolean values: key: true or key: false
+    if (!replaced) {
+        const boolRegex = new RegExp('(' + leafKey + '\\s*:\\s*)(true|false)');
+        if (boolRegex.test(configBlock)) {
+            configBlock = configBlock.replace(boolRegex, '$1' + value);
             replaced = true;
         }
     }
@@ -52,9 +71,11 @@ for (const [key, value] of Object.entries(params)) {
     if (replaced) {
         console.log('  Updated ' + key + ' = ' + value);
     } else {
-        console.log('  WARNING: key ' + key + ' not found in strategy');
+        console.log('  WARNING: key ' + key + ' not found in DEFAULT_CONFIG');
     }
 }
+
+code = beforeConfig + configBlock + afterConfig;
 
 fs.writeFileSync(targetPath, code);
 console.log('  Strategy parameters updated: ' + targetPath);

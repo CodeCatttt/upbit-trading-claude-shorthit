@@ -39,8 +39,6 @@ function loadTradingConfig() {
 }
 
 function loadStrategy() {
-    // Clear cache to pick up hot-swapped strategy files
-    delete require.cache[require.resolve('../strategies/current-strategy')];
     const resolved = require.resolve('../strategies/current-strategy');
     delete require.cache[resolved];
     return require('../strategies/current-strategy');
@@ -52,7 +50,12 @@ let state = strategy.createStrategyState();
 if (fs.existsSync(STATE_FILE)) {
     try {
         const parsed = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
-        if (parsed.assetHeld) state = parsed;
+        if (parsed.assetHeld) {
+            state = parsed;
+            // Ensure required state properties exist
+            if (state.candlesSinceLastTrade === undefined) state.candlesSinceLastTrade = 9999;
+            if (state.peakPriceSinceEntry === undefined) state.peakPriceSinceEntry = null;
+        }
     } catch (e) {
         log.error('Failed to parse state file, starting fresh.');
     }
@@ -60,8 +63,10 @@ if (fs.existsSync(STATE_FILE)) {
 
 function saveState() {
     // Atomic write: write to temp file then rename to prevent corruption
+    // Exclude score cache — must be recomputed fresh after restart
+    const { _cachedScoresKey, _cachedScores, ...persistState } = state;
     const tmpFile = STATE_FILE + '.tmp';
-    fs.writeFileSync(tmpFile, JSON.stringify(state, null, 2));
+    fs.writeFileSync(tmpFile, JSON.stringify(persistState, null, 2));
     fs.renameSync(tmpFile, STATE_FILE);
 }
 
@@ -106,26 +111,35 @@ async function fetchCandleData(markets, intervals) {
     const candleData = {};
     for (const market of markets) {
         candleData[market] = {};
-        for (const unit of intervals) {
-            try {
-                const candles = await api.getCandles(market, unit, 100);
-                candleData[market][unit] = candles;
-            } catch (e) {
-                log.warn(`Failed to fetch candles for ${market} ${unit}m: ${e.message}`);
-                candleData[market][unit] = [];
-            }
-        }
     }
 
-    // Fetch orderbook trade intensity (bid/ask ratio) for each market
+    // Fetch all candles in parallel
+    const candlePromises = [];
     for (const market of markets) {
-        try {
-            const ob = await api.getOrderbook(market);
-            if (ob && ob.totalAskSize > 0) {
-                candleData[market]._tradeIntensity = +(ob.totalBidSize / ob.totalAskSize).toFixed(2);
-            }
-        } catch {}
+        for (const unit of intervals) {
+            candlePromises.push(
+                api.getCandles(market, unit, 100)
+                    .then(candles => { candleData[market][unit] = candles; })
+                    .catch(e => {
+                        log.warn(`Failed to fetch candles for ${market} ${unit}m: ${e.message}`);
+                        candleData[market][unit] = [];
+                    })
+            );
+        }
     }
+    await Promise.all(candlePromises);
+
+    // Fetch orderbook trade intensity in parallel
+    const obPromises = markets.map(market =>
+        api.getOrderbook(market)
+            .then(ob => {
+                if (ob && ob.totalAskSize > 0) {
+                    candleData[market]._tradeIntensity = +(ob.totalBidSize / ob.totalAskSize).toFixed(2);
+                }
+            })
+            .catch(e => { log.warn(`Orderbook error for ${market}: ${e.message}`); })
+    );
+    await Promise.all(obPromises);
 
     return candleData;
 }
@@ -170,7 +184,9 @@ async function runStrategyBoundary() {
         // Re-entry from CASH — let strategy decide
         if (state.assetHeld === 'CASH') {
             log.info('In CASH state. Checking re-entry conditions...');
-            // Strategy may mutate state.assetHeld on SWITCH — save and restore if buy fails
+            // Save mutable state before strategy call — restore on failed buy
+            const savedCounter = state.candlesSinceLastTrade;
+            const savedPeak = state.peakPriceSinceEntry;
             const signal = strategy.onNewCandle(state, candleData);
             state.assetHeld = 'CASH'; // Always restore — bot controls state transitions
 
@@ -184,11 +200,16 @@ async function runStrategyBoundary() {
                     const buyResult = await api.buyMarketOrder(targetMarket, amt);
                     if (!buyResult) {
                         log.error(`Re-entry buy failed for ${targetMarket}. Staying in CASH.`);
+                        // Restore state counters — no trade happened
+                        state.candlesSinceLastTrade = savedCounter;
+                        state.peakPriceSinceEntry = savedPeak;
                         saveState();
                         writeHeartbeat('BUY_FAILED');
                         return;
                     }
                     state.assetHeld = targetMarket;
+                    state.candlesSinceLastTrade = 0;
+                    state.peakPriceSinceEntry = null;
                     saveState();
                     appendExecutionLog({
                         from: 'CASH',
@@ -201,6 +222,10 @@ async function runStrategyBoundary() {
                     writeHeartbeat('REENTRY');
                 } else {
                     log.warn('Insufficient KRW for re-entry.');
+                    // Restore state counters and persist
+                    state.candlesSinceLastTrade = savedCounter;
+                    state.peakPriceSinceEntry = savedPeak;
+                    saveState();
                     writeHeartbeat('CASH_LOW_BALANCE');
                 }
             } else {
@@ -211,11 +236,31 @@ async function runStrategyBoundary() {
             return;
         }
 
-        // Save current asset BEFORE strategy mutates state.assetHeld
-        const assetBeforeSignal = state.assetHeld;
-        const result = strategy.onNewCandle(state, candleData);
-        // Restore pre-signal asset — bot controls state transitions, not strategy
-        state.assetHeld = assetBeforeSignal;
+        // Save full mutable state BEFORE strategy call — restore on failed trade
+        const savedState = {
+            assetHeld: state.assetHeld,
+            candlesSinceLastTrade: state.candlesSinceLastTrade,
+            peakPriceSinceEntry: state.peakPriceSinceEntry,
+        };
+        let result;
+        try {
+            result = strategy.onNewCandle(state, candleData);
+        } catch (stratErr) {
+            log.error(`Strategy onNewCandle error: ${stratErr.message}`);
+            // Restore state — strategy may have partially mutated it
+            state.assetHeld = savedState.assetHeld;
+            state.candlesSinceLastTrade = savedState.candlesSinceLastTrade;
+            state.peakPriceSinceEntry = savedState.peakPriceSinceEntry;
+            saveState();
+            writeHeartbeat('STRATEGY_ERROR');
+            return;
+        }
+        // Restore all mutable state — bot controls transitions, not strategy.
+        // Strategy may reset counters on SWITCH, but we must not persist
+        // those changes until the trade actually executes.
+        state.assetHeld = savedState.assetHeld;
+        state.candlesSinceLastTrade = savedState.candlesSinceLastTrade;
+        state.peakPriceSinceEntry = savedState.peakPriceSinceEntry;
         saveState();
 
         log.info(`Action: [${result.action}]`, result.details);
@@ -234,10 +279,16 @@ async function runStrategyBoundary() {
                         const sellResult = await api.sellMarketOrder(state.assetHeld, balance);
                         if (!sellResult) {
                             log.error(`SELL_TO_CASH failed for ${currentCurrency}. Keeping position.`);
+                            // Restore state — no trade happened
+                            state.candlesSinceLastTrade = savedState.candlesSinceLastTrade;
+                            state.peakPriceSinceEntry = savedState.peakPriceSinceEntry;
+                            saveState();
                             writeHeartbeat('SELL_FAILED');
                             return;
                         }
                         state.assetHeld = 'CASH';
+                        state.candlesSinceLastTrade = 0;
+                        state.peakPriceSinceEntry = null;
                         saveState();
                         log.info(`SELL_TO_CASH complete: ${previousAsset} → CASH`);
                         appendExecutionLog({
@@ -270,6 +321,10 @@ async function runStrategyBoundary() {
                         const sellResult = await api.sellMarketOrder(state.assetHeld, balance);
                         if (!sellResult) {
                             log.error(`Sell failed for ${currentCurrency}. Aborting SWITCH.`);
+                            // Restore state — no trade happened
+                            state.candlesSinceLastTrade = savedState.candlesSinceLastTrade;
+                            state.peakPriceSinceEntry = savedState.peakPriceSinceEntry;
+                            saveState();
                             writeHeartbeat('SELL_FAILED');
                             return;
                         }
@@ -295,12 +350,18 @@ async function runStrategyBoundary() {
 
                     if (smartResult.executed) {
                         state.assetHeld = targetMarket;
+                        state.candlesSinceLastTrade = 0;
+                        state.peakPriceSinceEntry = null;
                         saveState();
                         log.info(`SWITCH complete (smart, ${smartResult.method}): ${previousAsset} → ${targetMarket}, improvement: ${smartResult.improvement}%`);
                     } else {
                         log.error(`Smart entry failed for ${targetMarket}. Entering CASH state.`);
                         state.assetHeld = 'CASH';
+                        state.candlesSinceLastTrade = 0;
+                        state.peakPriceSinceEntry = null;
                         saveState();
+                        writeHeartbeat('BUY_FAILED');
+                        return;
                     }
                 } else {
                     // Market execution: immediate buy
@@ -310,11 +371,15 @@ async function runStrategyBoundary() {
                         if (!buyResult) {
                             log.error(`Buy failed for ${targetMarket}. Entering CASH state.`);
                             state.assetHeld = 'CASH';
+                            state.candlesSinceLastTrade = 0;
+                            state.peakPriceSinceEntry = null;
                             saveState();
                             writeHeartbeat('BUY_FAILED');
                             return;
                         }
                         state.assetHeld = targetMarket;
+                        state.candlesSinceLastTrade = 0;
+                        state.peakPriceSinceEntry = null;
                         saveState();
                         log.info(`SWITCH complete (market): ${previousAsset} → ${targetMarket}`);
                         appendExecutionLog({
@@ -329,14 +394,25 @@ async function runStrategyBoundary() {
                     } else {
                         log.error(`Buy failed: insufficient KRW (${buyAmount}). Entering CASH state.`);
                         state.assetHeld = 'CASH';
+                        state.candlesSinceLastTrade = 0;
+                        state.peakPriceSinceEntry = null;
                         saveState();
+                        writeHeartbeat('BUY_FAILED');
+                        return;
                     }
                 }
             } catch (switchErr) {
                 log.error(`SWITCH execution error: ${switchErr.message}`);
+                // Determine actual portfolio state
                 const krwBal = await api.getBalance('KRW').catch(() => 0);
                 if (krwBal > MIN_ORDER_KRW) {
                     state.assetHeld = 'CASH';
+                    state.candlesSinceLastTrade = 0;
+                    state.peakPriceSinceEntry = null;
+                } else {
+                    // Restore state if we can't determine position
+                    state.candlesSinceLastTrade = savedState.candlesSinceLastTrade;
+                    state.peakPriceSinceEntry = savedState.peakPriceSinceEntry;
                 }
                 saveState();
             }

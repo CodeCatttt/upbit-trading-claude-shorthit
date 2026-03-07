@@ -272,10 +272,30 @@ async function collectMetrics() {
         }
     }
 
-    // Sanity check: if bot holds an asset but totalValueKrw is 0, log a warning
+    // Sanity check: if bot holds an asset but totalValueKrw is 0, retry once
     const earlyBotState = safeReadJSON(STATE_FILE);
     if (totalValueKrw === 0 && earlyBotState && earlyBotState.assetHeld && earlyBotState.assetHeld !== 'CASH') {
-        log.warn(`Portfolio value is 0 but bot holds ${earlyBotState.assetHeld} — possible API error. Balances: ${JSON.stringify(balances.map(b => ({ c: b.currency, b: b.balance, l: b.locked })))}`);
+        log.warn(`Portfolio value is 0 but bot holds ${earlyBotState.assetHeld} — retrying API call...`);
+        await new Promise(r => setTimeout(r, 3000));
+        const retryBalances = await api.getBalances();
+        for (const b of retryBalances) {
+            const bal = parseFloat(b.balance) + parseFloat(b.locked || '0');
+            if (bal === 0) continue;
+            if (b.currency === 'KRW') {
+                totalValueKrw += bal;
+            } else {
+                const market = `KRW-${b.currency}`;
+                try {
+                    const price = await api.getCurrentPrice(market);
+                    if (price && price > 0) totalValueKrw += bal * price;
+                } catch {}
+            }
+        }
+        if (totalValueKrw === 0) {
+            log.error(`Portfolio value still 0 after retry. Skipping metrics save to prevent data corruption.`);
+            return null;
+        }
+        log.info(`Retry succeeded, portfolio value: ${totalValueKrw}`);
     }
 
     // 2. Current strategy (resolve re-exports to get actual code)
@@ -306,20 +326,21 @@ async function collectMetrics() {
         : null;
     const botHealthy = heartbeatAge !== null && heartbeatAge < 1200; // 20 min
 
-    // 5. Market data — all watched markets
+    // 5. Ticker data (24h stats) — single API call for all markets
+    let tickers = {};
+    try {
+        tickers = await api.getTicker(markets);
+    } catch (e) {
+        log.warn('Failed to get ticker data:', e.message);
+    }
+
+    // 6. Market data — use ticker for 24h change (avoids redundant candle API calls)
     const marketData = {};
     for (const market of markets) {
         const price = marketPrices[market];
         if (price) {
-            // Get 24h change via simple calculation from candle data
-            let change24h = null;
-            try {
-                const candles = await api.getCandles(market, 60, 24);
-                if (candles.length >= 24) {
-                    const oldPrice = candles[0].close;
-                    change24h = +((price - oldPrice) / oldPrice * 100).toFixed(2);
-                }
-            } catch {}
+            const ticker = tickers[market];
+            const change24h = ticker ? +(ticker.signedChangeRate * 100).toFixed(2) : null;
 
             marketData[market] = {
                 price,
@@ -328,7 +349,7 @@ async function collectMetrics() {
         }
     }
 
-    // 6. Deploy history & enhanced metrics
+    // 7. Deploy history & enhanced metrics
     const deployLog = safeReadJSON(DEPLOY_LOG) || [];
     const lastDeploy = deployLog.length > 0 ? deployLog[deployLog.length - 1] : null;
 
@@ -340,7 +361,7 @@ async function collectMetrics() {
     const executionQuality = calcExecutionQuality();
     const marketRegime = calcMarketRegime(marketData);
 
-    // 7. Orderbook spreads
+    // 8. Orderbook spreads
     const orderbookSpread = {};
     for (const market of markets) {
         try {
@@ -351,28 +372,23 @@ async function collectMetrics() {
         }
     }
 
-    // 8. Trade intensity (buy/sell ratio from ticker)
+    // 9. Trade intensity (buy/sell ratio from ticker + orderbook)
     const tradeIntensity = {};
-    try {
-        const tickers = await api.getTicker(markets);
-        for (const [market, ticker] of Object.entries(tickers)) {
-            const ob = orderbookSpread[market];
-            if (ob) {
-                const totalBid = ob.totalBidSize || 0;
-                const totalAsk = ob.totalAskSize || 0;
-                const ratio = totalAsk > 0 ? +(totalBid / totalAsk).toFixed(2) : 0;
-                tradeIntensity[market] = {
-                    buyVolume: totalBid,
-                    sellVolume: totalAsk,
-                    ratio,
-                    accTradePrice24h: ticker.accTradePrice24h,
-                    change: ticker.change,
-                    signedChangeRate: ticker.signedChangeRate,
-                };
-            }
+    for (const [market, ticker] of Object.entries(tickers)) {
+        const ob = orderbookSpread[market];
+        if (ob) {
+            const totalBid = ob.totalBidSize || 0;
+            const totalAsk = ob.totalAskSize || 0;
+            const ratio = totalAsk > 0 ? +(totalBid / totalAsk).toFixed(2) : 0;
+            tradeIntensity[market] = {
+                buyVolume: totalBid,
+                sellVolume: totalAsk,
+                ratio,
+                accTradePrice24h: ticker.accTradePrice24h,
+                change: ticker.change,
+                signedChangeRate: ticker.signedChangeRate,
+            };
         }
-    } catch (e) {
-        log.warn('Failed to collect trade intensity:', e.message);
     }
 
     const metrics = {

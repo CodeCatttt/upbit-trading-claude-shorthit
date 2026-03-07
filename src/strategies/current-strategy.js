@@ -215,7 +215,12 @@ function checkTrailingStop(state, currentPrice, config) {
  */
 function checkReentry(state, candleData, markets, config) {
     // Cache: reuse scores if 240m data unchanged (same as onNewCandle)
-    const candles4hKey = markets.map(m => (candleData[m] && candleData[m][240] ? candleData[m][240].length : 0)).join(',');
+    // Key includes last candle timestamp + config values that affect scoring
+    const candles4hKey = markets.map(m => {
+        const c = candleData[m] && candleData[m][240];
+        if (!c || c.length === 0) return '0';
+        return `${c.length}:${c[c.length - 1].timestamp}`;
+    }).join(',') + `|${config.trendLookback},${config.emaFast},${config.emaSlow},${config.rsiPeriod},${config.choppinessPeriod},${config.choppinessThreshold},${config.adxPeriod},${config.momentumWeight},${config.trendWeight},${config.volumeWeight},${config.bollingerWeight}`;
     let scores;
     if (state._cachedScoresKey === candles4hKey && state._cachedScores) {
         scores = state._cachedScores;
@@ -391,7 +396,12 @@ function onNewCandle(state, candleData, config = DEFAULT_CONFIG) {
 
     // === TREND SCORING + SWITCH (4h) ===
     // Cache: skip expensive indicator recalculation if 240m data unchanged
-    const candles4hKey = markets.map(m => (candleData[m] && candleData[m][240] ? candleData[m][240].length : 0)).join(',');
+    // Key includes last candle timestamp + config values that affect scoring
+    const candles4hKey = markets.map(m => {
+        const c = candleData[m] && candleData[m][240];
+        if (!c || c.length === 0) return '0';
+        return `${c.length}:${c[c.length - 1].timestamp}`;
+    }).join(',') + `|${config.trendLookback},${config.emaFast},${config.emaSlow},${config.rsiPeriod},${config.choppinessPeriod},${config.choppinessThreshold},${config.adxPeriod},${config.momentumWeight},${config.trendWeight},${config.volumeWeight},${config.bollingerWeight}`;
     let scores;
     if (state._cachedScoresKey === candles4hKey && state._cachedScores) {
         scores = state._cachedScores;

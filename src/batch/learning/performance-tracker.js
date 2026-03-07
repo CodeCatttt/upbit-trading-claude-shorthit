@@ -80,6 +80,12 @@ async function recordDaily() {
     // Get current BTC price
     const btcPrice = await api.getCurrentPrice('KRW-BTC');
 
+    // Guard: skip recording if critical data is missing
+    if (!btcPrice || btcPrice === 0 || totalValueKrw === 0) {
+        log.warn(`Skipping daily record: btcPrice=${btcPrice}, portfolioValue=${totalValueKrw}`);
+        return ledger;
+    }
+
     // Bot state
     const botState = loadJSON(STATE_FILE);
     const assetHeld = botState ? botState.assetHeld : 'unknown';
@@ -153,7 +159,7 @@ function computeSummary(ledger) {
     // Total trades
     const totalTrades = ledger.entries.reduce((sum, e) => sum + (e.trades || 0), 0);
 
-    // Win rate: days where alpha increased
+    // Profitable day rate: days where portfolio value increased
     let wins = 0;
     for (let i = 1; i < ledger.entries.length; i++) {
         const prev = ledger.entries[i - 1];

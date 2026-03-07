@@ -2,22 +2,6 @@
   "maxEntries": 50,
   "entries": [
     {
-      "timestamp": "2026-03-05T00:30:51.998Z",
-      "action": "keep",
-      "reasoning": "Bullish 레짐 지속(평균 +4.35%), BTC 보유 안정(피크 대비 -1.15%), 전략 정상 작동. 분산 1.26%로 1.25% 임계점 첫 돌파했으나 급격한 분화 징후 없음. 변경 불필요.",
-      "confidence": 0.93,
-      "parameters": null,
-      "markets": null,
-      "improvementAreas": [],
-      "backtestResult": null,
-      "outcome": "kept",
-      "notes": "다음 배치 체크: (1) 포트폴리오 가치 0 KRW — collect-metrics.js 잔고 조회 버그 78회 연속 미해결, 별도 디버깅 세션 필요, (2) 분산 1.26%로 1.25% 임계점 첫 돌파 — 1.5%+ 확대 시 분화 진행 확인, (3) ETH 극단 매수 강도 10.79(2일차) — SOL 극단 매수 시리즈(7.39→0.46)처럼 냉각 경로 추적, (4) BTC 체결 강도 0.15 매도 극단 지속 — 가격 +5.17% divergence 패턴 18회차",
-      "retryAttempts": null,
-      "variantsTested": null,
-      "diagnosis": null,
-      "triggerType": "DAILY_REVIEW"
-    },
-    {
       "timestamp": "2026-03-05T01:30:49.130Z",
       "action": "keep",
       "reasoning": "Bullish 레짐 지속(평균 +4.89%), BTC 보유 포지션 피크 대비 -0.89%로 안전. 전략 변경 사유 없음.",
@@ -926,6 +910,28 @@
       "variantsTested": null,
       "diagnosis": null,
       "triggerType": "DAILY_REVIEW"
+    },
+    {
+      "timestamp": "2026-03-07T00:04:05.800Z",
+      "action": "modify",
+      "reasoning": "재진입 조건 과도 — choppiness 0.45 임계에서 전 종목 차단, RSI 50 임계에서도 전 종목 차단. 현재 CASH 보호 효과(+3.04% alpha)는 유지하면서, 회복 초기에 재진입할 수 있도록 choppinessThreshold 0.52, reentryRsiMin 45로 완화. 즉시 재진입되지 않으나 BTC/ETH RSI 1~2포인트 상승 시 진입 경로 열림.",
+      "confidence": 0.72,
+      "parameters": {
+        "choppinessThreshold": 0.52,
+        "reentryRsiMin": 45
+      },
+      "markets": null,
+      "improvementAreas": [
+        "strategy",
+        "regime"
+      ],
+      "backtestResult": null,
+      "outcome": "applied",
+      "notes": "다음 배치 체크: (1) 재진입 발생 여부 — BTC RSI 45+ 또는 ETH RSI 45+ 도달 시 트리거, (2) SOL choppiness 0.551 추이 — 0.52 이하 하락 시 SOL 재진입 경로 추가 활성화, (3) 전 종목 Stochastic 극과매도(7~19)에서 바운스 발생 여부 — RSI 동반 상승 시 재진입 확률 급상승, (4) 수정 후 실제 재진입이 적시인지 vs 너무 이른 진입인지 알파 추적",
+      "retryAttempts": null,
+      "variantsTested": null,
+      "diagnosis": null,
+      "triggerType": "DAILY_REVIEW"
     }
   ],
   "strategicNotes": "1) 하락장에서 높은 상관관계 자산 간 로테이션은 거래비용만 소모. 2) BTC가 하락장 기본 보유자산으로 최적. 3) 거래 빈도 영향 극대 — 13회 거래 시 비용만 ~3.9% 추가 손실. 4) 레짐 필터가 핵심 방어 메커니즘. 5) 코드 전면 교체보다 최소 변경이 배포 안정성 우수. 6) 현 전략(10회 거래, BTC 대비 +6.22%)이 검증된 성과. 7) 파라미터 완화(cooldown↓, threshold↓)는 검증 실패 확정 — 거래 증가로 성과 대폭 악화(-15.75%). 8) SOL이 반등 국면에서 최강 모멘텀이나, 단기 스위칭은 비용 대비 효과 미미. 9) MDD 3% 게이트 의식한 점진적 변경 필요. 10) 연속 배포 실패 시 keep 유지가 최선. 11) bot-state/포트폴리오 불일치 해결 완료. 13) 그레이스 기간(96캔들=24h) whipsaw 방지 효과적. 14) XRP 재진입 진동 패턴 — reentryCooldown 288로 억제 중. 16) deploy.js 롤백 시 bot-state.json 보존/복원 로직 개선 필요. 17) 포트폴리오 90K 소규모 — 거래 최소화가 비용 절감에 결정적. 18) 현행 파라미터(288/0.4)가 최적 근처임을 modify 실패로 검증 완료. 19) -9.52% 경고는 실패한 modify 백테스트 결과이며 현행 전략 실제 성과 아님 — 배치 분석 시 혼동 주의. 21) 그레이스 기간 종료 시점이 리스크 관리의 핵심 전환점 — 활성화 후 첫 배치에서 피크 추적 정상 작동 반드시 확인.",
@@ -1147,6 +1153,12 @@
         "status": "proposed",
         "experimentId": null,
         "addedAt": "2026-03-06"
+      },
+      {
+        "hypothesis": "choppinessThreshold 0.52 + reentryRsiMin 45 조합이 약세장→회복 전환 구간에서 기존 대비 1~2일 빠른 재진입 실현하면서도 MDD 2% 이내 유지 가능",
+        "status": "proposed",
+        "experimentId": null,
+        "addedAt": "2026-03-07"
       }
     ],
     "rejected": [

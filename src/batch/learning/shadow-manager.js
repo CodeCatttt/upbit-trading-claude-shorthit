@@ -138,11 +138,19 @@ function runShadowCycle(candleData) {
                 shadow.state.assetHeld = to;
             }
 
-            // Snapshot current state
+            // Snapshot current state — for CASH, use KRW-BTC price as reference
             const currentAsset = shadow.state.assetHeld;
-            const assetData = candleData[currentAsset];
-            const currentPrice = assetData && assetData[15] && assetData[15].length > 0
-                ? assetData[15][assetData[15].length - 1].close : 0;
+            let currentPrice;
+            if (currentAsset === 'CASH') {
+                // CASH has no price — use a stable reference (BTC) to track re-entry timing
+                const btcData = candleData['KRW-BTC'];
+                currentPrice = btcData && btcData[15] && btcData[15].length > 0
+                    ? btcData[15][btcData[15].length - 1].close : 0;
+            } else {
+                const assetData = candleData[currentAsset];
+                currentPrice = assetData && assetData[15] && assetData[15].length > 0
+                    ? assetData[15][assetData[15].length - 1].close : 0;
+            }
 
             // Keep only last 672 snapshots (7 days of 15m candles)
             shadow.snapshots.push({
@@ -241,10 +249,12 @@ function checkAutoPromotion(liveReturnPct) {
         // accounting for asset switches tracked in trades
         if (!first.price || !last.price || first.price === 0) continue;
 
-        // For simplicity, use a price-based return when asset is unchanged,
-        // otherwise count trade P&L from snapshots
+        // Estimate return accounting for trade costs (0.1% slippage + 0.05% fee per side)
+        const TRADE_COST = 0.003; // 0.15% per side × 2 sides = 0.3% round-trip
+        const tradeCount = (shadow.trades || []).length;
+
         let shadowReturn;
-        if (first.assetHeld === last.assetHeld) {
+        if (first.assetHeld === last.assetHeld && tradeCount === 0) {
             shadowReturn = ((last.price - first.price) / first.price) * 100;
         } else {
             // Multi-asset: approximate from intermediate snapshots
@@ -254,9 +264,9 @@ function checkAutoPromotion(liveReturnPct) {
             for (let i = 1; i < snapshots.length; i++) {
                 const s = snapshots[i];
                 if (s.assetHeld !== prevAsset) {
-                    // Asset switched — lock in return up to switch point
                     if (prevPrice > 0 && snapshots[i - 1].price > 0) {
                         cumReturn *= snapshots[i - 1].price / prevPrice;
+                        cumReturn *= (1 - TRADE_COST); // deduct trade cost on each switch
                     }
                     prevPrice = s.price;
                     prevAsset = s.assetHeld;

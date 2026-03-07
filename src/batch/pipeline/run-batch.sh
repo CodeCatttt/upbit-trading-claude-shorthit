@@ -19,7 +19,7 @@ cd "$PROJECT_DIR"
 LOCKFILE="$PROJECT_DIR/data/.batch-lock"
 if [ -f "$LOCKFILE" ]; then
     LOCK_AGE=$(( $(date +%s) - $(stat -c %Y "$LOCKFILE" 2>/dev/null || echo 0) ))
-    if [ "$LOCK_AGE" -lt 600 ]; then
+    if [ "$LOCK_AGE" -lt 3600 ]; then
         echo "Batch already running (lock age: ${LOCK_AGE}s). Exiting."
         exit 0
     fi
@@ -127,13 +127,13 @@ if [ "$ACTION" = "keep" ]; then
     KEEP_JSON=$(json_field "$PARSE_RESULT" "JSON.stringify({type:'keep',reasoning:o.decision.reasoning||'',confidence:o.decision.confidence||0})")
     notify_batch "$KEEP_JSON"
     # Update batch memory
-    echo "$PARSE_RESULT" | node -e "
+    echo "$PARSE_RESULT" | TRIGGER="$TRIGGER_TYPE" node -e "
         process.stdin.setEncoding('utf8');let d='';
         process.stdin.on('data',c=>d+=c);
         process.stdin.on('end',()=>{
             const r=JSON.parse(d).decision;
             const {appendEntry}=require('./src/batch/learning/update-memory');
-            appendEntry({action:'keep',reasoning:r.reasoning,confidence:r.confidence,outcome:'kept',improvementAreas:r.improvementAreas||null,notes:r.notes||'',strategicNotes:r.strategicNotes,knowledge:r.knowledge||null,triggerType:'$TRIGGER_TYPE'});
+            appendEntry({action:'keep',reasoning:r.reasoning,confidence:r.confidence,outcome:'kept',improvementAreas:r.improvementAreas||null,notes:r.notes||'',strategicNotes:r.strategicNotes,knowledge:r.knowledge||null,triggerType:process.env.TRIGGER});
         });
     "
     echo "Batch complete."
@@ -178,11 +178,11 @@ if [ "$ACTION" = "modify" ]; then
     echo "  [Modify Gate] Backtesting modified strategy..."
     MODIFY_AFTER=$(node src/batch/eval/backtest.js src/strategies/current-strategy.js 2>/dev/null || echo '{"error":"backtest failed"}')
 
-    # Step M3: Compare with modify gate
-    MODIFY_COMPARISON=$(node -e "
+    # Step M3: Compare with modify gate (pass JSON via env vars to prevent injection)
+    MODIFY_COMPARISON=$(BASELINE_JSON="$MODIFY_BASELINE" MODIFIED_JSON="$MODIFY_AFTER" node -e "
         const { compareStrategies } = require('./src/batch/eval/backtest');
-        const baseline = $MODIFY_BASELINE;
-        const modified = $MODIFY_AFTER;
+        const baseline = JSON.parse(process.env.BASELINE_JSON);
+        const modified = JSON.parse(process.env.MODIFIED_JSON);
         if (baseline.error || modified.error) {
             console.log(JSON.stringify({pass:true, reasons:['Backtest error, allowing modify']}));
         } else {
@@ -199,14 +199,14 @@ if [ "$ACTION" = "modify" ]; then
         echo "  [Modify Gate] FAILED. Reverting strategy."
         git checkout -- src/strategies/current-strategy.js 2>/dev/null || true
         # Update batch memory with modify gate failure
-        echo "$PARSE_RESULT" | node -e "
+        echo "$PARSE_RESULT" | COMP_JSON="$MODIFY_COMPARISON" TRIGGER="$TRIGGER_TYPE" node -e "
             process.stdin.setEncoding('utf8');let d='';
             process.stdin.on('data',c=>d+=c);
             process.stdin.on('end',()=>{
                 const r=JSON.parse(d).decision;
-                const comp=$MODIFY_COMPARISON;
+                const comp=JSON.parse(process.env.COMP_JSON);
                 const {appendEntry}=require('./src/batch/learning/update-memory');
-                appendEntry({action:'modify',reasoning:r.reasoning,confidence:r.confidence,parameters:r.parameters,outcome:'gate_failed',improvementAreas:r.improvementAreas||null,backtestResult:comp,notes:r.notes||'',strategicNotes:r.strategicNotes,knowledge:r.knowledge||null,triggerType:'$TRIGGER_TYPE'});
+                appendEntry({action:'modify',reasoning:r.reasoning,confidence:r.confidence,parameters:r.parameters,outcome:'gate_failed',improvementAreas:r.improvementAreas||null,backtestResult:comp,notes:r.notes||'',strategicNotes:r.strategicNotes,knowledge:r.knowledge||null,triggerType:process.env.TRIGGER});
             });
         "
         notify_batch '{"type":"modify_fail","reasoning":"modify gate failed"}'
@@ -220,20 +220,21 @@ if [ "$ACTION" = "modify" ]; then
     git add -A src/strategies/ trading-config.json 2>/dev/null || true
     git commit -m "batch: modify strategy parameters - $REASONING" 2>/dev/null || true
 
-    MODIFY_JSON=$(node -e "
-        const p = $PARAMS;
-        const r = $(json_field "$PARSE_RESULT" "JSON.stringify(o.decision)");
+    MODIFY_DECISION=$(json_field "$PARSE_RESULT" "JSON.stringify(o.decision)")
+    MODIFY_JSON=$(PARAMS_JSON="$PARAMS" DECISION_JSON="$MODIFY_DECISION" node -e "
+        const p = JSON.parse(process.env.PARAMS_JSON);
+        const r = JSON.parse(process.env.DECISION_JSON);
         console.log(JSON.stringify({type:'modify',reasoning:r.reasoning||'',confidence:r.confidence||0,parameters:p}));
     ")
     notify_batch "$MODIFY_JSON"
     # Update batch memory
-    echo "$PARSE_RESULT" | node -e "
+    echo "$PARSE_RESULT" | TRIGGER="$TRIGGER_TYPE" node -e "
         process.stdin.setEncoding('utf8');let d='';
         process.stdin.on('data',c=>d+=c);
         process.stdin.on('end',()=>{
             const r=JSON.parse(d).decision;
             const {appendEntry}=require('./src/batch/learning/update-memory');
-            appendEntry({action:'modify',reasoning:r.reasoning,confidence:r.confidence,parameters:r.parameters,outcome:'applied',improvementAreas:r.improvementAreas||null,notes:r.notes||'',strategicNotes:r.strategicNotes,knowledge:r.knowledge||null,triggerType:'$TRIGGER_TYPE'});
+            appendEntry({action:'modify',reasoning:r.reasoning,confidence:r.confidence,parameters:r.parameters,outcome:'applied',improvementAreas:r.improvementAreas||null,notes:r.notes||'',strategicNotes:r.strategicNotes,knowledge:r.knowledge||null,triggerType:process.env.TRIGGER});
         });
     "
     echo "Batch complete (parameters modified)."
@@ -255,9 +256,9 @@ if [ "$ACTION" = "experiment" ]; then
     echo "  Design type: $DESIGN_TYPE"
 
     # Process experiment via experiment-manager
-    EXPERIMENT_RESULT=$(node -e "
+    EXPERIMENT_RESULT=$(EXP_DATA_JSON="$EXPERIMENT_DATA" node -e "
         const { processExperimentAction } = require('./src/batch/learning/experiment-manager');
-        const expData = $EXPERIMENT_DATA;
+        const expData = JSON.parse(process.env.EXP_DATA_JSON);
         const result = processExperimentAction(expData, null);
         console.log(JSON.stringify(result));
     " 2>/dev/null || echo '{"success":false,"reason":"experiment_error"}')
@@ -272,12 +273,12 @@ if [ "$ACTION" = "experiment" ]; then
         if [ "$HAS_STRATEGY_CODE" = "true" ]; then
             echo "  Strategy code found. Extracting..."
 
-            echo "$PARSE_RESULT" | node -e "
+            echo "$PARSE_RESULT" | TEMP_FILE="$TEMP_STRATEGY" node -e "
                 process.stdin.setEncoding('utf8');let d='';
                 process.stdin.on('data',c=>d+=c);
                 process.stdin.on('end',()=>{
                     const r=JSON.parse(d);
-                    if (r.strategyCode) require('fs').writeFileSync('$TEMP_STRATEGY', r.strategyCode);
+                    if (r.strategyCode) require('fs').writeFileSync(process.env.TEMP_FILE, r.strategyCode);
                 });
             "
 
@@ -286,11 +287,11 @@ if [ "$ACTION" = "experiment" ]; then
                 echo "  Deploying as shadow strategy for paper-trading..."
                 SHADOW_CODE=$(cat "$TEMP_STRATEGY")
 
-                SHADOW_DEPLOY_RESULT=$(node -e "
+                SHADOW_DEPLOY_RESULT=$(TEMP_FILE="$TEMP_STRATEGY" SHADOW_LABEL="$HYPOTHESIS" SHADOW_EXP_ID="$EXP_ID" node -e "
                     const { deployShadow } = require('./src/batch/learning/shadow-manager');
                     const fs = require('fs');
-                    const code = fs.readFileSync('$TEMP_STRATEGY', 'utf8');
-                    const id = deployShadow(code, '$HYPOTHESIS', '$EXP_ID');
+                    const code = fs.readFileSync(process.env.TEMP_FILE, 'utf8');
+                    const id = deployShadow(code, process.env.SHADOW_LABEL, process.env.SHADOW_EXP_ID);
                     if (id) {
                         console.log(JSON.stringify({success:true, shadowId:id}));
                     } else {
@@ -304,17 +305,17 @@ if [ "$ACTION" = "experiment" ]; then
                 if [ "$SHADOW_OK" = "true" ]; then
                     SHADOW_ID=$(json_field "$SHADOW_DEPLOY_RESULT" "o.shadowId")
                     echo "  Shadow ID: $SHADOW_ID"
-                    node -e "
+                    EXP_ID_VAL="$EXP_ID" SHADOW_ID_VAL="$SHADOW_ID" node -e "
                         const { updateExperimentStatus } = require('./src/batch/learning/experiment-manager');
-                        updateExperimentStatus('$EXP_ID', 'shadow_running', {
-                            shadowId: '$SHADOW_ID',
+                        updateExperimentStatus(process.env.EXP_ID_VAL, 'shadow_running', {
+                            shadowId: process.env.SHADOW_ID_VAL,
                         });
                     " 2>/dev/null || true
                 else
                     echo "  Shadow deploy failed. Falling back to backtest..."
-                    node -e "
+                    EXP_ID_VAL="$EXP_ID" node -e "
                         const { updateExperimentStatus } = require('./src/batch/learning/experiment-manager');
-                        updateExperimentStatus('$EXP_ID', 'shadow_deploy_failed', {});
+                        updateExperimentStatus(process.env.EXP_ID_VAL, 'shadow_deploy_failed', {});
                     " 2>/dev/null || true
                 fi
                 rm -f "$TEMP_STRATEGY"
@@ -325,10 +326,10 @@ if [ "$ACTION" = "experiment" ]; then
                 EXP_BACKTEST=$(node src/batch/eval/backtest.js --walk-forward "$TEMP_STRATEGY" 2>/dev/null || echo '{"test":{"error":"backtest failed"}}')
                 CURRENT_WF=$(node src/batch/eval/backtest.js --walk-forward src/strategies/current-strategy.js 2>/dev/null || echo '{"test":{"error":"backtest failed"}}')
 
-                EXP_COMPARISON=$(node -e "
+                EXP_COMPARISON=$(CUR_WF="$CURRENT_WF" NEW_WF_JSON="$EXP_BACKTEST" node -e "
                     const { compareStrategies } = require('./src/batch/eval/backtest');
-                    const currentWF = $CURRENT_WF;
-                    const newWF = $EXP_BACKTEST;
+                    const currentWF = JSON.parse(process.env.CUR_WF);
+                    const newWF = JSON.parse(process.env.NEW_WF_JSON);
                     const cTest = currentWF.test || {};
                     const nTest = newWF.test || {};
                     if (cTest.error || nTest.error) {
@@ -340,11 +341,11 @@ if [ "$ACTION" = "experiment" ]; then
                     }
                 ")
 
-                node -e "
+                COMP_JSON="$EXP_COMPARISON" EXP_ID_VAL="$EXP_ID" node -e "
                     const { updateExperimentStatus } = require('./src/batch/learning/experiment-manager');
-                    const comp = $EXP_COMPARISON;
+                    const comp = JSON.parse(process.env.COMP_JSON);
                     const status = comp.pass ? 'backtest_passed' : 'backtest_failed';
-                    updateExperimentStatus('$EXP_ID', status, {
+                    updateExperimentStatus(process.env.EXP_ID_VAL, status, {
                         backtestReturn: comp.returnImprovement,
                         backtestMdd: comp.drawdownWorsening,
                     });
@@ -356,13 +357,13 @@ if [ "$ACTION" = "experiment" ]; then
     fi
 
     # Update batch memory
-    echo "$PARSE_RESULT" | node -e "
+    echo "$PARSE_RESULT" | TRIGGER="$TRIGGER_TYPE" node -e "
         process.stdin.setEncoding('utf8');let d='';
         process.stdin.on('data',c=>d+=c);
         process.stdin.on('end',()=>{
             const r=JSON.parse(d).decision;
             const {appendEntry}=require('./src/batch/learning/update-memory');
-            appendEntry({action:'experiment',reasoning:r.reasoning,confidence:r.confidence,outcome:'registered',improvementAreas:r.improvementAreas||null,notes:r.notes||'',strategicNotes:r.strategicNotes,knowledge:r.knowledge||null,triggerType:'$TRIGGER_TYPE'});
+            appendEntry({action:'experiment',reasoning:r.reasoning,confidence:r.confidence,outcome:'registered',improvementAreas:r.improvementAreas||null,notes:r.notes||'',strategicNotes:r.strategicNotes,knowledge:r.knowledge||null,triggerType:process.env.TRIGGER});
         });
     "
 
@@ -384,8 +385,8 @@ echo "  Backtesting current strategy (baseline)..."
 CURRENT_WF=$(node src/batch/eval/backtest.js --walk-forward src/strategies/current-strategy.js 2>/dev/null || echo '{"test":{"error":"backtest failed"}}')
 
 # Extract current baseline metrics for comparison and retry prompts
-CURRENT_METRICS=$(node -e "
-    const wf = $CURRENT_WF;
+CURRENT_METRICS=$(CUR_WF="$CURRENT_WF" node -e "
+    const wf = JSON.parse(process.env.CUR_WF);
     const t = wf.test || {};
     const m = t.measurePeriod || t;
     console.log(JSON.stringify({
@@ -481,10 +482,10 @@ for ATTEMPT in $(seq 0 $MAX_RETRIES); do
 
         NEW_WF=$(node src/batch/eval/backtest.js --walk-forward "$TEMP_STRATEGY" 2>/dev/null || echo '{"test":{"error":"backtest failed"}}')
 
-        COMPARISON=$(node -e "
+        COMPARISON=$(CUR_WF="$CURRENT_WF" NEW_WF_JSON="$NEW_WF" node -e "
             const { compareStrategies } = require('./src/batch/eval/backtest');
-            const currentWF = $CURRENT_WF;
-            const newWF = $NEW_WF;
+            const currentWF = JSON.parse(process.env.CUR_WF);
+            const newWF = JSON.parse(process.env.NEW_WF_JSON);
             const cTest = currentWF.test || {};
             const nTest = newWF.test || {};
             if (cTest.error || nTest.error) {
@@ -518,8 +519,8 @@ for ATTEMPT in $(seq 0 $MAX_RETRIES); do
             # Gate failed — save for retry
             LAST_FAILED_CODE=$(cat "$TEMP_STRATEGY")
             LAST_GATE_RESULT="$COMPARISON"
-            LAST_NEW_METRICS=$(node -e "
-                const wf = $NEW_WF;
+            LAST_NEW_METRICS=$(NEW_WF_JSON="$NEW_WF" node -e "
+                const wf = JSON.parse(process.env.NEW_WF_JSON);
                 const t = wf.test || {};
                 const m = t.measurePeriod || t;
                 console.log(JSON.stringify({
@@ -532,9 +533,9 @@ for ATTEMPT in $(seq 0 $MAX_RETRIES); do
             rm -f "$TEMP_STRATEGY" "$TEMP_STRATEGY.custom-indicators" "$CUSTOM_INDICATORS_BACKUP"
 
             # Diagnose failure
-            DIAGNOSIS=$(node -e "
+            DIAGNOSIS=$(COMP_JSON="$COMPARISON" NEW_M="$LAST_NEW_METRICS" CUR_M="$CURRENT_METRICS" node -e "
                 const { diagnoseGateFailure } = require('./src/batch/prompt/diagnose-failure');
-                const d = diagnoseGateFailure($COMPARISON, $LAST_NEW_METRICS, $CURRENT_METRICS);
+                const d = diagnoseGateFailure(JSON.parse(process.env.COMP_JSON), JSON.parse(process.env.NEW_M), JSON.parse(process.env.CUR_M));
                 console.log(d.summary);
             ")
             echo "  Diagnosis: $DIAGNOSIS"
@@ -591,10 +592,10 @@ for ATTEMPT in $(seq 0 $MAX_RETRIES); do
 
             V_WF=$(node src/batch/eval/backtest.js --walk-forward "$TEMP_STRATEGY" 2>/dev/null || echo '{"test":{"error":"backtest failed"}}')
 
-            V_COMPARISON=$(node -e "
+            V_COMPARISON=$(CUR_WF="$CURRENT_WF" NEW_WF_JSON="$V_WF" node -e "
                 const { compareStrategies } = require('./src/batch/eval/backtest');
-                const currentWF = $CURRENT_WF;
-                const newWF = $V_WF;
+                const currentWF = JSON.parse(process.env.CUR_WF);
+                const newWF = JSON.parse(process.env.NEW_WF_JSON);
                 const cTest = currentWF.test || {};
                 const nTest = newWF.test || {};
                 if (cTest.error || nTest.error) {
@@ -614,7 +615,7 @@ for ATTEMPT in $(seq 0 $MAX_RETRIES); do
 
             if [ "$V_PASS" = "true" ]; then
                 # Check if this is the best passing variant
-                IS_BETTER=$(node -e "console.log($V_RETURN > $BEST_VARIANT_RETURN ? 'true' : 'false')")
+                IS_BETTER=$(V_R="$V_RETURN" B_R="$BEST_VARIANT_RETURN" node -e "console.log(Number(process.env.V_R) > Number(process.env.B_R) ? 'true' : 'false')")
                 if [ "$IS_BETTER" = "true" ]; then
                     BEST_VARIANT_CODE=$(cat "$TEMP_STRATEGY")
                     BEST_VARIANT_RETURN="$V_RETURN"
@@ -644,8 +645,8 @@ for ATTEMPT in $(seq 0 $MAX_RETRIES); do
             # No variant passed — prepare for retry
             LAST_FAILED_CODE="${LAST_VARIANT_FAILED_CODE:-$LAST_FAILED_CODE}"
             LAST_GATE_RESULT="${V_COMPARISON:-$LAST_GATE_RESULT}"
-            LAST_NEW_METRICS=$(node -e "
-                const wf = ${V_WF:-'{\"test\":{}}'};
+            LAST_NEW_METRICS=$(NEW_WF_JSON="${V_WF:-'{"test":{}}'}" node -e "
+                const wf = JSON.parse(process.env.NEW_WF_JSON);
                 const t = wf.test || {};
                 const m = t.measurePeriod || t;
                 console.log(JSON.stringify({
@@ -656,12 +657,9 @@ for ATTEMPT in $(seq 0 $MAX_RETRIES); do
                 }));
             " 2>/dev/null || echo '{"returnPct":0,"maxDrawdown":0,"dailyTrades":0,"tradeDays":0}')
 
-            DIAGNOSIS=$(node -e "
+            DIAGNOSIS=$(GATE_JSON="${LAST_GATE_RESULT:-'{}'}" NEW_M="${LAST_NEW_METRICS:-'{}'}" CUR_M="$CURRENT_METRICS" node -e "
                 const { diagnoseGateFailure } = require('./src/batch/prompt/diagnose-failure');
-                const gate = ${LAST_GATE_RESULT:-'{}'};
-                const nm = ${LAST_NEW_METRICS:-'{}'};
-                const cm = $CURRENT_METRICS;
-                const d = diagnoseGateFailure(gate, nm, cm);
+                const d = diagnoseGateFailure(JSON.parse(process.env.GATE_JSON), JSON.parse(process.env.NEW_M), JSON.parse(process.env.CUR_M));
                 console.log(d.summary);
             " 2>/dev/null || echo "Diagnosis unavailable")
             echo "  No variant passed. Diagnosis: $DIAGNOSIS"
@@ -675,42 +673,45 @@ if [ -z "${WINNING_CODE:-}" ]; then
     echo "[Step 4] All $((MAX_RETRIES + 1)) attempts FAILED. Not deploying."
 
     # Save comprehensive failure record
-    echo "${WINNING_PARSE:-$PARSE_RESULT}" | node -e "
+    DIAG_RESULT=$(GATE_JSON="${LAST_GATE_RESULT:-'{}'}" NEW_M="${LAST_NEW_METRICS:-'{}'}" CUR_M="$CURRENT_METRICS" node -e "
+        const { diagnoseGateFailure } = require('./src/batch/prompt/diagnose-failure');
+        try {
+            const d = diagnoseGateFailure(JSON.parse(process.env.GATE_JSON), JSON.parse(process.env.NEW_M), JSON.parse(process.env.CUR_M));
+            console.log(JSON.stringify(d.summary));
+        } catch(e) { console.log(JSON.stringify('Diagnosis error: ' + e.message)); }
+    " 2>/dev/null || echo '""')
+    echo "${WINNING_PARSE:-$PARSE_RESULT}" | LAST_GATE_JSON="${LAST_GATE_RESULT:-null}" TRIGGER="$TRIGGER_TYPE" RETRIES="$((MAX_RETRIES + 1))" VARIANTS="$TOTAL_VARIANTS_TESTED" DIAG="$DIAG_RESULT" node -e "
         process.stdin.setEncoding('utf8');let d='';
         process.stdin.on('data',c=>d+=c);
         process.stdin.on('end',()=>{
             const r=JSON.parse(d).decision || {};
             const {appendEntry}=require('./src/batch/learning/update-memory');
+            let bt=null; try{bt=JSON.parse(process.env.LAST_GATE_JSON);}catch(e){}
+            let diag=''; try{diag=JSON.parse(process.env.DIAG);}catch(e){diag=process.env.DIAG||'';}
             appendEntry({
                 action:'replace',
                 reasoning:r.reasoning||'',
                 confidence:r.confidence||0,
                 outcome:'all_retries_failed',
                 improvementAreas:r.improvementAreas||null,
-                backtestResult:${LAST_GATE_RESULT:-null},
+                backtestResult:bt,
                 notes:r.notes||'',
                 strategicNotes:r.strategicNotes,
                 knowledge:r.knowledge||null,
-                triggerType:'$TRIGGER_TYPE',
-                retryAttempts:$((MAX_RETRIES + 1)),
-                variantsTested:$TOTAL_VARIANTS_TESTED,
-                diagnosis:$(node -e "
-                    const { diagnoseGateFailure } = require('./src/batch/prompt/diagnose-failure');
-                    try {
-                        const d = diagnoseGateFailure(${LAST_GATE_RESULT:-'{}'}, ${LAST_NEW_METRICS:-'{}'}, $CURRENT_METRICS);
-                        console.log(JSON.stringify(d.summary));
-                    } catch(e) { console.log(JSON.stringify('Diagnosis error: ' + e.message)); }
-                " 2>/dev/null || echo '""'),
+                triggerType:process.env.TRIGGER,
+                retryAttempts:Number(process.env.RETRIES),
+                variantsTested:Number(process.env.VARIANTS),
+                diagnosis:diag,
             });
         });
     "
 
-    FAIL_JSON=$(node -e "
+    FAIL_JSON=$(RETRIES="$((MAX_RETRIES + 1))" VARIANTS="$TOTAL_VARIANTS_TESTED" node -e "
         console.log(JSON.stringify({
             type:'replace_fail',
             reasoning:'All retry attempts failed',
-            retryAttempts:$((MAX_RETRIES + 1)),
-            variantsTested:$TOTAL_VARIANTS_TESTED,
+            retryAttempts:Number(process.env.RETRIES),
+            variantsTested:Number(process.env.VARIANTS),
         }));
     ")
     notify_batch "$FAIL_JSON"
@@ -746,11 +747,11 @@ if [ -f "$TEMP_STRATEGY.custom-indicators" ]; then
     cp "$TEMP_STRATEGY.custom-indicators" "$CUSTOM_INDICATORS_FILE"
 fi
 
-DEPLOY_RESULT=$(node -e "
+DEPLOY_RESULT=$(COMP_JSON="$WINNING_COMPARISON" node -e "
     const fs = require('fs');
     const { deploy } = require('./src/batch/eval/deploy');
     const code = fs.readFileSync('$TEMP_STRATEGY', 'utf8');
-    const comparison = $WINNING_COMPARISON;
+    const comparison = JSON.parse(process.env.COMP_JSON);
     deploy(code, comparison).then(r => {
         console.log(JSON.stringify(r));
         try { fs.unlinkSync('$TEMP_STRATEGY'); } catch(_){}
@@ -777,21 +778,22 @@ echo "$DEPLOY_RESULT"
 
 if [ "$DEPLOY_SUCCESS" = "true" ]; then
     # Deploy success: notify + memory + git
-    NOTIFY_JSON=$(node -e "
-        const comp = $WINNING_COMPARISON;
-        const r = $(json_field "$WINNING_PARSE" "JSON.stringify(o.decision)");
+    WIN_DECISION=$(json_field "$WINNING_PARSE" "JSON.stringify(o.decision)")
+    NOTIFY_JSON=$(COMP_JSON="$WINNING_COMPARISON" DEC_JSON="$WIN_DECISION" node -e "
+        const comp = JSON.parse(process.env.COMP_JSON);
+        const r = JSON.parse(process.env.DEC_JSON);
         console.log(JSON.stringify({type:'replace_success',reasoning:r.reasoning||'',confidence:r.confidence||0,comparison:comp}));
     ")
     notify_batch "$NOTIFY_JSON"
 
-    echo "$WINNING_PARSE" | node -e "
+    echo "$WINNING_PARSE" | COMP_JSON="$WINNING_COMPARISON" TRIGGER="$TRIGGER_TYPE" RETRIES="$((ATTEMPT + 1))" VARIANTS="$TOTAL_VARIANTS_TESTED" node -e "
         process.stdin.setEncoding('utf8');let d='';
         process.stdin.on('data',c=>d+=c);
         process.stdin.on('end',()=>{
             const r=JSON.parse(d).decision;
-            const comp=$WINNING_COMPARISON;
+            const comp=JSON.parse(process.env.COMP_JSON);
             const {appendEntry}=require('./src/batch/learning/update-memory');
-            appendEntry({action:'replace',reasoning:r.reasoning,confidence:r.confidence,outcome:'deployed',improvementAreas:r.improvementAreas||null,backtestResult:comp,notes:r.notes||'',strategicNotes:r.strategicNotes,knowledge:r.knowledge||null,triggerType:'$TRIGGER_TYPE',retryAttempts:$((ATTEMPT + 1)),variantsTested:$TOTAL_VARIANTS_TESTED});
+            appendEntry({action:'replace',reasoning:r.reasoning,confidence:r.confidence,outcome:'deployed',improvementAreas:r.improvementAreas||null,backtestResult:comp,notes:r.notes||'',strategicNotes:r.strategicNotes,knowledge:r.knowledge||null,triggerType:process.env.TRIGGER,retryAttempts:Number(process.env.RETRIES),variantsTested:Number(process.env.VARIANTS)});
         });
     "
 
@@ -804,22 +806,23 @@ if [ "$DEPLOY_SUCCESS" = "true" ]; then
     git push 2>/dev/null || echo "  Push skipped (no remote configured)."
 else
     # Deploy failed: notify failure + memory
-    NOTIFY_JSON=$(node -e "
-        const comp = $WINNING_COMPARISON;
-        const r = $(json_field "$WINNING_PARSE" "JSON.stringify(o.decision)");
-        const dr = $DEPLOY_RESULT;
+    FAIL_DECISION=$(json_field "$WINNING_PARSE" "JSON.stringify(o.decision)")
+    NOTIFY_JSON=$(COMP_JSON="$WINNING_COMPARISON" DEC_JSON="$FAIL_DECISION" DR_JSON="$DEPLOY_RESULT" node -e "
+        const comp = JSON.parse(process.env.COMP_JSON);
+        const r = JSON.parse(process.env.DEC_JSON);
+        const dr = JSON.parse(process.env.DR_JSON);
         console.log(JSON.stringify({type:'replace_fail',reasoning:r.reasoning||'',confidence:r.confidence||0,comparison:comp,deployError:dr.reason||'unknown'}));
     ")
     notify_batch "$NOTIFY_JSON"
 
-    echo "$WINNING_PARSE" | node -e "
+    echo "$WINNING_PARSE" | COMP_JSON="$WINNING_COMPARISON" TRIGGER="$TRIGGER_TYPE" RETRIES="$((ATTEMPT + 1))" VARIANTS="$TOTAL_VARIANTS_TESTED" node -e "
         process.stdin.setEncoding('utf8');let d='';
         process.stdin.on('data',c=>d+=c);
         process.stdin.on('end',()=>{
             const r=JSON.parse(d).decision;
-            const comp=$WINNING_COMPARISON;
+            const comp=JSON.parse(process.env.COMP_JSON);
             const {appendEntry}=require('./src/batch/learning/update-memory');
-            appendEntry({action:'replace',reasoning:r.reasoning,confidence:r.confidence,outcome:'deploy_failed',improvementAreas:r.improvementAreas||null,backtestResult:comp,notes:r.notes||'',strategicNotes:r.strategicNotes,knowledge:r.knowledge||null,triggerType:'$TRIGGER_TYPE',retryAttempts:$((ATTEMPT + 1)),variantsTested:$TOTAL_VARIANTS_TESTED});
+            appendEntry({action:'replace',reasoning:r.reasoning,confidence:r.confidence,outcome:'deploy_failed',improvementAreas:r.improvementAreas||null,backtestResult:comp,notes:r.notes||'',strategicNotes:r.strategicNotes,knowledge:r.knowledge||null,triggerType:process.env.TRIGGER,retryAttempts:Number(process.env.RETRIES),variantsTested:Number(process.env.VARIANTS)});
         });
     "
 
