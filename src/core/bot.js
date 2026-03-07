@@ -459,6 +459,59 @@ async function runStrategyBoundary() {
     }
 }
 
+// Reconcile bot state with actual account holdings on startup
+async function reconcileState() {
+    try {
+        const config = loadTradingConfig();
+        const balances = await api.getBalances();
+        if (!balances || balances.length === 0) return;
+
+        // Find non-KRW assets worth more than MIN_ORDER_KRW
+        const holdings = [];
+        for (const b of balances) {
+            if (b.currency === 'KRW') continue;
+            const market = `KRW-${b.currency}`;
+            const bal = parseFloat(b.balance) + parseFloat(b.locked || '0');
+            const avgPrice = parseFloat(b.avg_buy_price || '0');
+            const value = bal * avgPrice;
+            if (value > MIN_ORDER_KRW && config.markets.includes(market)) {
+                holdings.push({ market, value });
+            }
+        }
+
+        const krwBal = balances.find(b => b.currency === 'KRW');
+        const krwTotal = krwBal ? parseFloat(krwBal.balance) + parseFloat(krwBal.locked || '0') : 0;
+
+        if (state.assetHeld === 'CASH' && holdings.length > 0) {
+            // State says CASH but we're holding a coin — fix it
+            const top = holdings.sort((a, b) => b.value - a.value)[0];
+            log.warn(`RECONCILE: State says CASH but account holds ${top.market} (${Math.round(top.value)} KRW). Updating state.`);
+            state.assetHeld = top.market;
+            state.candlesSinceLastTrade = 9999; // unknown, use safe default
+            state.peakPriceSinceEntry = null;
+            saveState();
+        } else if (state.assetHeld !== 'CASH' && holdings.length === 0 && krwTotal > MIN_ORDER_KRW) {
+            // State says holding a coin but we only have KRW — fix it
+            log.warn(`RECONCILE: State says ${state.assetHeld} but account only has KRW (${Math.round(krwTotal)}). Updating to CASH.`);
+            state.assetHeld = 'CASH';
+            state.candlesSinceLastTrade = 9999;
+            state.peakPriceSinceEntry = null;
+            saveState();
+        } else if (state.assetHeld !== 'CASH' && holdings.length > 0) {
+            const actualMarket = holdings.sort((a, b) => b.value - a.value)[0].market;
+            if (state.assetHeld !== actualMarket) {
+                log.warn(`RECONCILE: State says ${state.assetHeld} but account holds ${actualMarket}. Updating state.`);
+                state.assetHeld = actualMarket;
+                state.candlesSinceLastTrade = 9999;
+                state.peakPriceSinceEntry = null;
+                saveState();
+            }
+        }
+    } catch (e) {
+        log.error(`Reconciliation failed: ${e.message}`);
+    }
+}
+
 // Schedule: second 10 of minutes 0,15,30,45
 cron.schedule('10 0,15,30,45 * * * *', runStrategyBoundary);
 
@@ -467,5 +520,8 @@ log.info('Upbit Multi-Asset Trading Bot Started!');
 log.info(`Markets: ${config.markets.join(', ')}`);
 log.info(`Initial State: Holding ${state.assetHeld}`);
 
-// Run immediately on start
-runStrategyBoundary();
+// Reconcile then run immediately on start
+reconcileState().then(() => {
+    log.info(`Reconciled State: Holding ${state.assetHeld}`);
+    runStrategyBoundary();
+});
