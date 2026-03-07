@@ -328,7 +328,14 @@ async function runStrategyBoundary() {
                             writeHeartbeat('SELL_FAILED');
                             return;
                         }
+                        // Wait for KRW settlement, then verify
                         await new Promise(r => setTimeout(r, 3000));
+                        let krwSettled = await api.getBalance('KRW');
+                        if (krwSettled < MIN_ORDER_KRW) {
+                            log.warn('KRW not settled after 3s, waiting 5s more...');
+                            await new Promise(r => setTimeout(r, 5000));
+                            krwSettled = await api.getBalance('KRW');
+                        }
                     }
                 }
 
@@ -357,6 +364,7 @@ async function runStrategyBoundary() {
                     } else {
                         log.error(`Smart entry failed for ${targetMarket}. Entering CASH state.`);
                         state.assetHeld = 'CASH';
+                        // Sell already succeeded — we're in CASH now, reset counters for CASH re-entry
                         state.candlesSinceLastTrade = 0;
                         state.peakPriceSinceEntry = null;
                         saveState();
@@ -371,6 +379,7 @@ async function runStrategyBoundary() {
                         if (!buyResult) {
                             log.error(`Buy failed for ${targetMarket}. Entering CASH state.`);
                             state.assetHeld = 'CASH';
+                            // Sell already succeeded — we're in CASH now, reset counters for CASH re-entry
                             state.candlesSinceLastTrade = 0;
                             state.peakPriceSinceEntry = null;
                             saveState();
@@ -394,6 +403,7 @@ async function runStrategyBoundary() {
                     } else {
                         log.error(`Buy failed: insufficient KRW (${buyAmount}). Entering CASH state.`);
                         state.assetHeld = 'CASH';
+                        // Sell already succeeded — we're in CASH now, reset counters for CASH re-entry
                         state.candlesSinceLastTrade = 0;
                         state.peakPriceSinceEntry = null;
                         saveState();
@@ -403,14 +413,38 @@ async function runStrategyBoundary() {
                 }
             } catch (switchErr) {
                 log.error(`SWITCH execution error: ${switchErr.message}`);
-                // Determine actual portfolio state
-                const krwBal = await api.getBalance('KRW').catch(() => 0);
-                if (krwBal > MIN_ORDER_KRW) {
-                    state.assetHeld = 'CASH';
-                    state.candlesSinceLastTrade = 0;
-                    state.peakPriceSinceEntry = null;
-                } else {
-                    // Restore state if we can't determine position
+                // Determine actual portfolio state by checking both KRW and target asset
+                try {
+                    const krwBal = await api.getBalance('KRW').catch(() => 0);
+                    const targetBal = await api.getBalance(targetCurrency).catch(() => 0);
+                    if (targetBal > 0) {
+                        // Target asset was bought — update state accordingly
+                        state.assetHeld = targetMarket;
+                        state.candlesSinceLastTrade = 0;
+                        state.peakPriceSinceEntry = null;
+                    } else if (krwBal > MIN_ORDER_KRW) {
+                        // No target asset but have KRW — we're in CASH
+                        state.assetHeld = 'CASH';
+                        state.candlesSinceLastTrade = 0;
+                        state.peakPriceSinceEntry = null;
+                    } else {
+                        // Check if still holding original asset
+                        const origBal = await api.getBalance(currentCurrency).catch(() => 0);
+                        if (origBal > 0) {
+                            // Still holding original — restore state
+                            state.assetHeld = savedState.assetHeld;
+                            state.candlesSinceLastTrade = savedState.candlesSinceLastTrade;
+                            state.peakPriceSinceEntry = savedState.peakPriceSinceEntry;
+                        } else {
+                            // Can't determine — default to CASH
+                            log.error('Cannot determine portfolio position after SWITCH error');
+                            state.assetHeld = 'CASH';
+                            state.candlesSinceLastTrade = 0;
+                            state.peakPriceSinceEntry = null;
+                        }
+                    }
+                } catch (recoveryErr) {
+                    log.error(`SWITCH recovery error: ${recoveryErr.message}`);
                     state.candlesSinceLastTrade = savedState.candlesSinceLastTrade;
                     state.peakPriceSinceEntry = savedState.peakPriceSinceEntry;
                 }

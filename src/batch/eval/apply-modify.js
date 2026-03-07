@@ -18,14 +18,27 @@ let code = fs.readFileSync(strategyPath, 'utf8');
 const reExport = code.match(/module\.exports\s*=\s*require\(['"](\.\/[^'"]+)['"]\)/);
 let targetPath = strategyPath;
 if (reExport) {
-    targetPath = path.resolve('src/strategies', reExport[1] + '.js');
-    if (!fs.existsSync(targetPath)) targetPath = path.resolve('src/strategies', reExport[1]);
+    const reExportPath = reExport[1].replace(/\.js$/, '');
+    targetPath = path.resolve('src/strategies', reExportPath + '.js');
+    if (!fs.existsSync(targetPath)) targetPath = path.resolve('src/strategies', reExportPath);
     code = fs.readFileSync(targetPath, 'utf8');
 }
 
-// Extract DEFAULT_CONFIG block to scope replacements
+// Extract DEFAULT_CONFIG block to scope replacements (handles nested objects)
 const configStart = code.indexOf('const DEFAULT_CONFIG');
-const configEnd = configStart >= 0 ? code.indexOf('};', configStart) + 2 : -1;
+let configEnd = -1;
+if (configStart >= 0) {
+    let braceDepth = 0;
+    let foundOpen = false;
+    for (let ci = configStart; ci < code.length; ci++) {
+        if (code[ci] === '{') { braceDepth++; foundOpen = true; }
+        else if (code[ci] === '}') { braceDepth--; }
+        if (foundOpen && braceDepth === 0) {
+            configEnd = code[ci + 1] === ';' ? ci + 2 : ci + 1;
+            break;
+        }
+    }
+}
 
 if (configStart < 0 || configEnd <= configStart) {
     console.error('  ERROR: DEFAULT_CONFIG not found in strategy file');
@@ -40,7 +53,8 @@ const afterConfig = code.slice(configEnd);
 // Supports nested keys (e.g. "smartEntry.rsiThreshold") and string values (e.g. "executionMode": "smart")
 let failCount = 0;
 for (const [key, value] of Object.entries(params)) {
-    const leafKey = key.includes('.') ? key.split('.').pop() : key;
+    const rawLeafKey = key.includes('.') ? key.split('.').pop() : key;
+    const leafKey = rawLeafKey.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const isBool = typeof value === 'boolean';
     const isString = typeof value === 'string';
 

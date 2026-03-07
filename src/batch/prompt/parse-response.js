@@ -194,14 +194,20 @@ function validateStrategyCode(code) {
             }
 
             // Create minimal mock candles for multi-timeframe interface
-            const mockCandles15 = Array.from({ length: 100 }, (_, i) => ({
-                open: 100000 + i * 10,
-                high: 100010 + i * 10,
-                low: 99990 + i * 10,
-                close: 100000 + i * 10,
-                volume: 1,
-                timestamp: `2025-01-01T${String(Math.floor(i / 4)).padStart(2, '0')}:${String((i % 4) * 15).padStart(2, '0')}:00`,
-            }));
+            const mockCandles15 = Array.from({ length: 100 }, (_, i) => {
+                const totalMinutes = i * 15;
+                const hours = Math.floor(totalMinutes / 60) % 24;
+                const mins = totalMinutes % 60;
+                const day = Math.floor(totalMinutes / (60 * 24)) + 1;
+                return {
+                    open: 100000 + i * 10,
+                    high: 100010 + i * 10,
+                    low: 99990 + i * 10,
+                    close: 100000 + i * 10,
+                    volume: 1,
+                    timestamp: `2025-01-${String(day).padStart(2, '0')}T${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}:00`,
+                };
+            });
 
             const mockCandles240 = Array.from({ length: 10 }, (_, i) => ({
                 open: 100000 + i * 100,
@@ -209,7 +215,7 @@ function validateStrategyCode(code) {
                 low: 99900 + i * 100,
                 close: 100000 + i * 100,
                 volume: 10,
-                timestamp: `2025-01-01T${String(i * 4).padStart(2, '0')}:00:00`,
+                timestamp: `2025-01-${String(Math.floor(i * 4 / 24) + 1).padStart(2, '0')}T${String((i * 4) % 24).padStart(2, '0')}:00:00`,
             }));
 
             // Test with nested candleData object (multi-timeframe interface)

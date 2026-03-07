@@ -77,7 +77,11 @@ function runBacktest(strategy, candleData, label = 'unnamed', measureFromIdx = n
     // Record start prices for benchmarks
     const startPrices = {};
     for (const market of markets) {
-        startPrices[market] = get15m(market)[0].close;
+        const candles = get15m(market);
+        if (!candles || candles.length === 0) {
+            return { error: `No 15m candle data for ${market}` };
+        }
+        startPrices[market] = candles[0].close;
     }
 
     // Start with 1,000,000 KRW worth of default asset
@@ -154,7 +158,10 @@ function runBacktest(strategy, candleData, label = 'unnamed', measureFromIdx = n
             pendingTrade = null;
 
             if (pt.type === 'SELL_TO_CASH' && currentAsset !== 'CASH') {
-                const sellPrice = get15m(pt.from)[i].open || get15m(pt.from)[i].close;
+                const fromCandle = get15m(pt.from)[i];
+                if (!fromCandle) { continue; }
+                const sellPrice = fromCandle.open || fromCandle.close;
+                if (!sellPrice) { continue; }
                 portfolio = holdings * sellPrice * (1 - effectiveSlippage) * (1 - FEE_RATE);
                 trades.push({
                     idx: i, timestamp: get15m(pt.from)[i].timestamp,
@@ -164,7 +171,10 @@ function runBacktest(strategy, candleData, label = 'unnamed', measureFromIdx = n
                 currentAsset = 'CASH';
                 holdings = 0;
             } else if (pt.type === 'BUY_FROM_CASH' && currentAsset === 'CASH' && candleData[pt.to]) {
-                const buyPrice = get15m(pt.to)[i].open || get15m(pt.to)[i].close;
+                const toCandle = get15m(pt.to)[i];
+                if (!toCandle) { continue; }
+                const buyPrice = toCandle.open || toCandle.close;
+                if (!buyPrice) { continue; }
                 const effectiveBuyPrice = buyPrice * (1 + effectiveSlippage);
                 holdings = (portfolio * (1 - FEE_RATE)) / effectiveBuyPrice;
                 trades.push({
@@ -175,8 +185,12 @@ function runBacktest(strategy, candleData, label = 'unnamed', measureFromIdx = n
                 currentAsset = pt.to;
                 portfolio = 0;
             } else if (pt.type === 'SWITCH' && currentAsset !== 'CASH' && candleData[pt.to]) {
-                const sellPrice = get15m(pt.from)[i].open || get15m(pt.from)[i].close;
-                const buyPrice = get15m(pt.to)[i].open || get15m(pt.to)[i].close;
+                const fromCandle2 = get15m(pt.from)[i];
+                const toCandle2 = get15m(pt.to)[i];
+                if (!fromCandle2 || !toCandle2) { continue; }
+                const sellPrice = fromCandle2.open || fromCandle2.close;
+                const buyPrice = toCandle2.open || toCandle2.close;
+                if (!sellPrice || !buyPrice) { continue; }
                 // Correct fee: 0.05% on sell side + 0.05% on buy side (not double)
                 const krwAfterSell = holdings * sellPrice * (1 - effectiveSlippage) * (1 - FEE_RATE);
                 const effectiveBuyPrice = buyPrice * (1 + effectiveSlippage);
@@ -223,7 +237,7 @@ function runBacktest(strategy, candleData, label = 'unnamed', measureFromIdx = n
                 measurePeak = value;
             }
             if (value > measurePeak) measurePeak = value;
-            const mdd = (measurePeak - value) / measurePeak;
+            const mdd = measurePeak > 0 ? (measurePeak - value) / measurePeak : 0;
             if (mdd > measureMaxDrawdown) measureMaxDrawdown = mdd;
             // Collect trades in measure period
             const lastTrade = trades[trades.length - 1];

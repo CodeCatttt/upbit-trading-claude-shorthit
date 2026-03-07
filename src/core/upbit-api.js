@@ -142,16 +142,26 @@ async function waitForOrder(orderId) {
 }
 
 async function buyMarketOrder(market, amountKrw) {
+    let lastOrderId = null;
     for (let attempt = 0; attempt <= MAX_ORDER_RETRIES; attempt++) {
         try {
+            // Before retrying, check if previous order actually filled
+            if (lastOrderId) {
+                const prevResult = await waitForOrder(lastOrderId);
+                if (prevResult.success) {
+                    console.log(`[BUY] ${market} previous order ${lastOrderId} filled on recheck.`);
+                    return prevResult.data;
+                }
+            }
             const body = { market, side: 'bid', price: amountKrw.toString(), ord_type: 'price' };
             const res = await axios.post(`${server_url}/v1/orders`, body, {
                 headers: getHeaders(body),
                 timeout: API_TIMEOUT,
             });
-            console.log(`[BUY] ${market} order placed (attempt ${attempt + 1}):`, res.data.uuid);
+            lastOrderId = res.data.uuid;
+            console.log(`[BUY] ${market} order placed (attempt ${attempt + 1}):`, lastOrderId);
 
-            const orderResult = await waitForOrder(res.data.uuid);
+            const orderResult = await waitForOrder(lastOrderId);
             if (orderResult.success) {
                 console.log(`[BUY] ${market} order filled.`);
                 return orderResult.data;
@@ -162,23 +172,33 @@ async function buyMarketOrder(market, amountKrw) {
         }
         if (attempt < MAX_ORDER_RETRIES) {
             console.log(`[BUY] ${market} retrying (${attempt + 2}/${MAX_ORDER_RETRIES + 1})...`);
-            await new Promise(r => setTimeout(r, 2000));
+            await new Promise(r => setTimeout(r, 2000 * (attempt + 1)));
         }
     }
     return null;
 }
 
 async function sellMarketOrder(market, volume) {
+    let lastOrderId = null;
     for (let attempt = 0; attempt <= MAX_ORDER_RETRIES; attempt++) {
         try {
+            // Before retrying, check if previous order actually filled
+            if (lastOrderId) {
+                const prevResult = await waitForOrder(lastOrderId);
+                if (prevResult.success) {
+                    console.log(`[SELL] ${market} previous order ${lastOrderId} filled on recheck.`);
+                    return prevResult.data;
+                }
+            }
             const body = { market, side: 'ask', volume: volume.toString(), ord_type: 'market' };
             const res = await axios.post(`${server_url}/v1/orders`, body, {
                 headers: getHeaders(body),
                 timeout: API_TIMEOUT,
             });
-            console.log(`[SELL] ${market} order placed (attempt ${attempt + 1}):`, res.data.uuid);
+            lastOrderId = res.data.uuid;
+            console.log(`[SELL] ${market} order placed (attempt ${attempt + 1}):`, lastOrderId);
 
-            const orderResult = await waitForOrder(res.data.uuid);
+            const orderResult = await waitForOrder(lastOrderId);
             if (orderResult.success) {
                 console.log(`[SELL] ${market} order filled.`);
                 return orderResult.data;
@@ -189,7 +209,7 @@ async function sellMarketOrder(market, volume) {
         }
         if (attempt < MAX_ORDER_RETRIES) {
             console.log(`[SELL] ${market} retrying (${attempt + 2}/${MAX_ORDER_RETRIES + 1})...`);
-            await new Promise(r => setTimeout(r, 2000));
+            await new Promise(r => setTimeout(r, 2000 * (attempt + 1)));
         }
     }
     return null;

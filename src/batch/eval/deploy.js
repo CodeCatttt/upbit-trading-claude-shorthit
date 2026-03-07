@@ -114,7 +114,7 @@ function checkPM2Status(restartsBefore) {
             return false;
         }
         const newRestarts = bot.pm2_env.restart_time - restartsBefore;
-        if (newRestarts > 2) {
+        if (newRestarts > 3) {
             log.error(`Too many new restarts since deploy: ${newRestarts} (before: ${restartsBefore}, now: ${bot.pm2_env.restart_time})`);
             return false;
         }

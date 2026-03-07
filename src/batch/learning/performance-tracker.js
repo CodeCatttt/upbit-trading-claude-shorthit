@@ -100,9 +100,11 @@ async function recordDaily() {
     const btcUnitsAtStart = ledger.initialValue / ledger.initialBtcPrice;
     const btcBenchmarkValue = Math.floor(btcUnitsAtStart * btcPrice);
 
-    // Calculate returns
-    const portfolioReturn = ((totalValueKrw - ledger.initialValue) / ledger.initialValue * 100);
-    const btcReturn = ((btcBenchmarkValue - ledger.initialValue) / ledger.initialValue * 100);
+    // Calculate returns (guard against zero initialValue)
+    const portfolioReturn = ledger.initialValue > 0
+        ? ((totalValueKrw - ledger.initialValue) / ledger.initialValue * 100) : 0;
+    const btcReturn = ledger.initialValue > 0
+        ? ((btcBenchmarkValue - ledger.initialValue) / ledger.initialValue * 100) : 0;
     const alpha = +(portfolioReturn - btcReturn).toFixed(2);
 
     // Calculate MDD (peak to current)

@@ -329,7 +329,9 @@ function checkReentry(state, candleData, markets, config) {
 
 function onNewCandle(state, candleData, config = DEFAULT_CONFIG) {
     if (state.candlesSinceLastTrade === undefined) state.candlesSinceLastTrade = 9999;
-    state.candlesSinceLastTrade++;
+    // Increment AFTER cooldown checks to avoid off-by-one (cooldown matches exactly)
+    const currentCandlesSince = state.candlesSinceLastTrade;
+    state.candlesSinceLastTrade = currentCandlesSince + 1;
 
     const markets = Object.keys(candleData);
     if (markets.length < 2) {

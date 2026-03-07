@@ -2,22 +2,6 @@
   "maxEntries": 50,
   "entries": [
     {
-      "timestamp": "2026-03-05T01:30:49.130Z",
-      "action": "keep",
-      "reasoning": "Bullish 레짐 지속(평균 +4.89%), BTC 보유 포지션 피크 대비 -0.89%로 안전. 전략 변경 사유 없음.",
-      "confidence": 0.93,
-      "parameters": null,
-      "markets": null,
-      "improvementAreas": [],
-      "backtestResult": null,
-      "outcome": "kept",
-      "notes": "다음 배치 체크: (1) 포트폴리오 가치 0 KRW — collect-metrics.js 잔고 조회 버그 79회 연속 미해결, 별도 디버깅 세션 필요, (2) 분산 1.41%로 1.25% 임계점 이탈 확대 중 — 1.5%+ 돌파 시 분화 전환 여부 확인, (3) BTC 체결 강도 극단 매도(0.24) 지속 + 가격 강세 divergence 패턴 추적",
-      "retryAttempts": null,
-      "variantsTested": null,
-      "diagnosis": null,
-      "triggerType": "DAILY_REVIEW"
-    },
-    {
       "timestamp": "2026-03-05T02:30:50.938Z",
       "action": "keep",
       "reasoning": "전 종목 강세(+5.73%) + 저분산(1.3%) 동반 상승 레짐 지속. BTC 피크 대비 -1.26%로 안정적 보유 중. 체결 강도 divergence(BTC 매도 0.21 + 알트 매수 우위) 20회차 반복 확인. 전략 변경 불필요.",
@@ -932,6 +916,29 @@
       "variantsTested": null,
       "diagnosis": null,
       "triggerType": "DAILY_REVIEW"
+    },
+    {
+      "timestamp": "2026-03-07T09:41:15.099Z",
+      "action": "modify",
+      "reasoning": "CASH alpha +3.04%로 방어 성공 중이나 3일 0거래. RSI/choppiness 임계 소폭 완화로 회복 초기 재진입 가능하게 조정. BTC 체결 강도 0.7로 매도 우위 지속 중이므로 과감한 완화는 지양",
+      "confidence": 0.7,
+      "parameters": {
+        "reentryRsiMin": 40,
+        "reentryMinScore": 0.02,
+        "choppinessThreshold": 0.58
+      },
+      "markets": null,
+      "improvementAreas": [
+        "strategy",
+        "regime"
+      ],
+      "backtestResult": null,
+      "outcome": "applied",
+      "notes": "다음 배치 체크: (1) 재진입 발생 여부 — RSI 40+, score 0.02+, choppiness 0.58 미만 조건 충족 모니터링, (2) BTC 체결 강도 0.7 추이 — 1.0+ 회복 시 매도 소진 시작, 0.3 이하 시 재차 capitulation, (3) 분산 0.21% 극저분산 지속 여부 — 확대 시 자산 차별화 기회",
+      "retryAttempts": null,
+      "variantsTested": null,
+      "diagnosis": null,
+      "triggerType": "DAILY_REVIEW"
     }
   ],
   "strategicNotes": "1) 하락장에서 높은 상관관계 자산 간 로테이션은 거래비용만 소모. 2) BTC가 하락장 기본 보유자산으로 최적. 3) 거래 빈도 영향 극대 — 13회 거래 시 비용만 ~3.9% 추가 손실. 4) 레짐 필터가 핵심 방어 메커니즘. 5) 코드 전면 교체보다 최소 변경이 배포 안정성 우수. 6) 현 전략(10회 거래, BTC 대비 +6.22%)이 검증된 성과. 7) 파라미터 완화(cooldown↓, threshold↓)는 검증 실패 확정 — 거래 증가로 성과 대폭 악화(-15.75%). 8) SOL이 반등 국면에서 최강 모멘텀이나, 단기 스위칭은 비용 대비 효과 미미. 9) MDD 3% 게이트 의식한 점진적 변경 필요. 10) 연속 배포 실패 시 keep 유지가 최선. 11) bot-state/포트폴리오 불일치 해결 완료. 13) 그레이스 기간(96캔들=24h) whipsaw 방지 효과적. 14) XRP 재진입 진동 패턴 — reentryCooldown 288로 억제 중. 16) deploy.js 롤백 시 bot-state.json 보존/복원 로직 개선 필요. 17) 포트폴리오 90K 소규모 — 거래 최소화가 비용 절감에 결정적. 18) 현행 파라미터(288/0.4)가 최적 근처임을 modify 실패로 검증 완료. 19) -9.52% 경고는 실패한 modify 백테스트 결과이며 현행 전략 실제 성과 아님 — 배치 분석 시 혼동 주의. 21) 그레이스 기간 종료 시점이 리스크 관리의 핵심 전환점 — 활성화 후 첫 배치에서 피크 추적 정상 작동 반드시 확인.",
@@ -1089,10 +1096,10 @@
         "addedAt": "2026-03-05"
       },
       {
-        "hypothesis": "재진입 시 체결 강도 시장별 개별 필터링 + 쿨다운 12h 조합이 기존 대비 반등 포착력 향상 — BTC 매도 우위 구간에서 알트 재진입 경로 활성화",
+        "hypothesis": "BTC 체결 강도 이중 바닥(0.16→0.19) 후 1.32→0.7 재하락 — 이중 바닥 패턴 후에도 1.0 안정 돌파에 실패하는 3일+ 장기 저위 등락 패턴. 체결 강도 0.5~1.0 구간은 매도 우위 완화 중이나 미완료 상태를 의미",
         "status": "proposed",
         "experimentId": null,
-        "addedAt": "2026-03-06"
+        "addedAt": "2026-03-07"
       },
       {
         "hypothesis": "BTC 체결 강도 0.93→0.6→0.52로 3연속 하락 추세 — 매도 압력 소진이 아닌 심화 패턴. 0.3 이하로 추가 하락 시 capitulation 후 반등 가능성, 1.0+ 회복 시 매도 소진 시작",
@@ -1155,18 +1162,13 @@
         "addedAt": "2026-03-06"
       },
       {
-        "hypothesis": "choppinessThreshold 0.52 + reentryRsiMin 45 조합이 약세장→회복 전환 구간에서 기존 대비 1~2일 빠른 재진입 실현하면서도 MDD 2% 이내 유지 가능",
+        "hypothesis": "reentryRsiMin 40 + reentryMinScore 0.02 + choppinessThreshold 0.58 조합이 약세장 말기(RSI 40-44, choppiness 0.52-0.58) 구간에서 기존 조합 대비 12-24h 빠른 재진입 실현하면서 MDD 3% 이내 유지 가능",
         "status": "proposed",
         "experimentId": null,
         "addedAt": "2026-03-07"
       }
     ],
     "rejected": [
-      {
-        "hypothesis": "BTC 체결 강도 매도 우위(0.34~0.74) + 알트 전종목 매수 우위 + 동반 상승 2일 지속 시 알트 상대 강세 전환 (3회차)",
-        "reason": "6회차 통합 가설로 대체",
-        "rejectedAt": "2026-03-03"
-      },
       {
         "hypothesis": "BTC 체결 강도 매도 우위(0.11~0.74) + 알트 전종목 매수 우위 + 동반 상승 2일 지속 시 알트 상대 강세 전환 (4회차)",
         "reason": "6회차 통합 가설로 대체",
@@ -1261,6 +1263,11 @@
         "hypothesis": "BTC 체결 강도 0.19 — 이전 capitulation(0.16)과 유사 수준 재도달. 이중 바닥(double bottom) 패턴 형성 시 가격 반등 선행 지표로 활용 가능. 0.1 이하 추가 하락 없이 반등 시 바닥 확인 신뢰도 상승",
         "reason": "이중 바닥 자체는 형성되었으나(0.16→0.19→1.32 복귀), 가격은 여전히 -3.5% 하락 중으로 '가격 반등 선행 지표' 판단은 시기상조. 체결 강도 바닥→가격 바닥 간 시차 불명확. 상위 가설(체결 강도 이중 바닥 후 안정 유지 여부)로 통합",
         "rejectedAt": "2026-03-06"
+      },
+      {
+        "hypothesis": "choppinessThreshold 0.52 + reentryRsiMin 45 조합이 약세장→회복 전환 구간에서 기존 대비 1~2일 빠른 재진입 실현하면서도 MDD 2% 이내 유지 가능",
+        "reason": "적용 후 24h+ 경과에도 재진입 미발생. 현 시장 RSI가 45 미만, choppiness가 0.52 이상으로 추정되어 조건 미충족. 추가 완화 필요",
+        "rejectedAt": "2026-03-07"
       }
     ]
   }

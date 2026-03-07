@@ -127,6 +127,7 @@ function consolidateObservationCounters(hypotheses) {
     const counterPattern = /(\d+)회차\s*관측/;
 
     for (const item of hypotheses) {
+        if (!item.hypothesis) continue;
         const match = item.hypothesis.match(counterPattern);
         if (match) {
             item.observationCount = parseInt(match[1], 10);

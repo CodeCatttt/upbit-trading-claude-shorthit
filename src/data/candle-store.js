@@ -37,7 +37,9 @@ function save(market, unit, candles) {
         lastFetched: new Date().toISOString(),
         candles,
     };
-    fs.writeFileSync(fp, JSON.stringify(data, null, 2));
+    const tmpFp = fp + '.tmp';
+    fs.writeFileSync(tmpFp, JSON.stringify(data, null, 2));
+    fs.renameSync(tmpFp, fp);
 }
 
 function merge(existing, incoming) {

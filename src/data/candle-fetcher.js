@@ -72,6 +72,7 @@ async function fetchAll(market, unit) {
 
         // Set 'to' parameter to oldest candle's timestamp for next page
         const oldest = batch[0];
+        if (!oldest || !oldest.timestamp) break;
         to = oldest.timestamp.replace(' ', 'T');
 
         log.info(`  ${market} ${unit}m: fetched ${fetched}/${needed} (total: ${allCandles.length})`);

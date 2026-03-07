@@ -124,8 +124,9 @@ function runShadowCycle(candleData) {
                 // Get current prices for paper P&L
                 const fromMarket = candleData[from];
                 const toMarket = candleData[to];
-                const fromPrice = fromMarket && fromMarket[15] && fromMarket[15].length > 0
-                    ? fromMarket[15][fromMarket[15].length - 1].close : 0;
+                const fromCandles = fromMarket && fromMarket[15];
+                const fromPrice = (fromCandles && fromCandles.length > 0)
+                    ? fromCandles[fromCandles.length - 1].close : 0;
 
                 shadow.trades.push({
                     timestamp: new Date().toISOString(),

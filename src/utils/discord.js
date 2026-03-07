@@ -22,7 +22,7 @@ async function sendMessage(content) {
         const res = await axios.post(
             `${API_BASE}/channels/${CHANNEL_ID}/messages`,
             { content },
-            { headers: { Authorization: `Bot ${BOT_TOKEN}`, 'Content-Type': 'application/json' } }
+            { headers: { Authorization: `Bot ${BOT_TOKEN}`, 'Content-Type': 'application/json' }, timeout: 10000 }
         );
         return res.data;
     } catch (e) {
@@ -49,7 +49,7 @@ async function sendEmbed({ title, description, color = 0x3498db, fields = [] }) 
                     footer: { text: 'upbit-trading-claude' },
                 }],
             },
-            { headers: { Authorization: `Bot ${BOT_TOKEN}`, 'Content-Type': 'application/json' } }
+            { headers: { Authorization: `Bot ${BOT_TOKEN}`, 'Content-Type': 'application/json' }, timeout: 10000 }
         );
         return res.data;
     } catch (e) {

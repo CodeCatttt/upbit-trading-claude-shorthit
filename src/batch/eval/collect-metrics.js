@@ -267,7 +267,9 @@ async function collectMetrics() {
                 avgBuyPrice: parseFloat(b.avg_buy_price),
                 currentPrice: price,
                 valueKrw: val,
-                pnlPct: ((price - parseFloat(b.avg_buy_price)) / parseFloat(b.avg_buy_price) * 100),
+                pnlPct: parseFloat(b.avg_buy_price) > 0
+                    ? ((price - parseFloat(b.avg_buy_price)) / parseFloat(b.avg_buy_price) * 100)
+                    : 0,
             });
         }
     }
@@ -277,6 +279,7 @@ async function collectMetrics() {
         const earlyBotState = safeReadJSON(STATE_FILE);
         log.warn(`Portfolio value is 0 (assetHeld: ${earlyBotState?.assetHeld || 'unknown'}) — retrying API call...`);
         await new Promise(r => setTimeout(r, 5000));
+        totalValueKrw = 0; // Reset before retry to prevent double-counting
         const retryBalances = await api.getBalances();
         for (const b of retryBalances) {
             const bal = parseFloat(b.balance) + parseFloat(b.locked || '0');

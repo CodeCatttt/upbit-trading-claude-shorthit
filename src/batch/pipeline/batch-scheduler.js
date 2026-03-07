@@ -193,16 +193,24 @@ async function evaluateTriggers() {
 }
 
 let batchRunning = false;
+let batchStartTime = null;
+const BATCH_TIMEOUT_MS = 60 * 60 * 1000; // 1 hour max batch time
 
 /**
  * Execute the batch pipeline with the given trigger type
  */
 function executeBatch(triggerType) {
+    // Safety: reset stuck flag if batch has been running longer than timeout
+    if (batchRunning && batchStartTime && (Date.now() - batchStartTime > BATCH_TIMEOUT_MS)) {
+        log.warn(`Batch flag stuck for ${Math.round((Date.now() - batchStartTime) / 60000)}min, resetting.`);
+        batchRunning = false;
+    }
     if (batchRunning) {
         log.info(`Batch already running, skipping trigger: ${triggerType}`);
         return;
     }
     batchRunning = true;
+    batchStartTime = Date.now();
     log.info(`Executing batch with trigger: ${triggerType}`);
 
     // Set daily review date early (idempotent), but defer lastBatchTime to completion
@@ -232,6 +240,7 @@ function executeBatch(triggerType) {
 
     child.on('close', (code) => {
         batchRunning = false;
+        batchStartTime = null;
         log.info(`Batch completed with exit code: ${code}`);
         // Only update lastBatchTime after batch completes — failed batches don't block retries
         const schedulerState = loadSchedulerState();
@@ -241,6 +250,7 @@ function executeBatch(triggerType) {
 
     child.on('error', (err) => {
         batchRunning = false;
+        batchStartTime = null;
         log.error(`Batch spawn error: ${err.message}`);
     });
 }
