@@ -272,11 +272,11 @@ async function collectMetrics() {
         }
     }
 
-    // Sanity check: if bot holds an asset but totalValueKrw is 0, retry once
-    const earlyBotState = safeReadJSON(STATE_FILE);
-    if (totalValueKrw === 0 && earlyBotState && earlyBotState.assetHeld && earlyBotState.assetHeld !== 'CASH') {
-        log.warn(`Portfolio value is 0 but bot holds ${earlyBotState.assetHeld} — retrying API call...`);
-        await new Promise(r => setTimeout(r, 3000));
+    // Sanity check: if totalValueKrw is 0, retry once regardless of asset held
+    if (totalValueKrw === 0) {
+        const earlyBotState = safeReadJSON(STATE_FILE);
+        log.warn(`Portfolio value is 0 (assetHeld: ${earlyBotState?.assetHeld || 'unknown'}) — retrying API call...`);
+        await new Promise(r => setTimeout(r, 5000));
         const retryBalances = await api.getBalances();
         for (const b of retryBalances) {
             const bal = parseFloat(b.balance) + parseFloat(b.locked || '0');
@@ -291,11 +291,29 @@ async function collectMetrics() {
                 } catch {}
             }
         }
+
+        // Fallback: use last known value from performance ledger
         if (totalValueKrw === 0) {
-            log.error(`Portfolio value still 0 after retry. Skipping metrics save to prevent data corruption.`);
+            try {
+                const ledgerPath = path.join(__dirname, '../../../data/performance-ledger.json');
+                const ledger = safeReadJSON(ledgerPath);
+                if (ledger && ledger.entries && ledger.entries.length > 0) {
+                    const lastEntry = ledger.entries[ledger.entries.length - 1];
+                    if (lastEntry.portfolioValueKrw > 0) {
+                        totalValueKrw = lastEntry.portfolioValueKrw;
+                        log.warn(`Using fallback from performance ledger: ${totalValueKrw} KRW (date: ${lastEntry.date})`);
+                    }
+                }
+            } catch (e) {
+                log.warn(`Performance ledger fallback failed: ${e.message}`);
+            }
+        }
+
+        if (totalValueKrw === 0) {
+            log.error(`Portfolio value still 0 after retry + fallback. Skipping metrics save.`);
             return null;
         }
-        log.info(`Retry succeeded, portfolio value: ${totalValueKrw}`);
+        log.info(`Retry/fallback succeeded, portfolio value: ${totalValueKrw}`);
     }
 
     // 2. Current strategy (resolve re-exports to get actual code)

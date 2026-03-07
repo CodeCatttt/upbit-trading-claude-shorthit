@@ -220,6 +220,10 @@ if [ "$ACTION" = "modify" ]; then
     git add -A src/strategies/ trading-config.json 2>/dev/null || true
     git commit -m "batch: modify strategy parameters - $REASONING" 2>/dev/null || true
 
+    # Restart PM2 to reload modified parameters
+    echo "  Restarting PM2 to apply modified parameters..."
+    pm2 restart upbit-trading-bot 2>/dev/null || echo "  WARNING: PM2 restart failed"
+
     MODIFY_DECISION=$(json_field "$PARSE_RESULT" "JSON.stringify(o.decision)")
     MODIFY_JSON=$(PARAMS_JSON="$PARAMS" DECISION_JSON="$MODIFY_DECISION" node -e "
         const p = JSON.parse(process.env.PARAMS_JSON);

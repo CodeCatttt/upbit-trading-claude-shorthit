@@ -38,12 +38,25 @@ const afterConfig = code.slice(configEnd);
 
 // Replace values ONLY within DEFAULT_CONFIG block
 // Supports nested keys (e.g. "smartEntry.rsiThreshold") and string values (e.g. "executionMode": "smart")
+let failCount = 0;
 for (const [key, value] of Object.entries(params)) {
     const leafKey = key.includes('.') ? key.split('.').pop() : key;
+    const isBool = typeof value === 'boolean';
     const isString = typeof value === 'string';
 
     let replaced = false;
-    if (isString) {
+
+    // Boolean values first — prevents numeric regex from interfering
+    if (isBool) {
+        const boolRegex = new RegExp('(' + leafKey + '\\s*:\\s*)(true|false)');
+        if (boolRegex.test(configBlock)) {
+            configBlock = configBlock.replace(boolRegex, '$1' + String(value));
+            replaced = true;
+        }
+    }
+
+    // String values
+    if (!replaced && isString) {
         const strRegex = new RegExp("(" + leafKey + "\\s*:\\s*)['\"]([^'\"]*)['\"]");
         if (strRegex.test(configBlock)) {
             configBlock = configBlock.replace(strRegex, "$1'" + value + "'");
@@ -51,19 +64,20 @@ for (const [key, value] of Object.entries(params)) {
         }
     }
 
-    if (!replaced) {
-        const numRegex = new RegExp('(' + leafKey + '\\s*:\\s*)([\\d.]+)');
+    // Numeric values
+    if (!replaced && !isBool) {
+        const numRegex = new RegExp('(' + leafKey + '\\s*:\\s*)(-?[\\d.]+)');
         if (numRegex.test(configBlock)) {
             configBlock = configBlock.replace(numRegex, '$1' + value);
             replaced = true;
         }
     }
 
-    // Also match boolean values: key: true or key: false
+    // Fallback: try boolean match for string "true"/"false" values
     if (!replaced) {
         const boolRegex = new RegExp('(' + leafKey + '\\s*:\\s*)(true|false)');
         if (boolRegex.test(configBlock)) {
-            configBlock = configBlock.replace(boolRegex, '$1' + value);
+            configBlock = configBlock.replace(boolRegex, '$1' + String(value));
             replaced = true;
         }
     }
@@ -72,10 +86,22 @@ for (const [key, value] of Object.entries(params)) {
         console.log('  Updated ' + key + ' = ' + value);
     } else {
         console.log('  WARNING: key ' + key + ' not found in DEFAULT_CONFIG');
+        failCount++;
     }
 }
 
 code = beforeConfig + configBlock + afterConfig;
 
 fs.writeFileSync(targetPath, code);
+
+// Verify the write succeeded by reading back
+const verifyCode = fs.readFileSync(targetPath, 'utf8');
+if (verifyCode !== code) {
+    console.error('  ERROR: File verification failed — written content does not match');
+    process.exit(1);
+}
+
 console.log('  Strategy parameters updated: ' + targetPath);
+if (failCount > 0) {
+    console.error('  WARNING: ' + failCount + ' parameter(s) could not be applied');
+}
