@@ -2,38 +2,6 @@
   "maxEntries": 50,
   "entries": [
     {
-      "timestamp": "2026-03-05T02:30:50.938Z",
-      "action": "keep",
-      "reasoning": "전 종목 강세(+5.73%) + 저분산(1.3%) 동반 상승 레짐 지속. BTC 피크 대비 -1.26%로 안정적 보유 중. 체결 강도 divergence(BTC 매도 0.21 + 알트 매수 우위) 20회차 반복 확인. 전략 변경 불필요.",
-      "confidence": 0.93,
-      "parameters": null,
-      "markets": null,
-      "improvementAreas": [],
-      "backtestResult": null,
-      "outcome": "kept",
-      "notes": "다음 배치 체크: (1) 포트폴리오 가치 0 KRW — collect-metrics.js 잔고 조회 버그 80회 연속 미해결, 별도 디버깅 세션 필요, (2) BTC 체결 강도 0.21 극단 매도 지속 + 가격 +6.45% divergence 20회차, (3) 분산 1.3%로 1.25% 임계점 소폭 초과 3회 연속(1.26→1.41→1.3%) — 안정 범위 복귀 추세, (4) ETH 체결 강도 극단 매수 시리즈(9.36→10.79→3.42) 냉각 진행 중",
-      "retryAttempts": null,
-      "variantsTested": null,
-      "diagnosis": null,
-      "triggerType": "DAILY_REVIEW"
-    },
-    {
-      "timestamp": "2026-03-05T03:30:51.523Z",
-      "action": "keep",
-      "reasoning": "전 종목 동반 강세(+4~7%) 지속, BTC 피크 대비 -1.6%로 리스크 신호 없음. 분산 1.11%로 저분산 복귀, 전략 정상 작동 중. 포트폴리오 0 KRW 버그 81회차 미해결 — 별도 디버깅 필요.",
-      "confidence": 0.93,
-      "parameters": null,
-      "markets": null,
-      "improvementAreas": [],
-      "backtestResult": null,
-      "outcome": "kept",
-      "notes": "다음 배치 체크: (1) 포트폴리오 가치 0 KRW — collect-metrics.js 잔고 조회 버그 81회 연속 미해결, 별도 디버깅 세션 필요, (2) ETH 체결 강도 극단 매수 재급등(11.49) — 냉각→재반등 사이클 2회차 확인, 후속 경로 추적, (3) 분산 1.41→1.11%로 재수축 — 1.25% 임계점 이탈 후 복귀, 레짐 전환 여부 재평가",
-      "retryAttempts": null,
-      "variantsTested": null,
-      "diagnosis": null,
-      "triggerType": "DAILY_REVIEW"
-    },
-    {
       "timestamp": "2026-03-05T04:30:44.867Z",
       "action": "keep",
       "reasoning": "전 종목 강세(+5.72%) + 저분산(1.22%) 동반 상승 레짐 지속. BTC 피크 대비 -1.02%로 리스크 여유 충분. 전략 정상 작동 중.",
@@ -939,16 +907,78 @@
       "variantsTested": null,
       "diagnosis": null,
       "triggerType": "DAILY_REVIEW"
+    },
+    {
+      "timestamp": "2026-03-08T00:05:15.601Z",
+      "action": "modify",
+      "reasoning": "4일 0거래 + reconciliation에 의한 cooldown 리셋. flat market(dispersion 0.07%)에서 재진입 유도를 위해 cooldown 24(6h)로 단축, RSI 35, score 0.005, choppiness 0.65, ADX 15로 전면 완화. BTC 체결 강도 1.12로 매수 우위 복귀, 재진입 환경 조성됨.",
+      "confidence": 0.7,
+      "parameters": {
+        "reentryCooldown": 24,
+        "reentryRsiMin": 35,
+        "reentryMinScore": 0.005,
+        "choppinessThreshold": 0.65,
+        "adxMinTrend": 15
+      },
+      "markets": null,
+      "improvementAreas": [
+        "strategy"
+      ],
+      "backtestResult": {
+        "pass": false,
+        "gateType": "modify",
+        "returnImprovement": -4.5209,
+        "drawdownWorsening": 2.3687,
+        "dailyTrades": 0.56,
+        "reasons": [
+          "FAILED",
+          "Return improvement: -4.52% (need >= -1%)",
+          "Drawdown worsening: 2.37% (need <= 3%)",
+          "Daily trades: 0.56 (need >= 0.1 and <= 10)"
+        ]
+      },
+      "outcome": "gate_failed",
+      "notes": "재진입 조건 3차 완화 — 최대한 공격적 설정. (1) 6h 후 cooldown 충족 시 재진입 발생 여부 확인, (2) 미발생 시 scoreMarket 자체가 음수일 가능성 → 다음 배치에서 CASH 최대 체류 기간 강제 재진입(288캔들=3일) 포함 replace 필수, (3) bot-state CASH vs 실제 BTC 보유 불일치 모니터링 — 매도 미체결이면 운영 이슈 확인 필요",
+      "retryAttempts": null,
+      "variantsTested": null,
+      "diagnosis": null,
+      "triggerType": "DAILY_REVIEW"
+    },
+    {
+      "timestamp": "2026-03-09T00:08:32.637Z",
+      "action": "replace",
+      "reasoning": "5일 0거래, 3차 modify gate_failed. 파라미터 완화로는 해결 불가한 구조적 CASH 고착. Graduated re-entry(시간 경과에 따른 조건 점진 완화 + 48h 후 강제 재진입)로 전략 비활성 문제 근본 해결.",
+      "confidence": 0.75,
+      "parameters": null,
+      "markets": null,
+      "improvementAreas": [
+        "strategy",
+        "risk"
+      ],
+      "backtestResult": {
+        "pass": true,
+        "gateType": "replace",
+        "returnImprovement": 8.5749,
+        "drawdownWorsening": -4.4641,
+        "dailyTrades": 0.64,
+        "reasons": [
+          "PASSED",
+          "Return improvement: 8.57% (need >= 0%)",
+          "Drawdown worsening: -4.46% (need <= 2%)",
+          "Daily trades: 0.64 (need >= 0.15 and <= 10)"
+        ]
+      },
+      "outcome": "deployed",
+      "notes": "다음 배치 체크: (1) graduated re-entry 실제 발동 여부 — phase2/phase3 도달 시 재진입 트리거 확인, (2) 재진입 후 trailing stop 동작 — 불필요한 CASH→재진입→CASH 사이클(whipsaw) 발생 여부, (3) 거래 빈도 0.15+/일 유지 확인",
+      "retryAttempts": 1,
+      "variantsTested": 2,
+      "diagnosis": null,
+      "triggerType": "DAILY_REVIEW"
     }
   ],
   "strategicNotes": "1) 하락장에서 높은 상관관계 자산 간 로테이션은 거래비용만 소모. 2) BTC가 하락장 기본 보유자산으로 최적. 3) 거래 빈도 영향 극대 — 13회 거래 시 비용만 ~3.9% 추가 손실. 4) 레짐 필터가 핵심 방어 메커니즘. 5) 코드 전면 교체보다 최소 변경이 배포 안정성 우수. 6) 현 전략(10회 거래, BTC 대비 +6.22%)이 검증된 성과. 7) 파라미터 완화(cooldown↓, threshold↓)는 검증 실패 확정 — 거래 증가로 성과 대폭 악화(-15.75%). 8) SOL이 반등 국면에서 최강 모멘텀이나, 단기 스위칭은 비용 대비 효과 미미. 9) MDD 3% 게이트 의식한 점진적 변경 필요. 10) 연속 배포 실패 시 keep 유지가 최선. 11) bot-state/포트폴리오 불일치 해결 완료. 13) 그레이스 기간(96캔들=24h) whipsaw 방지 효과적. 14) XRP 재진입 진동 패턴 — reentryCooldown 288로 억제 중. 16) deploy.js 롤백 시 bot-state.json 보존/복원 로직 개선 필요. 17) 포트폴리오 90K 소규모 — 거래 최소화가 비용 절감에 결정적. 18) 현행 파라미터(288/0.4)가 최적 근처임을 modify 실패로 검증 완료. 19) -9.52% 경고는 실패한 modify 백테스트 결과이며 현행 전략 실제 성과 아님 — 배치 분석 시 혼동 주의. 21) 그레이스 기간 종료 시점이 리스크 관리의 핵심 전환점 — 활성화 후 첫 배치에서 피크 추적 정상 작동 반드시 확인.",
   "knowledge": {
     "confirmed": [
-      {
-        "insight": "그레이스 기간 종료 시점이 리스크 관리의 핵심 전환점 — 활성화 후 첫 배치에서 피크 추적 정상 작동 반드시 확인.",
-        "evidence": "migrated from strategicNotes",
-        "addedAt": "2026-03-01"
-      },
       {
         "insight": "그레이스 기간(96캔들) 종료 후 트레일링 스탑 활성화 전환이 정상 작동함을 실전 확인",
         "evidence": "candlesSinceLastTrade 98에서 peakPriceSinceEntry 97,504,000 유지, 리스크 체크 로직 정상 진입",
@@ -1043,15 +1073,14 @@
         "insight": "BTC 체결 강도 이중 바닥(0.16→0.19) 형성 후 1.32로 회복 — 이중 바닥 패턴이 체결 강도 반등의 선행 구조로 작동. 다만 이전 5회 1.0+ 복귀 후 재붕괴한 이력 존재하여 지속성 관찰 필요",
         "evidence": "0.16(1차 저점)→1.38→0.19(2차 저점, 유사 수준)→1.32(현재 복귀). 2차 저점이 1차와 유사 수준(0.03 차이)으로 고전적 이중 바닥 형태. 2026-03-07",
         "addedAt": "2026-03-06"
+      },
+      {
+        "insight": "파라미터 완화만으로는 flat market CASH 고착을 해결할 수 없음 — checkReentry의 AND 조건 구조 자체가 문제. 3차 modify(RSI 35, score 0.005, choppiness 0.65, ADX 15, cooldown 24)까지 실패",
+        "evidence": "2026-03-07 modify(choppiness 0.52, RSI 45), 2026-03-07 modify(RSI 40, score 0.02, choppiness 0.58), 2026-03-08 modify(RSI 35, score 0.005, choppiness 0.65, ADX 15) 모두 재진입 미발생 또는 gate_failed. dispersion 0.04~0.56% 구간에서 조건 동시 충족 불가 (2026-03-09)",
+        "addedAt": "2026-03-09"
       }
     ],
     "hypotheses": [
-      {
-        "hypothesis": "체결 강도 극단적 알트 매수 우위(ETH 8.45, XRP 7.11, SOL 3.98) vs BTC 1.32 divergence에서 가격은 전 종목 동반 하락 — 체결 강도 매수 우위가 가격 하락 중 저가 매수세 유입을 의미하나 즉시 가격 반등으로 연결되지 않음. 체결 강도와 가격 간 시차(lag)가 24h 이상일 수 있음",
-        "status": "proposed",
-        "experimentId": null,
-        "addedAt": "2026-03-06"
-      },
       {
         "hypothesis": "BTC 체결 강도 0.19 + 알트 체결 강도 4.0+(SOL 4.23, XRP 4.78) 극단적 divergence 구간에서 CASH→재진입 시 알트(SOL/XRP)가 BTC 대비 초과수익 가능성. 알트 매수세가 BTC보다 현저히 강하므로 반등 시 알트 선도 회복 예상",
         "status": "proposed",
@@ -1073,12 +1102,6 @@
       },
       {
         "hypothesis": "STAGNATION 트리거 시 극저분산(0.36%) + 전 종목 약세 조합에서는 거래 부재가 전략 결함이 아닌 정상 동작임 — 고상관 약세장에서 스위칭은 수수료 손실만 초래",
-        "status": "proposed",
-        "experimentId": null,
-        "addedAt": "2026-03-05"
-      },
-      {
-        "hypothesis": "trailing stop 8% + crash 5%로 완화하면 약세장에서 CASH 전환 빈도 증가 → 하방 MDD 개선 가능. 재진입 쿨다운 144(1.5일)로 단축 시 반등 포착력도 향상",
         "status": "proposed",
         "experimentId": null,
         "addedAt": "2026-03-05"
@@ -1162,28 +1185,19 @@
         "addedAt": "2026-03-06"
       },
       {
-        "hypothesis": "reentryRsiMin 40 + reentryMinScore 0.02 + choppinessThreshold 0.58 조합이 약세장 말기(RSI 40-44, choppiness 0.52-0.58) 구간에서 기존 조합 대비 12-24h 빠른 재진입 실현하면서 MDD 3% 이내 유지 가능",
+        "hypothesis": "reentryCooldown 24 + reentryRsiMin 35 + reentryMinScore 0.005 + choppinessThreshold 0.65 + adxMinTrend 15 조합이 극저분산(0.07%) flat market에서 CASH→재진입을 실현하는 최소 조건인지 확인. 미발생 시 조건 완화가 아닌 forced re-entry 로직이 필요",
         "status": "proposed",
         "experimentId": null,
-        "addedAt": "2026-03-07"
+        "addedAt": "2026-03-08"
+      },
+      {
+        "hypothesis": "Graduated re-entry(phase1: 12h strict → phase2: 24h relaxed → phase3: 48h forced)가 flat market CASH 고착을 해결하면서 MDD 2% 이내 악화로 제어 가능. 강제 재진입 후 trailing stop 7%가 하방 보호 역할 수행",
+        "status": "proposed",
+        "experimentId": null,
+        "addedAt": "2026-03-09"
       }
     ],
     "rejected": [
-      {
-        "hypothesis": "BTC 체결 강도 매도 우위(0.11~0.74) + 알트 전종목 매수 우위 + 동반 상승 2일 지속 시 알트 상대 강세 전환 (4회차)",
-        "reason": "6회차 통합 가설로 대체",
-        "rejectedAt": "2026-03-03"
-      },
-      {
-        "hypothesis": "BTC 체결 강도 매도 우위(0.34) + 알트 전종목 매수 우위 반전 2일 지속 시 알트 상대 강세 전환",
-        "reason": "6회차 통합 가설로 대체",
-        "rejectedAt": "2026-03-03"
-      },
-      {
-        "hypothesis": "BTC 체결 강도 매도 우위 + 알트 전종목 매수 우위 반전이 2일 이상 지속되면 알트 상대 강세 전환 가능성",
-        "reason": "6회차 통합 가설로 대체",
-        "rejectedAt": "2026-03-03"
-      },
       {
         "hypothesis": "전 종목 체결 강도 매도 우위(BTC 0.45, ETH 0.33, SOL 0.71, XRP 0.2) 전환 시 전 종목 추가 하락 가능성",
         "reason": "1회차 관측 후 바로 전 종목 매수 우위로 반전(BTC 4.2, ETH 1.1, SOL 2.09, XRP 1.67). 매도 우위 전환이 지속적 약세 신호가 아닌 일시적 현상이었을 가능성",
@@ -1268,6 +1282,21 @@
         "hypothesis": "choppinessThreshold 0.52 + reentryRsiMin 45 조합이 약세장→회복 전환 구간에서 기존 대비 1~2일 빠른 재진입 실현하면서도 MDD 2% 이내 유지 가능",
         "reason": "적용 후 24h+ 경과에도 재진입 미발생. 현 시장 RSI가 45 미만, choppiness가 0.52 이상으로 추정되어 조건 미충족. 추가 완화 필요",
         "rejectedAt": "2026-03-07"
+      },
+      {
+        "hypothesis": "reentryRsiMin 40 + reentryMinScore 0.02 + choppinessThreshold 0.58 조합이 약세장 말기(RSI 40-44, choppiness 0.52-0.58) 구간에서 기존 조합 대비 12-24h 빠른 재진입 실현하면서 MDD 3% 이내 유지 가능",
+        "reason": "2026-03-07 적용 후 24h+ 경과에도 재진입 미발생. reconciliation에 의한 candlesSinceLastTrade 리셋 영향 있으나, flat market(dispersion 0.07~0.56%)에서 해당 조합으로는 score/RSI/choppiness 중 하나 이상 미충족 지속",
+        "rejectedAt": "2026-03-08"
+      },
+      {
+        "hypothesis": "reentryCooldown 24 + reentryRsiMin 35 + reentryMinScore 0.005 + choppinessThreshold 0.65 + adxMinTrend 15 조합이 극저분산 flat market에서 CASH→재진입을 실현하는 최소 조건인지 확인",
+        "reason": "3차 modify까지 실패. 파라미터 완화 접근 자체가 구조적 한계 — AND 조건의 개별 임계 하향이 아닌 시간 기반 조건 완화(graduated)가 필요 (2026-03-09)",
+        "rejectedAt": "2026-03-09"
+      },
+      {
+        "hypothesis": "trailing stop 8% + crash 5%로 완화하면 약세장에서 CASH 전환 빈도 증가 → 하방 MDD 개선 가능. 재진입 쿨다운 144(1.5일)로 단축 시 반등 포착력도 향상",
+        "reason": "현재 문제는 exit 조건이 아닌 re-entry 조건. trailing stop/crash threshold 변경은 CASH 고착 문제와 무관 (2026-03-09)",
+        "rejectedAt": "2026-03-09"
       }
     ]
   }

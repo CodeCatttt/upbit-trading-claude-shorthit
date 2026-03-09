@@ -1,16 +1,12 @@
-// VARIANT: intensity-per-market-filter
+// VARIANT: graduated-reentry-aggressive
 /**
- * adaptive-regime-mt.js
- * Multi-timeframe adaptive strategy with CASH management.
+ * adaptive-regime-mt.js — Graduated Re-entry (Aggressive)
  *
- * Key features:
- * - 15m candles: fast risk signals (crash detection, trailing stop)
- * - 4h candles: trend scoring, regime detection, switch decisions
- * - Adaptive cooldown: short in trending, long in choppy markets
- * - CASH conversion: trailing stop + 24h crash detection
- * - Smart re-entry: RSI + ADX trend strength + Stochastic confirmation
- * - Enhanced scoring: momentum(35%) + trend(35%) + volume(15%) + Bollinger(15%)
- * - Per-market intensity filtering: prevents high-score low-intensity market from blocking all re-entry
+ * Same as conservative variant but with faster phase transitions:
+ *   Phase 1 (12h+): strict
+ *   Phase 2 (18h+): relaxed
+ *   Phase 3 (36h+): forced
+ * Lower base thresholds for earlier re-entry.
  */
 
 'use strict';
@@ -40,12 +36,14 @@ const DEFAULT_CONFIG = {
     crashThreshold: 0.04,
     riskGracePeriod: 48,
 
-    // Re-entry from CASH
-    reentryRsiMin: 40,
-    reentryMinScore: 0.02,
+    // Re-entry from CASH (aggressive graduated)
+    reentryRsiMin: 35,
+    reentryMinScore: 0.005,
     reentryTrendConfirm: false,
-    reentryCooldown: 48,            // 12h minimum stay in CASH (was 72/18h)
-    reentryIntensityMin: 0.3,       // Block only extreme capitulation (was 0.5)
+    reentryCooldown: 48,            // Phase 1: 12h
+    reentryPhase2Candles: 72,       // Phase 2: 18h (was 96)
+    maxCashCandles: 144,            // Phase 3: 36h (was 192)
+    reentryIntensityMin: 0.3,
     reentryStochMax: 85,
 
     // Scoring weights
@@ -97,8 +95,6 @@ function calcChoppiness(candles, period) {
 function scoreMarket(candles4h, config) {
     if (!candles4h || candles4h.length < config.trendLookback) return null;
 
-    // Trim to last 200 candles — all indicators need at most ~100 warmup.
-    // Prevents O(n) recomputation on 9000+ historical candles each tick.
     if (candles4h.length > 200) candles4h = candles4h.slice(-200);
 
     const choppiness = calcChoppiness(candles4h, config.choppinessPeriod);
@@ -209,13 +205,13 @@ function checkTrailingStop(state, currentPrice, config) {
 }
 
 /**
- * Re-entry logic — per-market intensity filtering.
- * Markets with trade intensity below threshold are excluded BEFORE selecting best candidate.
- * This prevents a high-score but low-intensity market from blocking re-entry into other markets.
+ * Graduated re-entry: conditions relax over time in CASH.
+ *
+ * Phase 1 (reentryCooldown+):      Strict — all conditions apply
+ * Phase 2 (reentryPhase2Candles+):  Relaxed — ignore choppiness, lower thresholds
+ * Phase 3 (maxCashCandles+):        Forced — minimal conditions, best market selected
  */
 function checkReentry(state, candleData, markets, config) {
-    // Cache: reuse scores if 240m data unchanged (same as onNewCandle)
-    // Key includes last candle timestamp + config values that affect scoring
     const candles4hKey = markets.map(m => {
         const c = candleData[m] && candleData[m][240];
         if (!c || c.length === 0) return '0';
@@ -240,7 +236,46 @@ function checkReentry(state, candleData, markets, config) {
         return { action: 'NONE', details: { reason: 'no_scoreable_markets' } };
     }
 
-    // Build summary for all scored markets (before filtering)
+    // Determine graduated re-entry phase
+    const cashAge = state.candlesSinceLastTrade;
+    const phase1 = config.reentryCooldown || 48;
+    const phase2 = config.reentryPhase2Candles || 72;
+    const phase3 = config.maxCashCandles || 144;
+
+    let reentryPhase = 0;
+    if (cashAge >= phase3) reentryPhase = 3;
+    else if (cashAge >= phase2) reentryPhase = 2;
+    else if (cashAge >= phase1) reentryPhase = 1;
+
+    // Phase-dependent thresholds
+    let rsiMin, scoreMin, ignoreChoppy, adxMin, intensityMin;
+    switch (reentryPhase) {
+        case 3: // Forced re-entry (36h+)
+            rsiMin = 20;
+            scoreMin = -1.0;
+            ignoreChoppy = true;
+            adxMin = 0;
+            intensityMin = 0.1;
+            break;
+        case 2: // Relaxed (18h+)
+            rsiMin = 30;
+            scoreMin = -0.05;
+            ignoreChoppy = true;
+            adxMin = 5;
+            intensityMin = 0.15;
+            break;
+        case 1: // Strict (12h+)
+            rsiMin = config.reentryRsiMin;
+            scoreMin = config.reentryMinScore;
+            ignoreChoppy = false;
+            adxMin = config.adxMinTrend || 20;
+            intensityMin = config.reentryIntensityMin || 0.3;
+            break;
+        default: // Cooldown not met
+            break;
+    }
+
+    // Build summary for all scored markets
     const summary = {};
     for (const m of scoredMarkets) {
         summary[m] = {
@@ -253,11 +288,25 @@ function checkReentry(state, candleData, markets, config) {
         };
     }
 
-    // Filter markets by trade intensity BEFORE selecting best candidate
-    const intensityThreshold = config.reentryIntensityMin || 0.5;
+    // Still in cooldown
+    if (reentryPhase === 0) {
+        return {
+            action: 'HOLD',
+            details: {
+                asset: 'CASH',
+                reason: 'cooldown',
+                cashAge,
+                cooldownRemaining: phase1 - cashAge,
+                reentryPhase,
+                scores: summary,
+            },
+        };
+    }
+
+    // Filter markets by intensity (threshold depends on phase)
     const eligibleMarkets = scoredMarkets.filter(m => {
         const intensity = candleData[m] && candleData[m]._tradeIntensity;
-        return intensity == null || intensity >= intensityThreshold;
+        return intensity == null || intensity >= intensityMin;
     });
 
     if (eligibleMarkets.length === 0) {
@@ -266,7 +315,8 @@ function checkReentry(state, candleData, markets, config) {
             details: {
                 asset: 'CASH',
                 reason: 'all_markets_low_intensity',
-                threshold: intensityThreshold,
+                threshold: intensityMin,
+                reentryPhase,
                 scores: summary,
             },
         };
@@ -274,18 +324,17 @@ function checkReentry(state, candleData, markets, config) {
 
     const best = eligibleMarkets.reduce((a, b) => scores[a].score > scores[b].score ? a : b);
     const bestScore = scores[best];
-    const bestIntensity = candleData[best] && candleData[best]._tradeIntensity;
 
-    const cashCooldownMet = state.candlesSinceLastTrade >= (config.reentryCooldown || 288);
     const stochOk = bestScore.stochK == null || bestScore.stochK < (config.reentryStochMax || 85);
-    const adxOk = bestScore.adx == null || bestScore.adx >= (config.adxMinTrend || 20);
+    const choppyOk = ignoreChoppy || !bestScore.isChoppy;
+    const adxOk = bestScore.adx == null || bestScore.adx >= adxMin;
 
     const canReenter =
-        cashCooldownMet &&
         stochOk &&
-        !bestScore.isChoppy &&
-        bestScore.rsi !== null && bestScore.rsi > config.reentryRsiMin &&
-        bestScore.score > config.reentryMinScore &&
+        choppyOk &&
+        adxOk &&
+        bestScore.rsi !== null && bestScore.rsi > rsiMin &&
+        bestScore.score > scoreMin &&
         (!config.reentryTrendConfirm || bestScore.trendCross > 0);
 
     if (canReenter) {
@@ -296,7 +345,9 @@ function checkReentry(state, candleData, markets, config) {
             action: 'SWITCH',
             details: {
                 targetMarket: best,
-                reason: 'reentry_from_cash',
+                reason: reentryPhase === 3 ? 'forced_reentry' :
+                        reentryPhase === 2 ? 'relaxed_reentry' : 'reentry_from_cash',
+                reentryPhase,
                 score: +bestScore.score.toFixed(4),
                 rsi: +bestScore.rsi.toFixed(1),
                 adx: bestScore.adx ? +bestScore.adx.toFixed(1) : null,
@@ -311,17 +362,20 @@ function checkReentry(state, candleData, markets, config) {
         details: {
             asset: 'CASH',
             reason: 'reentry_conditions_not_met',
+            reentryPhase,
             bestMarket: best,
             bestScore: +bestScore.score.toFixed(4),
             rsi: bestScore.rsi !== null ? +bestScore.rsi.toFixed(1) : null,
             adx: bestScore.adx ? +bestScore.adx.toFixed(1) : null,
             stochK: bestScore.stochK ? +bestScore.stochK.toFixed(1) : null,
             choppy: bestScore.isChoppy,
+            choppyOk,
             trendCross: +bestScore.trendCross.toFixed(4),
-            intensity: bestIntensity,
+            intensity: candleData[best] && candleData[best]._tradeIntensity,
             stochOk,
             adxOk,
-            cooldownMet: cashCooldownMet,
+            cashAge,
+            thresholds: { rsiMin, scoreMin, ignoreChoppy, adxMin },
             scores: summary,
         },
     };
@@ -329,7 +383,6 @@ function checkReentry(state, candleData, markets, config) {
 
 function onNewCandle(state, candleData, config = DEFAULT_CONFIG) {
     if (state.candlesSinceLastTrade === undefined) state.candlesSinceLastTrade = 9999;
-    // Increment AFTER cooldown checks to avoid off-by-one (cooldown matches exactly)
     const currentCandlesSince = state.candlesSinceLastTrade;
     state.candlesSinceLastTrade = currentCandlesSince + 1;
 
@@ -397,8 +450,6 @@ function onNewCandle(state, candleData, config = DEFAULT_CONFIG) {
     }
 
     // === TREND SCORING + SWITCH (4h) ===
-    // Cache: skip expensive indicator recalculation if 240m data unchanged
-    // Key includes last candle timestamp + config values that affect scoring
     const candles4hKey = markets.map(m => {
         const c = candleData[m] && candleData[m][240];
         if (!c || c.length === 0) return '0';
