@@ -457,7 +457,7 @@ if [ "$ACTION" = "propose_experiment" ]; then
                     } else {
                         console.log(JSON.stringify({success:false, reason:'deploy_failed'}));
                     }
-                " 2>/dev/null || echo '{"success":false,"reason":"shadow_error"}')
+                " 2>&1 || echo '{"success":false,"reason":"shadow_error"}')
 
                 SHADOW_OK=$(json_field "$SHADOW_DEPLOY_RESULT" "o.success")
                 echo "  Shadow deploy: $SHADOW_OK"

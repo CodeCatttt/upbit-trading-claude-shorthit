@@ -16,6 +16,9 @@ const { createLogger } = require('../../utils/logger');
 const log = createLogger('SHADOW');
 
 const SHADOW_DIR = path.join(__dirname, '../../../data/shadow-strategies');
+// Strategy files use relative require paths (e.g. '../core/indicators')
+// that must resolve from src/strategies/. Use this dir for validation.
+const STRATEGIES_DIR = path.join(__dirname, '../../strategies');
 const SHADOW_PERF_FILE = path.join(__dirname, '../../../data/shadow-performance.json');
 const PROMOTE_THRESHOLD_DAYS = 4;
 
@@ -48,8 +51,9 @@ function deployShadow(strategyCode, label, experimentId) {
     const id = `shadow-${Date.now()}`;
     const filePath = path.join(SHADOW_DIR, `${id}.js`);
 
-    // Validate syntax first
-    const tmpCheck = path.join(SHADOW_DIR, '.tmp-check.js');
+    // Validate syntax by loading from src/strategies/ where relative require
+    // paths (e.g. '../core/indicators', './custom-indicators') resolve correctly
+    const tmpCheck = path.join(STRATEGIES_DIR, '.shadow-tmp-check.js');
     try {
         fs.writeFileSync(tmpCheck, strategyCode);
         delete require.cache[require.resolve(tmpCheck)];
@@ -64,7 +68,10 @@ function deployShadow(strategyCode, label, experimentId) {
     }
     try { fs.unlinkSync(tmpCheck); } catch {}
 
+    // Store in shadow dir but also copy to strategies dir for runtime require resolution
     fs.writeFileSync(filePath, strategyCode);
+    const runtimePath = path.join(STRATEGIES_DIR, `${id}.js`);
+    fs.writeFileSync(runtimePath, strategyCode);
 
     // Initialize performance tracking
     const perf = loadShadowPerformance();
@@ -72,6 +79,7 @@ function deployShadow(strategyCode, label, experimentId) {
         label,
         experimentId: experimentId || null,
         filePath,
+        runtimePath,
         deployedAt: new Date().toISOString(),
         state: null, // Will be initialized on first cycle
         trades: [],
@@ -97,8 +105,8 @@ function runShadowCycle(candleData) {
     for (const id of shadowIds) {
         const shadow = perf.shadows[id];
         try {
-            // Load shadow strategy
-            const modPath = shadow.filePath;
+            // Load from runtimePath (src/strategies/) where relative requires resolve
+            const modPath = shadow.runtimePath || shadow.filePath;
             if (!fs.existsSync(modPath)) {
                 log.warn(`Shadow file missing: ${id}, removing.`);
                 delete perf.shadows[id];
@@ -210,9 +218,12 @@ function removeShadow(id) {
     const shadow = perf.shadows[id];
     if (!shadow) return false;
 
-    // Remove strategy file
+    // Remove strategy files (data dir + runtime copy in src/strategies/)
     try {
         if (fs.existsSync(shadow.filePath)) fs.unlinkSync(shadow.filePath);
+    } catch {}
+    try {
+        if (shadow.runtimePath && fs.existsSync(shadow.runtimePath)) fs.unlinkSync(shadow.runtimePath);
     } catch {}
 
     delete perf.shadows[id];

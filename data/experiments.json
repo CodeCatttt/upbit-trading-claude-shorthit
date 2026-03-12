@@ -2,6 +2,30 @@
   "active": [],
   "completed": [
     {
+      "id": "exp-003",
+      "hypothesis": "ATR 적응형 트레일링 스톱(3-10%) + TTM 스퀴즈 브레이크아웃 시그널(scoring 20%) + 절대 모멘텀 게이트를 통합하면, 저변동성 구간에서 타이트한 보호 + 변동성 복귀 시 정확한 진입으로 현재 전략 대비 alpha 개선 가능",
+      "design": {
+        "type": "shadow_strategy",
+        "duration": "7d",
+        "changes": {
+          "trailing_stop": "fixed 7% → ATR(14)×3.0 adaptive, clamped 3-10%",
+          "scoring": "+TTM Squeeze signal (BB/KC ratio, 20% weight), momentum 25%, trend 30%",
+          "re_entry": "squeeze-fire boost (phase1에서 RSI/score 임계 완화)",
+          "switch_gate": "+absolute momentum filter (totalReturn > 0 필수)",
+          "adx_threshold": "20 → 15 (earlier trend detection)"
+        },
+        "successCriteria": "alpha >= 2% vs live strategy over 7d"
+      },
+      "status": "completed",
+      "successCriteria": "alpha >= 2% vs live strategy over 7d",
+      "results": {
+        "reason": "Shadow deploy failed: strategy require paths (../core/indicators) resolve incorrectly from data/shadow-strategies/ directory. Bug fixed in shadow-manager.js — now validates and runs from src/strategies/ where relative paths resolve correctly."
+      },
+      "startedAt": "2026-03-12T16:43:02.639Z",
+      "completedAt": "2026-03-13T00:00:00.000Z",
+      "outcome": "inconclusive"
+    },
+    {
       "id": "exp-001",
       "hypothesis": "역divergence(전 종목 매수 우위 + 가격 하락) 3회 연속 후 반등 발생 시, 볼린저 하단 터치 + 체결 강도 매수 우위 조합을 재진입 보조 신호로 활용하면 CASH→재진입 타이밍 개선 가능",
       "design": {

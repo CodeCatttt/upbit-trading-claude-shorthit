@@ -2,22 +2,6 @@
   "maxEntries": 50,
   "entries": [
     {
-      "timestamp": "2026-03-05T08:30:52.605Z",
-      "action": "keep",
-      "reasoning": "시장 혼조세 속 저분산 레짐 안정 지속. BTC 피크 대비 -1.97%로 리스크 시그널 미발동. 체결 강도 매도 우위에도 가격 방어 패턴 26회차 일관. 전략 변경 필요성 없음.",
-      "confidence": 0.93,
-      "parameters": null,
-      "markets": null,
-      "improvementAreas": [],
-      "backtestResult": null,
-      "outcome": "kept",
-      "notes": "다음 배치 체크: (1) 포트폴리오 가치 0 KRW — collect-metrics.js 잔고 조회 버그 86회 연속 미해결, 별도 디버깅 세션 필요, (2) 분산 0.73%로 저분산 레짐 6회 연속 재수축 확인, (3) ETH 체결 강도 2.93으로 냉각(1.39) 후 반등 추적",
-      "retryAttempts": null,
-      "variantsTested": null,
-      "diagnosis": null,
-      "triggerType": "DAILY_REVIEW"
-    },
-    {
       "timestamp": "2026-03-05T09:30:46.974Z",
       "action": "keep",
       "reasoning": "전 종목 동반 강세(+2.18%), 분산 0.51% 역대 최저, BTC 매수 우위(2.0) 전환으로 상승 모멘텀 건전. 피크 대비 -1.1%로 리스크 없음. 전략 변경 불필요.",
@@ -980,6 +964,22 @@
       "variantsTested": null,
       "diagnosis": null,
       "triggerType": null
+    },
+    {
+      "timestamp": "2026-03-12T16:43:03.279Z",
+      "action": "experiment",
+      "reasoning": "현재 전략은 +2.18% 알파로 양호하나 8일간 0거래로 시장 전환 대응력이 미검증. ATR 적응형 트레일링 스톱(저변동성 시 타이트 보호) + TTM 스퀴즈 브레이크아웃 감지(압축→이탈 시 정확한 진입 타이밍)를 통합한 전략을 7일간 섀도우 테스트. 현재 전략 유지하면서 안전하게 검증 가능",
+      "confidence": 0.65,
+      "parameters": null,
+      "markets": null,
+      "improvementAreas": null,
+      "backtestResult": null,
+      "outcome": "registered",
+      "notes": "다음 리서치: (1) HMM 레짐 감지 구현 가능성 평가 — custom-indicators에 간소화 HMM 구현 가능 여부, (2) 역분산 스케일링 적용 — 스코어를 실현 분산의 역수로 스케일링하는 risk-managed momentum 연구, (3) mean-reversion 전략 — 극저분산 구간 전용 레짐별 전략 전환 검토",
+      "retryAttempts": null,
+      "variantsTested": null,
+      "diagnosis": null,
+      "triggerType": "WEEKLY_RESEARCH"
     }
   ],
   "strategicNotes": "1) 하락장에서 높은 상관관계 자산 간 로테이션은 거래비용만 소모. 2) BTC가 하락장 기본 보유자산으로 최적. 3) 거래 빈도 영향 극대 — 13회 거래 시 비용만 ~3.9% 추가 손실. 4) 레짐 필터가 핵심 방어 메커니즘. 5) 코드 전면 교체보다 최소 변경이 배포 안정성 우수. 6) 현 전략(10회 거래, BTC 대비 +6.22%)이 검증된 성과. 7) 파라미터 완화(cooldown↓, threshold↓)는 검증 실패 확정 — 거래 증가로 성과 대폭 악화(-15.75%). 8) SOL이 반등 국면에서 최강 모멘텀이나, 단기 스위칭은 비용 대비 효과 미미. 9) MDD 3% 게이트 의식한 점진적 변경 필요. 10) 연속 배포 실패 시 keep 유지가 최선. 11) bot-state/포트폴리오 불일치 해결 완료. 13) 그레이스 기간(96캔들=24h) whipsaw 방지 효과적. 14) XRP 재진입 진동 패턴 — reentryCooldown 288로 억제 중. 16) deploy.js 롤백 시 bot-state.json 보존/복원 로직 개선 필요. 17) 포트폴리오 90K 소규모 — 거래 최소화가 비용 절감에 결정적. 18) 현행 파라미터(288/0.4)가 최적 근처임을 modify 실패로 검증 완료. 19) -9.52% 경고는 실패한 modify 백테스트 결과이며 현행 전략 실제 성과 아님 — 배치 분석 시 혼동 주의. 21) 그레이스 기간 종료 시점이 리스크 관리의 핵심 전환점 — 활성화 후 첫 배치에서 피크 추적 정상 작동 반드시 확인.",
@@ -1173,6 +1173,24 @@
       },
       {
         "hypothesis": "bot.js reconciliation이 onNewCandle 후 state를 createStrategyState()로 덮어쓰는 구조적 버그 — peakPriceSinceEntry null + candlesSinceLastTrade 9999 고정이 3일 연속 증거. 전략 내 candle 데이터 기반 peak 복원 로직으로 방어 가능",
+        "status": "proposed",
+        "experimentId": null,
+        "addedAt": "2026-03-12"
+      },
+      {
+        "hypothesis": "ATR×3.0 기반 적응형 트레일링 스톱(3-10%)이 현재 극저분산(0.03-0.56%) 환경에서 고정 7% 대비 더 타이트한 보호(3-4%) 제공하면서, 변동성 복귀 시 자동 확장으로 불필요한 조기 청산 방지 가능",
+        "status": "proposed",
+        "experimentId": null,
+        "addedAt": "2026-03-12"
+      },
+      {
+        "hypothesis": "TTM Squeeze(BB inside Keltner) 시그널을 스코어링에 20% 가중치로 통합하면 변동성 압축→브레이크아웃 구간에서 현재 전략 대비 1-3일 빠른 진입 실현 가능. 특히 CASH→재진입 시 squeeze-fire 부스트로 졸업형 재진입의 phase 1 조건 완화 효과",
+        "status": "proposed",
+        "experimentId": null,
+        "addedAt": "2026-03-12"
+      },
+      {
+        "hypothesis": "스위칭 시 절대 모멘텀 게이트(타겟 자산 totalReturn > 0) 추가로 하락 추세 자산으로의 스위칭 방지 가능. 하락장에서 '덜 빠지는 자산'으로의 불필요한 로테이션 차단",
         "status": "proposed",
         "experimentId": null,
         "addedAt": "2026-03-12"
