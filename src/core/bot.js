@@ -255,17 +255,16 @@ async function runStrategyBoundary() {
             writeHeartbeat('STRATEGY_ERROR');
             return;
         }
-        // Restore all mutable state — bot controls transitions, not strategy.
-        // Strategy may reset counters on SWITCH, but we must not persist
-        // those changes until the trade actually executes.
+        // Bot always controls assetHeld — strategy must not change it
         state.assetHeld = savedState.assetHeld;
-        state.candlesSinceLastTrade = savedState.candlesSinceLastTrade;
-        state.peakPriceSinceEntry = savedState.peakPriceSinceEntry;
-        saveState();
 
         log.info(`Action: [${result.action}]`, result.details);
 
         if (result.action === 'SWITCH' && result.details && result.details.targetMarket) {
+            // Restore pre-trade counters — only persist changes after trade succeeds
+            state.candlesSinceLastTrade = savedState.candlesSinceLastTrade;
+            state.peakPriceSinceEntry = savedState.peakPriceSinceEntry;
+
             const targetMarket = result.details.targetMarket;
 
             // SELL_TO_CASH: sell current asset, hold KRW
@@ -450,6 +449,9 @@ async function runStrategyBoundary() {
                 }
                 saveState();
             }
+        } else {
+            // HOLD/NONE: preserve strategy's state updates (peak tracking, counter increment)
+            saveState();
         }
 
         writeHeartbeat(result.action);

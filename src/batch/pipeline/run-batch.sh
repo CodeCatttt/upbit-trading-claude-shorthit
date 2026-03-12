@@ -357,6 +357,101 @@ if [ "$ACTION" = "experiment" ]; then
                 echo "  Experiment backtest: $(json_field "$EXP_COMPARISON" "o.pass?'PASSED':'FAILED'")"
                 rm -f "$TEMP_STRATEGY"
             fi
+        else
+            # No strategy code provided — auto-generate for parameter_test
+            if [ "$DESIGN_TYPE" = "parameter_test" ]; then
+                CHANGES=$(json_field "$PARSE_RESULT" "JSON.stringify((o.decision.experiment&&o.decision.experiment.design&&o.decision.experiment.design.changes)||{})")
+
+                if [ "$CHANGES" != "{}" ] && [ "$CHANGES" != "null" ] && [ -n "$CHANGES" ]; then
+                    echo "  Auto-generating modified strategy from parameter changes..."
+                    cp src/strategies/current-strategy.js "$TEMP_STRATEGY"
+
+                    STRATEGY_PATH="$TEMP_STRATEGY" node src/batch/eval/apply-modify.js "$CHANGES" 2>/dev/null
+                    APPLY_EXIT=$?
+
+                    if [ $APPLY_EXIT -eq 0 ]; then
+                        echo "  Backtesting experiment strategy..."
+                        EXP_BACKTEST=$(node src/batch/eval/backtest.js --walk-forward "$TEMP_STRATEGY" 2>/dev/null || echo '{"test":{"error":"backtest failed"}}')
+                        CURRENT_WF=$(node src/batch/eval/backtest.js --walk-forward src/strategies/current-strategy.js 2>/dev/null || echo '{"test":{"error":"backtest failed"}}')
+
+                        EXP_COMPARISON=$(CUR_WF="$CURRENT_WF" NEW_WF_JSON="$EXP_BACKTEST" node -e "
+                            const { compareStrategies } = require('./src/batch/eval/backtest');
+                            const currentWF = JSON.parse(process.env.CUR_WF);
+                            const newWF = JSON.parse(process.env.NEW_WF_JSON);
+                            const cTest = currentWF.test || {};
+                            const nTest = newWF.test || {};
+                            if (cTest.error || nTest.error) {
+                                console.log(JSON.stringify({pass:false, reasons:['Backtest error']}));
+                            } else {
+                                const cMetrics = cTest.measurePeriod || cTest;
+                                const nMetrics = nTest.measurePeriod || nTest;
+                                console.log(JSON.stringify(compareStrategies(cMetrics, nMetrics, 'modify')));
+                            }
+                        ")
+
+                        COMP_JSON="$EXP_COMPARISON" EXP_ID_VAL="$EXP_ID" node -e "
+                            const { updateExperimentStatus } = require('./src/batch/learning/experiment-manager');
+                            const comp = JSON.parse(process.env.COMP_JSON);
+                            const status = comp.pass ? 'backtest_passed' : 'backtest_failed';
+                            updateExperimentStatus(process.env.EXP_ID_VAL, status, {
+                                backtestReturn: comp.returnImprovement,
+                                backtestMdd: comp.drawdownWorsening,
+                            });
+                        " 2>/dev/null || true
+                        echo "  Experiment backtest: $(json_field "$EXP_COMPARISON" "o.pass?'PASSED':'FAILED'")"
+
+                        # If passed, deploy as shadow for paper-trading evaluation
+                        EXP_PASS=$(json_field "$EXP_COMPARISON" "o.pass")
+                        if [ "$EXP_PASS" = "true" ]; then
+                            echo "  Deploying as shadow strategy for evaluation..."
+                            SHADOW_DEPLOY_RESULT=$(TEMP_FILE="$TEMP_STRATEGY" SHADOW_LABEL="$HYPOTHESIS" SHADOW_EXP_ID="$EXP_ID" node -e "
+                                const { deployShadow } = require('./src/batch/learning/shadow-manager');
+                                const fs = require('fs');
+                                const code = fs.readFileSync(process.env.TEMP_FILE, 'utf8');
+                                const id = deployShadow(code, process.env.SHADOW_LABEL, process.env.SHADOW_EXP_ID);
+                                console.log(id ? JSON.stringify({success:true,shadowId:id}) : JSON.stringify({success:false}));
+                            " 2>/dev/null || echo '{"success":false}')
+
+                            SHADOW_OK=$(json_field "$SHADOW_DEPLOY_RESULT" "o.success")
+                            if [ "$SHADOW_OK" = "true" ]; then
+                                SHADOW_ID=$(json_field "$SHADOW_DEPLOY_RESULT" "o.shadowId")
+                                echo "  Shadow deployed: $SHADOW_ID"
+                                EXP_ID_VAL="$EXP_ID" SHADOW_ID_VAL="$SHADOW_ID" node -e "
+                                    const { updateExperimentStatus } = require('./src/batch/learning/experiment-manager');
+                                    updateExperimentStatus(process.env.EXP_ID_VAL, 'shadow_running', {
+                                        shadowId: process.env.SHADOW_ID_VAL,
+                                    });
+                                " 2>/dev/null || true
+                            fi
+                        fi
+                    else
+                        echo "  Parameter application failed."
+                        EXP_ID_VAL="$EXP_ID" node -e "
+                            const { completeExperiment } = require('./src/batch/learning/experiment-manager');
+                            completeExperiment(process.env.EXP_ID_VAL, 'inconclusive', {
+                                reason: 'Parameter application failed'
+                            });
+                        " 2>/dev/null || true
+                    fi
+                    rm -f "$TEMP_STRATEGY"
+                else
+                    echo "  No parameter changes specified."
+                    EXP_ID_VAL="$EXP_ID" node -e "
+                        const { completeExperiment } = require('./src/batch/learning/experiment-manager');
+                        completeExperiment(process.env.EXP_ID_VAL, 'inconclusive', {
+                            reason: 'No parameter changes in experiment design'
+                        });
+                    " 2>/dev/null || true
+                fi
+            else
+                echo "  shadow_strategy requires strategy code block. Completing as inconclusive."
+                EXP_ID_VAL="$EXP_ID" node -e "
+                    const { completeExperiment } = require('./src/batch/learning/experiment-manager');
+                    completeExperiment(process.env.EXP_ID_VAL, 'inconclusive', {
+                        reason: 'shadow_strategy requires a javascript code block'
+                    });
+                " 2>/dev/null || true
+            fi
         fi
     fi
 

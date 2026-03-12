@@ -266,6 +266,29 @@ function mergeKnowledge(memory, incomingKnowledge) {
     }
 }
 
+/**
+ * Unconditionally enforce knowledge base capacity limits.
+ * Called on every appendEntry to prevent overflow regardless of incoming data.
+ */
+function pruneKnowledge(memory) {
+    const kb = memory.knowledge;
+    if (!kb) return;
+
+    if (kb.confirmed && kb.confirmed.length > 20) {
+        kb.confirmed = deduplicateByTopic(kb.confirmed, 'insight');
+        if (kb.confirmed.length > 20) kb.confirmed = kb.confirmed.slice(-20);
+    }
+    if (kb.hypotheses && kb.hypotheses.length > 20) {
+        kb.hypotheses = consolidateObservationCounters(kb.hypotheses);
+        kb.hypotheses = deduplicateByTopic(kb.hypotheses, 'hypothesis');
+        if (kb.hypotheses.length > 20) kb.hypotheses = kb.hypotheses.slice(-20);
+    }
+    if (kb.rejected && kb.rejected.length > 20) {
+        kb.rejected = deduplicateByTopic(kb.rejected, 'hypothesis');
+        if (kb.rejected.length > 20) kb.rejected = kb.rejected.slice(-20);
+    }
+}
+
 function appendEntry(data) {
     const memory = loadMemory();
 
@@ -298,6 +321,9 @@ function appendEntry(data) {
     if (data.knowledge) {
         mergeKnowledge(memory, data.knowledge);
     }
+
+    // Always enforce knowledge capacity limits (catches pre-existing overflow)
+    pruneKnowledge(memory);
 
     // Legacy: still accept strategicNotes for backward compat
     if (data.strategicNotes !== undefined && data.strategicNotes !== null) {
