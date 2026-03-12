@@ -8,13 +8,25 @@ Upbit 멀티에셋 트레이딩 봇 with Claude-powered batch strategy analysis.
 - **Execution** (`src/execution/smart-entry.js`): Smart entry module — monitors short-term price for optimal buy timing
 - **Strategy** (`src/strategies/current-strategy.js`): Hot-swappable strategy file
 - **Custom Indicators** (`src/strategies/custom-indicators.js`): Claude-managed custom indicator functions
-- **Batch Scheduler** (`src/batch/pipeline/batch-scheduler.js`): PM2 process — trigger-based adaptive batch scheduling (replaces fixed cron)
-- **Batch** (`src/batch/pipeline/run-batch.sh`): Pipeline orchestrator — collects metrics → calls Claude → backtests → deploys (retry loop + multi-variant)
+- **Batch Scheduler** (`src/batch/pipeline/batch-scheduler.js`): PM2 process — 3-tier trigger-based adaptive batch scheduling
 - **Batch Memory** (`data/batch-memory.json`): Decision history + structured knowledge base for cross-batch learning
 - **Performance Tracker** (`src/batch/learning/performance-tracker.js`): Daily real P&L vs BTC benchmark tracking
 - **Experiment Manager** (`src/batch/learning/experiment-manager.js`): Structured hypothesis → test → learn cycle
 - **Shadow Manager** (`src/batch/learning/shadow-manager.js`): Paper-trading parallel strategy evaluation
 - **Config** (`trading-config.json`): Dynamic market list, updated by Claude at each batch
+
+### 3-Tier Autonomous Batch System
+
+| Tier | 역할 | 주기 | 수정 대상 | 파이프라인 |
+|------|------|------|-----------|-----------|
+| **strategy** | 시장 대응, 파라미터 조정, 전략 교체 | 매일/트리거 (6h min, 긴급 3h) | current-strategy.js, custom-indicators.js | `run-batch.sh` |
+| **infra_fix** | 버그 수정, 코드 안정성 개선 | 주 1회 / PM2 crash 시 (24h min) | src/ 전체 (전략 파일 제외) | `run-infra-fix.sh` |
+| **research** | 전략 연구, 근본적 전략 교체 | 주 1회 / 성과 부진 시 (7d min) | current-strategy.js + custom-indicators.js | `run-research.sh` |
+
+**Cross-tier 동시 실행 규칙:**
+- strategy + infra_fix: 가능 (다른 파일 수정)
+- strategy + research: 불가 (둘 다 전략 파일 수정 가능)
+- infra_fix + research: 가능 (다른 파일 수정)
 
 ## Strategy Interface (Multi-Timeframe)
 
@@ -67,20 +79,24 @@ module.exports = {
 - Intervals: 15m (primary), 240m (4h higher-timeframe context)
 - Backtest runs on 15m candles; 240m aligned by timestamp at each step
 
-## Batch Scheduling (Adaptive)
+## Batch Scheduling (3-Tier Adaptive)
 
-**Trigger-based scheduling** — replaces fixed hourly cron:
+**Trigger-based scheduling** with per-tier intervals:
 
-| Trigger | Condition | Prompt Mode |
-|---------|-----------|-------------|
-| REGIME_CHANGE | 24h price change > 5% (any asset) | 전략 교체/수정 집중 |
-| DRAWDOWN_ALERT | Portfolio MDD > 8% | 리스크 관리 집중 |
-| STAGNATION | 7+ days since last trade | 기회 탐색 집중 |
-| DAILY_REVIEW | Daily candle close (UTC 0:00) | 전반적 점검 |
-| EXPERIMENT_REVIEW | Active experiment duration met | 실험 결과 평가 |
+| Priority | Trigger | Tier | Condition | Interval |
+|----------|---------|------|-----------|----------|
+| 1 | PM2_CRASH | infra_fix | PM2 restart +3회 | 24h |
+| 2 | DRAWDOWN_ALERT | strategy | Portfolio MDD > 8% | 3h (긴급) |
+| 3 | REGIME_CHANGE | strategy | 24h price change > 5% | 3h (긴급) |
+| 4 | EXPERIMENT_REVIEW | strategy | Active experiment duration met | 6h |
+| 5 | WEEKLY_MAINTENANCE | infra_fix | 마지막 점검 7일 경과 | 24h |
+| 6 | PERSISTENT_UNDERPERFORMANCE | research | 14일 평균 alpha < -3% | 7d |
+| 7 | STAGNATION | strategy | 7+ days since last trade | 6h |
+| 8 | DAILY_REVIEW | strategy | Daily candle close (UTC 0:00) | 6h |
+| 9 | WEEKLY_RESEARCH | research | 마지막 연구 7일 경과 | 7d |
 
-- Minimum 6h between batches (prevents spam)
-- `BATCH_TRIGGER` env var passed to `build-prompt.js` for focused prompts
+- Per-tier lockfiles: `.batch-lock`, `.infra-fix-lock`, `.research-lock`
+- `scheduler-state.json`: per-tier state tracking (auto-migrated from old flat format)
 - PM2 process: `batch-scheduler` (checks every 15 minutes)
 
 ## Batch Memory & Knowledge Base
@@ -168,14 +184,22 @@ module.exports = {
 | `src/strategies/current-strategy.js` | Active strategy (replaced on deploy) |
 | `src/strategies/custom-indicators.js` | Custom indicator functions (Claude-managed) |
 | **Batch — Pipeline** | |
-| `src/batch/pipeline/batch-scheduler.js` | Adaptive batch scheduler (PM2, trigger-based) |
-| `src/batch/pipeline/run-batch.sh` | Batch pipeline orchestrator (retry + multi-variant + experiment) |
-| `src/batch/pipeline/notify.js` | Discord batch result notifications |
-| **Batch — Prompt** | |
-| `src/batch/prompt/build-prompt.js` | Trigger-based focused prompt assembly |
-| `src/batch/prompt/parse-response.js` | Response parsing (+ experiment action) |
+| `src/batch/pipeline/batch-scheduler.js` | 3-tier adaptive batch scheduler (PM2, trigger-based) |
+| `src/batch/pipeline/run-batch.sh` | Strategy tier pipeline (retry + multi-variant + experiment) |
+| `src/batch/pipeline/run-infra-fix.sh` | Infra_fix tier pipeline (backup + patch + health check + rollback) |
+| `src/batch/pipeline/run-research.sh` | Research tier pipeline (WebSearch + backtest + deploy) |
+| `src/batch/pipeline/notify.js` | Discord notifications (strategy + infra + research) |
+| **Batch — Prompt (Strategy)** | |
+| `src/batch/prompt/build-prompt.js` | Strategy prompt assembly (trigger-focused) |
+| `src/batch/prompt/parse-response.js` | Strategy response parsing (+ experiment action) |
 | `src/batch/prompt/build-retry-prompt.js` | Focused retry prompt builder |
 | `src/batch/prompt/diagnose-failure.js` | Gate failure diagnosis for retry prompts |
+| **Batch — Prompt (Infra)** | |
+| `src/batch/prompt/build-infra-prompt.js` | Infra_fix prompt assembly (PM2 logs + error traces + source) |
+| `src/batch/prompt/parse-infra-response.js` | Infra_fix response parsing (file blocks + path validation) |
+| **Batch — Prompt (Research)** | |
+| `src/batch/prompt/build-research-prompt.js` | Research prompt assembly (full history + indicators + WebSearch) |
+| `src/batch/prompt/parse-research-response.js` | Research response parsing (reuses strategy validators) |
 | **Batch — Eval** | |
 | `src/batch/eval/backtest.js` | Multi-timeframe backtest engine with slippage |
 | `src/batch/eval/collect-metrics.js` | Enhanced metrics (Sharpe, win rate, orderbook, trade intensity) |
@@ -196,6 +220,8 @@ module.exports = {
 | `bot-state.json` | Bot state (assetHeld as market code) |
 | `deploy-log.json` | Deploy history |
 | `data/execution-log.json` | Execution log (smart entry results, max 100) |
+| `data/infra-fix-log.json` | Infra_fix 수정 이력 (max 30) |
+| `data/research-log.json` | Research 연구 세션 이력 (max 30) |
 
 ## Execution Modes
 
@@ -243,6 +269,42 @@ For "replace" action, additional code blocks:
 - ```javascript — complete new strategy file (최대 3개 변형 가능, 첫줄에 `// VARIANT: 라벨`)
 - ```custom-indicators — custom indicator functions (optional)
 
+## Infra_fix Response Format
+
+```json
+{
+  "action": "fix" | "no_action",
+  "reasoning": "한국어 사유",
+  "confidence": 0.0~1.0,
+  "fixes": [{ "file": "src/core/bot.js", "description": "...", "severity": "critical|important|minor" }],
+  "knowledge": { "confirmed": [], "hypotheses": [], "rejected": [] },
+  "notes": "다음 인프라 체크를 위한 메모"
+}
+```
+
+- `fix` action: 각 파일은 ```file:path 코드 블록으로 전체 내용 출력
+- 수정 가능: src/ 하위 (current-strategy.js, custom-indicators.js 제외)
+- 수정 불가: .env, data/, node_modules/, backups/
+- 최대 3개 파일, 크기 0.3x~3x 원본
+
+## Research Response Format
+
+```json
+{
+  "action": "replace_strategy" | "propose_experiment" | "no_action",
+  "reasoning": "한국어 사유",
+  "confidence": 0.0~1.0,
+  "findings": [{ "topic": "...", "summary": "...", "source": "...", "actionable": true }],
+  "knowledge": { "confirmed": [], "hypotheses": [], "rejected": [] },
+  "experiment": { "hypothesis": "...", "design": { "type": "shadow_strategy", "duration": "7d" } },
+  "notes": "..."
+}
+```
+
+- `replace_strategy`: ```javascript 코드 블록 (기존 replace와 동일 게이트 적용)
+- `propose_experiment`: experiment-manager + shadow-manager 재사용
+- `no_action`: findings만 지식베이스에 저장 (연구 가치 누적)
+
 ## Safety
 
 - Tiered backtest gates: replace (return diff >= 0%, MDD <= 2% worse, trades 0.15~10/day), modify (return diff >= -1%, MDD <= 3% worse, trades 0.1~10/day)
@@ -256,4 +318,6 @@ For "replace" action, additional code blocks:
 - Market removal safety: 보유 종목은 자동으로 관심 리스트에 유지
 - Batch memory: 최근 50개 결정 기록 + 구조화된 학습 지식 추적
 - Shadow strategies: 새 전략을 4일간 페이퍼 트레이딩 후 alpha >= 2% 시 자동 승격
-- Adaptive scheduling: 트리거 기반 배치 실행, 최소 6시간 간격 보장
+- Adaptive scheduling: 트리거 기반 배치 실행, per-tier 간격 보장
+- Infra_fix: 경로 허용목록, 문법 검사, 크기 검사, PM2 헬스체크 후 자동 롤백
+- Research: 기존 backtest + deploy 재사용, WebSearch로 최신 연구 접근 가능

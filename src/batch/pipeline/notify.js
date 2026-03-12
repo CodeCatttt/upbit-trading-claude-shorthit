@@ -4,7 +4,10 @@
  *
  * Usage: echo '{"type":"keep","reasoning":"...","confidence":0.8}' | node notify.js
  *
- * type: "keep" | "modify" | "modify_fail" | "replace_success" | "replace_fail"
+ * Types:
+ *   Strategy: keep, modify, modify_fail, replace_success, replace_fail, experiment, shadow_promoted, markets_updated
+ *   Infra:    infra_fix_success, infra_fix_no_action
+ *   Research: research_replace, research_experiment, research_findings
  */
 
 'use strict';
@@ -12,13 +15,19 @@
 const { sendEmbed } = require('../../utils/discord');
 
 const COLORS = {
-    keep: 0x808080,           // 회색
-    modify: 0xE6A817,         // 노란색
-    replace_success: 0x2ECC71, // 초록색
-    replace_fail: 0xE74C3C,   // 빨간색
-    modify_fail: 0xE67E22,    // 주황색
-    experiment: 0x9B59B6,     // 보라색
-    shadow_promoted: 0x00FF88, // 밝은 녹색
+    keep: 0x808080,                // 회색
+    modify: 0xE6A817,              // 노란색
+    replace_success: 0x2ECC71,     // 초록색
+    replace_fail: 0xE74C3C,        // 빨간색
+    modify_fail: 0xE67E22,         // 주황색
+    experiment: 0x9B59B6,          // 보라색
+    shadow_promoted: 0x00FF88,     // 밝은 녹색
+    markets_updated: 0x3498DB,     // 파란색
+    infra_fix_success: 0x27AE60,   // 녹색
+    infra_fix_no_action: 0x95A5A6, // 회색
+    research_replace: 0x8E44AD,    // 진보라
+    research_experiment: 0x2980B9,  // 파란색
+    research_findings: 0x1ABC9C,   // teal
 };
 
 function formatKeep(data) {
@@ -125,10 +134,114 @@ function formatShadowPromoted(data) {
 function formatMarketsUpdated(data) {
     return {
         title: '🔄 관심 종목 변경',
-        color: 0x3498DB, // 파란색
+        color: COLORS.markets_updated,
         fields: [
             { name: '새 종목 리스트', value: (data.markets || []).join(', ') || '—', inline: false },
             { name: '사유', value: data.reasoning || '—', inline: false },
+        ],
+    };
+}
+
+// --- Infra_fix notification types ---
+
+function formatInfraFixSuccess(data) {
+    const fixLines = (data.fixes || [])
+        .map(f => `• \`${f.file}\`: ${f.description} [${f.severity || 'minor'}]`)
+        .join('\n') || '없음';
+
+    return {
+        title: '🔩 인프라 수정 완료',
+        color: COLORS.infra_fix_success,
+        fields: [
+            { name: '수정 내용', value: fixLines, inline: false },
+            { name: '사유', value: data.reasoning || '—', inline: false },
+            { name: '신뢰도', value: `${((data.confidence || 0) * 100).toFixed(0)}%`, inline: true },
+            { name: '트리거', value: data.trigger || '—', inline: true },
+        ],
+    };
+}
+
+function formatInfraFixFail(data) {
+    const fixLines = (data.fixes || [])
+        .map(f => `• \`${f.file}\`: ${f.description}`)
+        .join('\n') || '없음';
+
+    return {
+        title: '⚠️ 인프라 수정 실패 — 롤백',
+        color: 0xE74C3C,
+        fields: [
+            { name: '시도한 수정', value: fixLines, inline: false },
+            { name: '실패 원인', value: data.reasoning || '—', inline: false },
+            { name: '트리거', value: data.trigger || '—', inline: true },
+        ],
+    };
+}
+
+function formatInfraFixNoAction(data) {
+    return {
+        title: '🔍 인프라 점검 완료 — 이상 없음',
+        color: COLORS.infra_fix_no_action,
+        fields: [
+            { name: '결과', value: '수정 필요 사항 없음', inline: false },
+            { name: '사유', value: data.reasoning || '—', inline: false },
+            { name: '트리거', value: data.trigger || '—', inline: true },
+        ],
+    };
+}
+
+// --- Research notification types ---
+
+function formatResearchReplace(data) {
+    const comp = data.comparison || {};
+    const findingLines = (data.findings || [])
+        .slice(0, 3)
+        .map(f => `• **${f.topic}**: ${f.summary?.slice(0, 100) || '—'}`)
+        .join('\n') || '없음';
+
+    return {
+        title: '🔬 연구 완료 — 전략 교체',
+        color: COLORS.research_replace,
+        fields: [
+            { name: '연구 결과', value: findingLines, inline: false },
+            { name: '사유', value: data.reasoning || '—', inline: false },
+            { name: '수익률 개선', value: `+${(comp.returnImprovement || 0).toFixed(2)}%`, inline: true },
+            { name: '최대 낙폭 변화', value: `${(comp.drawdownWorsening || 0).toFixed(2)}%`, inline: true },
+            { name: '신뢰도', value: `${((data.confidence || 0) * 100).toFixed(0)}%`, inline: true },
+        ],
+    };
+}
+
+function formatResearchExperiment(data) {
+    const findingLines = (data.findings || [])
+        .slice(0, 3)
+        .map(f => `• **${f.topic}**: ${f.summary?.slice(0, 100) || '—'}`)
+        .join('\n') || '없음';
+
+    return {
+        title: '🔬 연구 완료 — 실험 제안',
+        color: COLORS.research_experiment,
+        fields: [
+            { name: '연구 결과', value: findingLines, inline: false },
+            { name: '실험 가설', value: data.hypothesis || '—', inline: false },
+            { name: '사유', value: data.reasoning || '—', inline: false },
+            { name: '신뢰도', value: `${((data.confidence || 0) * 100).toFixed(0)}%`, inline: true },
+        ],
+    };
+}
+
+function formatResearchFindings(data) {
+    const findingLines = (data.findings || [])
+        .slice(0, 5)
+        .map(f => `• **${f.topic}**: ${f.summary?.slice(0, 120) || '—'}`)
+        .join('\n') || '없음';
+
+    return {
+        title: '🔬 연구 완료 — 인사이트 기록',
+        color: COLORS.research_findings,
+        fields: [
+            { name: '연구 결과', value: findingLines, inline: false },
+            { name: '사유', value: data.reasoning || '—', inline: false },
+            { name: '신뢰도', value: `${((data.confidence || 0) * 100).toFixed(0)}%`, inline: true },
         ],
     };
 }
@@ -142,14 +255,22 @@ async function main() {
     let embed;
 
     switch (data.type) {
-        case 'keep':             embed = formatKeep(data); break;
-        case 'modify':           embed = formatModify(data); break;
-        case 'modify_fail':      embed = formatModifyFail(data); break;
-        case 'replace_success':  embed = formatReplaceSuccess(data); break;
-        case 'replace_fail':     embed = formatReplaceFail(data); break;
-        case 'markets_updated':  embed = formatMarketsUpdated(data); break;
-        case 'experiment':       embed = formatExperiment(data); break;
-        case 'shadow_promoted':  embed = formatShadowPromoted(data); break;
+        case 'keep':                embed = formatKeep(data); break;
+        case 'modify':              embed = formatModify(data); break;
+        case 'modify_fail':         embed = formatModifyFail(data); break;
+        case 'replace_success':     embed = formatReplaceSuccess(data); break;
+        case 'replace_fail':        embed = formatReplaceFail(data); break;
+        case 'markets_updated':     embed = formatMarketsUpdated(data); break;
+        case 'experiment':          embed = formatExperiment(data); break;
+        case 'shadow_promoted':     embed = formatShadowPromoted(data); break;
+        // Infra_fix types
+        case 'infra_fix_success':   embed = formatInfraFixSuccess(data); break;
+        case 'infra_fix_fail':      embed = formatInfraFixFail(data); break;
+        case 'infra_fix_no_action': embed = formatInfraFixNoAction(data); break;
+        // Research types
+        case 'research_replace':    embed = formatResearchReplace(data); break;
+        case 'research_experiment': embed = formatResearchExperiment(data); break;
+        case 'research_findings':   embed = formatResearchFindings(data); break;
         default:
             console.error('Unknown type:', data.type);
             process.exit(1);

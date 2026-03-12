@@ -298,4 +298,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = { parseResponse, extractLastJsonBlock, extractLastJsBlock, extractAllJsBlocks, extractCustomIndicatorsBlock };
+module.exports = { parseResponse, extractLastJsonBlock, extractLastJsBlock, extractAllJsBlocks, extractCustomIndicatorsBlock, validateStrategyCode, validateCustomIndicators };
