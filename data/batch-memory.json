@@ -2,54 +2,6 @@
   "maxEntries": 50,
   "entries": [
     {
-      "timestamp": "2026-03-05T09:30:46.974Z",
-      "action": "keep",
-      "reasoning": "전 종목 동반 강세(+2.18%), 분산 0.51% 역대 최저, BTC 매수 우위(2.0) 전환으로 상승 모멘텀 건전. 피크 대비 -1.1%로 리스크 없음. 전략 변경 불필요.",
-      "confidence": 0.94,
-      "parameters": null,
-      "markets": null,
-      "improvementAreas": [],
-      "backtestResult": null,
-      "outcome": "kept",
-      "notes": "다음 배치 체크: (1) 포트폴리오 가치 0 KRW — collect-metrics.js 잔고 조회 버그 87회 연속 미해결, 별도 디버깅 세션 필요, (2) BTC 체결 강도 매수 우위(2.0) 전환 지속 여부 — divergence 패턴 종료인지 일시적 전환인지 추적, (3) 분산 0.51%로 극저점 — 레짐 분화 가능성 모니터링",
-      "retryAttempts": null,
-      "variantsTested": null,
-      "diagnosis": null,
-      "triggerType": "DAILY_REVIEW"
-    },
-    {
-      "timestamp": "2026-03-05T10:30:48.860Z",
-      "action": "keep",
-      "reasoning": "전 종목 동반 강세(+3.36%), 극저분산(0.64%) 레짐 지속. BTC 피크 대비 -0.28%로 리스크 없음. 체결 강도 매도 우위 복귀했으나 가격 상승 divergence 패턴 지속 — 전략 변경 불필요",
-      "confidence": 0.94,
-      "parameters": null,
-      "markets": null,
-      "improvementAreas": [],
-      "backtestResult": null,
-      "outcome": "kept",
-      "notes": "다음 배치 체크: (1) 포트폴리오 가치 0 KRW — collect-metrics.js 잔고 조회 버그 88회 연속 미해결, 별도 디버깅 세션 필요, (2) BTC 체결 강도 매수 우위(2.0) 전환이 일시적으로 끝나고 0.26으로 복귀 — 매수↔매도 전환 주기 패턴 추적, (3) 분산 0.64%로 역대 최저 수준 근접 지속 — 급확대 전조 가능성 모니터링",
-      "retryAttempts": null,
-      "variantsTested": null,
-      "diagnosis": null,
-      "triggerType": "DAILY_REVIEW"
-    },
-    {
-      "timestamp": "2026-03-05T11:30:47.505Z",
-      "action": "keep",
-      "reasoning": "전 종목 동반 강세(+2.69~4.8%), 분산 0.77% 저분산 레짐 유지. BTC 피크 대비 -0.38%로 안전 구간. 변경 불필요.",
-      "confidence": 0.94,
-      "parameters": null,
-      "markets": null,
-      "improvementAreas": [],
-      "backtestResult": null,
-      "outcome": "kept",
-      "notes": "다음 배치 체크: (1) 포트폴리오 가치 0 KRW — collect-metrics.js 잔고 조회 버그 89회 연속 미해결, 별도 디버깅 세션 필요, (2) BTC 체결 강도 매도 우위(0.56) + 가격 +2.69% divergence 27회차 — 패턴 지속 확인, (3) 분산 0.77%로 저분산 레짐 견고 유지",
-      "retryAttempts": null,
-      "variantsTested": null,
-      "diagnosis": null,
-      "triggerType": "DAILY_REVIEW"
-    },
-    {
       "timestamp": "2026-03-05T12:30:50.417Z",
       "action": "keep",
       "reasoning": "전 종목 동반 상승(평균 +2.58%), 분산 0.62% 극저 수준, BTC 피크 대비 -0.65%로 리스크 신호 없음. 89회 연속 keep 포함 안정적 레짐에서 무리한 변경 불필요.",
@@ -980,21 +932,63 @@
       "variantsTested": null,
       "diagnosis": null,
       "triggerType": "WEEKLY_RESEARCH"
+    },
+    {
+      "timestamp": "2026-03-12T17:04:41.706Z",
+      "action": "keep",
+      "reasoning": "알파 +2.18% 유지, 극저분산 9일째 BTC 홀드가 최적 전략. infra_fix로 peakPriceSinceEntry=103,181,000 복구 확인하여 trailing stop 7% 정상 작동. 체결 강도 0.29 매도 우위 지속이나 가격 하방 제한적(+0.37%). 스위칭 유인 부재.",
+      "confidence": 0.83,
+      "parameters": null,
+      "markets": null,
+      "improvementAreas": [
+        "regime"
+      ],
+      "backtestResult": null,
+      "outcome": "kept",
+      "notes": "다음 배치 체크: (1) peakPriceSinceEntry 갱신 확인 — peak=103,181,000 유지 또는 상승 갱신 여부로 infra_fix 안정성 검증, (2) BTC 체결 강도 0.29 추이 — 0.2 이하 시 capitulation 재확인, 1.0+ 시 매도 소진 전환, (3) 분산 0.39% 변화 — 1%+ 확대 시 스위칭 로직 활성화 구간 진입, (4) 어제 등록된 experiment(HMM 레짐/역분산 스케일링) 진행 추적",
+      "retryAttempts": null,
+      "variantsTested": null,
+      "diagnosis": null,
+      "triggerType": "DAILY_REVIEW"
+    },
+    {
+      "timestamp": "2026-03-12T17:16:21.789Z",
+      "action": "keep",
+      "reasoning": "alpha +2.18% 유지, 분산 0.38% 극저분산 9일째 BTC 홀드 최적. peakPriceSinceEntry 정상 동작 확인(infra_fix 검증). 체결 강도 0.43으로 매도 압력 지속되나 trailing stop -0.08%로 안전 구간.",
+      "confidence": 0.85,
+      "parameters": null,
+      "markets": null,
+      "improvementAreas": [
+        "regime"
+      ],
+      "backtestResult": null,
+      "outcome": "kept",
+      "notes": "다음 배치 체크: (1) peakPriceSinceEntry 갱신 추이 — 103,181,000 유지 또는 상승 갱신으로 infra_fix 48h+ 안정성 최종 검증, (2) BTC 체결 강도 0.43 추이 — 1.0+ 회복 시 매도 소진 시작, 분산 급확대 전조, (3) 분산 0.38%→1%+ 확대 시 스위칭 기회 활성화 여부, (4) ETH 체결 강도 0.91 — 1.0+ 돌파 시 ETH 상대 강세 시작 시그널",
+      "retryAttempts": null,
+      "variantsTested": null,
+      "diagnosis": null,
+      "triggerType": "DAILY_REVIEW"
+    },
+    {
+      "timestamp": "2026-03-12T17:22:50.980Z",
+      "action": "infra_fix",
+      "reasoning": "scheduler-state.json에 upbit-trading-bot, batch-scheduler의 PM2 재시작 카운트가 누락되어 false PM2_CRASH 감지 발생 가능. 시딩 로직이 prevRestarts가 완전히 비어있을 때만 작동하므로 부분 상태(discord-claude만 존재)에서 새 프로세스가 baseline 0으로 비교됨.",
+      "confidence": 0.8,
+      "parameters": null,
+      "markets": null,
+      "improvementAreas": null,
+      "backtestResult": null,
+      "outcome": "applied",
+      "notes": "trigger: WEEKLY_MAINTENANCE, files_modified: 1",
+      "retryAttempts": null,
+      "variantsTested": null,
+      "diagnosis": null,
+      "triggerType": null
     }
   ],
   "strategicNotes": "1) 하락장에서 높은 상관관계 자산 간 로테이션은 거래비용만 소모. 2) BTC가 하락장 기본 보유자산으로 최적. 3) 거래 빈도 영향 극대 — 13회 거래 시 비용만 ~3.9% 추가 손실. 4) 레짐 필터가 핵심 방어 메커니즘. 5) 코드 전면 교체보다 최소 변경이 배포 안정성 우수. 6) 현 전략(10회 거래, BTC 대비 +6.22%)이 검증된 성과. 7) 파라미터 완화(cooldown↓, threshold↓)는 검증 실패 확정 — 거래 증가로 성과 대폭 악화(-15.75%). 8) SOL이 반등 국면에서 최강 모멘텀이나, 단기 스위칭은 비용 대비 효과 미미. 9) MDD 3% 게이트 의식한 점진적 변경 필요. 10) 연속 배포 실패 시 keep 유지가 최선. 11) bot-state/포트폴리오 불일치 해결 완료. 13) 그레이스 기간(96캔들=24h) whipsaw 방지 효과적. 14) XRP 재진입 진동 패턴 — reentryCooldown 288로 억제 중. 16) deploy.js 롤백 시 bot-state.json 보존/복원 로직 개선 필요. 17) 포트폴리오 90K 소규모 — 거래 최소화가 비용 절감에 결정적. 18) 현행 파라미터(288/0.4)가 최적 근처임을 modify 실패로 검증 완료. 19) -9.52% 경고는 실패한 modify 백테스트 결과이며 현행 전략 실제 성과 아님 — 배치 분석 시 혼동 주의. 21) 그레이스 기간 종료 시점이 리스크 관리의 핵심 전환점 — 활성화 후 첫 배치에서 피크 추적 정상 작동 반드시 확인.",
   "knowledge": {
     "confirmed": [
-      {
-        "insight": "BTC 체결 강도 극단 매도(0.03, 매도 31:1) 후 매수 방향 급반전(6.45) 발생 — 극단 매도 소진 후 매수 반등 패턴 확인. 0.03→0.28→0.3→6.45 순차 회복 경로에서 가격도 +2.26% 반등",
-        "evidence": "0.03(매도 31:1, 가격 -0.21%)→0.28(가격 +0.07%)→0.3→6.45(가격 +2.26%). 기존 '극단 매도 후 반등' 가설 검증 완료",
-        "addedAt": "2026-03-04"
-      },
-      {
-        "insight": "checkReentry에서 최고 스코어 마켓의 체결 강도만 검사하면, 해당 마켓이 매도 우위일 때 체결 강도 우수한 다른 마켓도 전부 차단되는 구조적 결함 존재",
-        "evidence": "BTC 체결 강도 0.2(매도 우위)가 best market으로 선정되면 intensityOk=false → ETH 5.81, SOL 2.89, XRP 6.44 모두 재진입 불가. 시장별 개별 필터링으로 수정 필요 (2026-03-07)",
-        "addedAt": "2026-03-06"
-      },
       {
         "insight": "전 종목 동반 하락(분산 0.45%) 시 BTC 보유 유지가 알트 대비 유리 — 3회차 확인. BTC -2.13% vs ETH -2.89%, SOL -2.71%, XRP -1.77%",
         "evidence": "BTC가 ETH, SOL 대비 최소 낙폭. XRP -1.77%로 BTC보다 낮으나 체결 강도/유동성 고려 시 BTC 유지가 안전",
@@ -1084,6 +1078,16 @@
         "insight": "극저분산(0.03~0.56%) 환경 8일+ BTC 홀드 0거래로 alpha +2.18% 달성 — 분산 1% 미만 구간에서 스위칭 회피가 초과수익 생성하는 패턴 8일 연속 확인",
         "evidence": "2026-03-05~03-12 분산 0.03~0.56%, 0거래. 포트 +0.02% vs BTC -2.16%. alpha 매일 양수 유지(+0%→+2.18%). 5일(+2.14%), 7일(+2.17%), 8일(+2.18%)로 점진 확장 검증",
         "addedAt": "2026-03-12"
+      },
+      {
+        "insight": "bot.js reconciliation 버그 실재 확인 및 2026-03-12 infra_fix로 수정 완료 — 매 주기 createStrategyState()로 state 재생성하여 peakPriceSinceEntry null 고정 + candlesSinceLastTrade 9999 리셋 유발. 수정 후 peak=103,181,000, candlesSinceLastTrade=10013으로 정상 누적 확인",
+        "evidence": "2026-03-10~12 peakPriceSinceEntry null 3일 연속 → 2026-03-12 infra_fix 적용 → 2026-03-13 peak=103181000 정상 반영, candlesSinceLastTrade=10013 누적 정상화",
+        "addedAt": "2026-03-12"
+      },
+      {
+        "insight": "infra_fix 후 peakPriceSinceEntry가 2배치 연속(~6h+) 정상 유지 — 103,181,000 안정 반영 확인. bot.js reconciliation 버그 수정 안정성 1차 검증 통과",
+        "evidence": "2026-03-12 infra_fix 후 3/12 17:04 배치(peak=103,181,000), 3/13 배치(peak=103,181,000 유지) 연속 확인. candlesSinceLastTrade=10013 정상 누적",
+        "addedAt": "2026-03-12"
       }
     ],
     "hypotheses": [
@@ -1160,7 +1164,7 @@
         "addedAt": "2026-03-09"
       },
       {
-        "hypothesis": "분산 0.03%는 역대 최저(기존 0.06%) 재경신이며 극저분산 8일+ 지속. 체결 강도 1.0+ 동시 회복과 결합 시 분산 급확대 전조. XRP 체결 강도 3.07 돌출이 분산 확대의 초기 시그널일 수 있음",
+        "hypothesis": "ETH 체결 강도 0.91로 BTC(0.43) 대비 2배 이상 높은 매수세 — 분산 확대(1%+) 발생 시 ETH가 BTC 대비 상대 강세 가능성. 분산 1%+ 전환 시점에서 ETH 체결 강도 1.0+ 유지 확인 시 스위칭 시그널로 활용 가능",
         "status": "proposed",
         "experimentId": null,
         "addedAt": "2026-03-12"
@@ -1194,14 +1198,15 @@
         "status": "proposed",
         "experimentId": null,
         "addedAt": "2026-03-12"
+      },
+      {
+        "hypothesis": "infra_fix 후 peakPriceSinceEntry 정상 유지가 PM2 재시작 포함 48h+ 안정적인지 관찰 필요 — 단일 주기 확인만으로는 edge case(PM2 crash 후 reconciliation 경로) 미검증",
+        "status": "proposed",
+        "experimentId": null,
+        "addedAt": "2026-03-12"
       }
     ],
     "rejected": [
-      {
-        "hypothesis": "전 종목 체결 강도 매도 우위(BTC 0.45, ETH 0.33, SOL 0.71, XRP 0.2) 전환 시 전 종목 추가 하락 가능성",
-        "reason": "1회차 관측 후 바로 전 종목 매수 우위로 반전(BTC 4.2, ETH 1.1, SOL 2.09, XRP 1.67). 매도 우위 전환이 지속적 약세 신호가 아닌 일시적 현상이었을 가능성",
-        "rejectedAt": "2026-03-03"
-      },
       {
         "hypothesis": "BTC 체결 강도 0.03→0.28→1.0+ 순차 회복 시 1~3일 내 반등 — 실제로는 0.03→0.28→0.3→6.45로 1.0+ 단계를 건너뛰고 급반전. 순차적 단계별 회복이 아닌 급반전 패턴이 더 정확",
         "reason": "0.3에서 1.0+ 단계 없이 6.45로 급반전. 순차 회복 가설보다 '극단 매도 소진 후 급반전' 패턴이 더 정확한 설명",
@@ -1296,6 +1301,11 @@
         "hypothesis": "trailing stop 8% + crash 5%로 완화하면 약세장에서 CASH 전환 빈도 증가 → 하방 MDD 개선 가능. 재진입 쿨다운 144(1.5일)로 단축 시 반등 포착력도 향상",
         "reason": "현재 문제는 exit 조건이 아닌 re-entry 조건. trailing stop/crash threshold 변경은 CASH 고착 문제와 무관 (2026-03-09)",
         "rejectedAt": "2026-03-09"
+      },
+      {
+        "hypothesis": "infra_fix 후 peakPriceSinceEntry 정상 유지가 PM2 재시작 포함 48h+ 안정적인지 관찰 필요 — 단일 주기 확인만으로는 edge case 미검증",
+        "reason": "2배치(~6h+) 연속 peak=103,181,000 정상 유지 확인. 완전한 48h 검증은 아니나 PM2 재시작 없이 안정 동작 중이므로 가설 축소 — 남은 검증은 PM2 crash 후 복구 경로만 해당",
+        "rejectedAt": "2026-03-12"
       }
     ]
   }

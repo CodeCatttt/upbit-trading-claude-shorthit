@@ -243,6 +243,21 @@ function checkPM2Crash(state) {
             return false;
         }
 
+        // Seed any NEW processes not yet tracked (prevents false crash for partially tracked state)
+        let newSeeded = false;
+        for (const proc of processes) {
+            const name = proc.name || 'unknown';
+            if (prevRestarts[name] === undefined) {
+                prevRestarts[name] = proc.pm2_env?.restart_time || 0;
+                log.info(`PM2 new process seeded: ${name} (restarts=${prevRestarts[name]})`);
+                newSeeded = true;
+            }
+        }
+        if (newSeeded) {
+            state.infra_fix.lastPm2Restarts = prevRestarts;
+            saveSchedulerState(state);
+        }
+
         let crashDetected = false;
         for (const proc of processes) {
             const name = proc.name || 'unknown';
