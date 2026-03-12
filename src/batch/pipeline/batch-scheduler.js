@@ -231,6 +231,19 @@ function checkPM2Crash(state) {
         const processes = JSON.parse(raw);
         const prevRestarts = state.infra_fix.lastPm2Restarts || {};
 
+        // First check after start/migration: seed with current counts to avoid false positives
+        if (Object.keys(prevRestarts).length === 0) {
+            for (const proc of processes) {
+                const name = proc.name || 'unknown';
+                prevRestarts[name] = proc.pm2_env?.restart_time || 0;
+            }
+            state.infra_fix.lastPm2Restarts = prevRestarts;
+            saveSchedulerState(state);
+            log.info('PM2 restart counts initialized (first check after start)');
+            return false;
+        }
+
+        let crashDetected = false;
         for (const proc of processes) {
             const name = proc.name || 'unknown';
             const restarts = proc.pm2_env?.restart_time || 0;
@@ -238,19 +251,18 @@ function checkPM2Crash(state) {
 
             if (restarts - prev >= 3) {
                 log.info(`PM2 crash detected: ${name} restarted ${restarts - prev} times since last check`);
-                // Update stored restart counts
-                state.infra_fix.lastPm2Restarts[name] = restarts;
-                saveSchedulerState(state);
-                return true;
+                crashDetected = true;
             }
         }
 
-        // Update restart counts even when no crash detected
+        // Always update ALL restart counts (prevents cascading false positives)
         for (const proc of processes) {
             const name = proc.name || 'unknown';
             state.infra_fix.lastPm2Restarts[name] = proc.pm2_env?.restart_time || 0;
         }
         saveSchedulerState(state);
+
+        return crashDetected;
     } catch (e) {
         log.warn('PM2 crash check failed:', e.message);
     }

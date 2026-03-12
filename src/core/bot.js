@@ -16,6 +16,15 @@ const { createLogger } = require('../utils/logger');
 
 const log = createLogger('BOT');
 
+// Log unhandled rejections/exceptions before PM2 restarts — aids crash diagnosis
+process.on('unhandledRejection', (reason) => {
+    log.error('Unhandled rejection:', reason instanceof Error ? reason.stack : reason);
+});
+process.on('uncaughtException', (err) => {
+    log.error('Uncaught exception:', err.stack || err.message);
+    process.exit(1);
+});
+
 const MIN_ORDER_KRW = 5500;
 const TRADE_RATIO = 0.995;
 
@@ -41,6 +50,11 @@ function loadTradingConfig() {
 function loadStrategy() {
     const resolved = require.resolve('../strategies/current-strategy');
     delete require.cache[resolved];
+    // Also clear custom-indicators cache so strategy picks up latest deploy
+    try {
+        const customResolved = require.resolve('../strategies/custom-indicators');
+        delete require.cache[customResolved];
+    } catch (e) { /* custom-indicators may not exist */ }
     return require('../strategies/current-strategy');
 }
 
@@ -509,6 +523,20 @@ async function reconcileState() {
                 saveState();
             }
         }
+
+        // Initialize peak from current price if holding asset with null peak (after reconciliation or crash recovery)
+        if (state.assetHeld !== 'CASH' && state.peakPriceSinceEntry === null) {
+            try {
+                const price = await api.getCurrentPrice(state.assetHeld);
+                if (price > 0) {
+                    state.peakPriceSinceEntry = price;
+                    saveState();
+                    log.info(`Initialized peakPriceSinceEntry from current price: ${price}`);
+                }
+            } catch (e) {
+                log.warn(`Failed to initialize peak price: ${e.message}`);
+            }
+        }
     } catch (e) {
         log.error(`Reconciliation failed: ${e.message}`);
     }
@@ -525,5 +553,8 @@ log.info(`Initial State: Holding ${state.assetHeld}`);
 // Reconcile then run immediately on start
 reconcileState().then(() => {
     log.info(`Reconciled State: Holding ${state.assetHeld}`);
+    runStrategyBoundary();
+}).catch(e => {
+    log.error('Startup reconciliation error:', e.message);
     runStrategyBoundary();
 });
