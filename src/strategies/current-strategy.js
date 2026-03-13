@@ -20,15 +20,15 @@ const DEFAULT_CONFIG = {
     emaSlow: 26,
     rsiPeriod: 14,
     choppinessPeriod: 20,
-    choppinessThreshold: 0.58,
-    switchThreshold: 0.1,
+    choppinessThreshold: 0.62,
+    switchThreshold: 0.05,
     adxPeriod: 14,
-    adxMinTrend: 12,
+    adxMinTrend: 8,
 
     // Adaptive cooldown (15m candles)
-    cooldownTrending: 72,
-    cooldownChoppy: 144,
-    opportunityOverrideMultiplier: 1.3,
+    cooldownTrending: 36,
+    cooldownChoppy: 96,
+    opportunityOverrideMultiplier: 1.15,
 
     // Risk management — CASH conversion
     trailingStopPct: 0.05,
