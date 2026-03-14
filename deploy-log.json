@@ -83,5 +83,23 @@
         "Daily trades: 0.64 (need >= 0.15 and <= 10)"
       ]
     }
+  },
+  {
+    "timestamp": "2026-03-14T13:25:02.236Z",
+    "success": true,
+    "backupPath": "/home/kook/programming/upbit-trading-claude/backups/strategy-2026-03-14T13-24-31.js",
+    "backtestComparison": {
+      "pass": true,
+      "gateType": "replace",
+      "returnImprovement": 0,
+      "drawdownWorsening": 0,
+      "dailyTrades": 0.7,
+      "reasons": [
+        "PASSED",
+        "Return improvement: 0.00% (need >= 0%)",
+        "Drawdown worsening: 0.00% (need <= 2%)",
+        "Daily trades: 0.7 (need >= 0.15 and <= 10)"
+      ]
+    }
   }
 ]
