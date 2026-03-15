@@ -26,16 +26,16 @@ const DEFAULT_CONFIG = {
     rsiPeriod: 14,
     choppinessPeriod: 20,
     choppinessThreshold: 0.62,
-    switchThreshold: 0.025,
+    switchThreshold: 0.012,
     adxPeriod: 14,
-    adxMinTrend: 5,
+    adxMinTrend: 3,
 
     // Soft choppiness for switching
-    choppinessBase: 0.55,
-    choppinessPenalty: 1,
+    choppinessBase: 0.7,
+    choppinessPenalty: 0.3,
 
     // Adaptive cooldown (15m candles)
-    cooldownTrending: 24,
+    cooldownTrending: 16,
     cooldownChoppy: 96,
     opportunityOverrideMultiplier: 1.15,
 
