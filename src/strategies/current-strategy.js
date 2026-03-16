@@ -49,11 +49,11 @@ const DEFAULT_CONFIG = {
     reentryRsiMin: 35,
     reentryMinScore: 0.005,
     reentryTrendConfirm: false,
-    reentryCooldown: 48,
-    reentryPhase2Candles: 72,
-    maxCashCandles: 144,
+    reentryCooldown: 24,
+    reentryPhase2Candles: 24,
+    maxCashCandles: 72,
     reentryIntensityMin: 0.3,
-    reentryStochMax: 85,
+    reentryStochMax: 92,
 
     // Scoring weights
     momentumWeight: 0.35,
