@@ -26,7 +26,7 @@ const DEFAULT_CONFIG = {
     rsiPeriod: 14,
     choppinessPeriod: 20,
     choppinessThreshold: 0.62,
-    switchThreshold: 0.012,
+    switchThreshold: 0.01,
     adxPeriod: 14,
     adxMinTrend: 3,
 
@@ -35,12 +35,12 @@ const DEFAULT_CONFIG = {
     choppinessPenalty: 0.3,
 
     // Adaptive cooldown (15m candles)
-    cooldownTrending: 16,
+    cooldownTrending: 12,
     cooldownChoppy: 96,
     opportunityOverrideMultiplier: 1.15,
 
     // Risk management — CASH conversion
-    trailingStopPct: 0.05,
+    trailingStopPct: 0.045,
     crashWindowCandles: 96,
     crashThreshold: 0.04,
     riskGracePeriod: 48,
