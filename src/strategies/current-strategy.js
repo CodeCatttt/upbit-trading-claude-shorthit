@@ -1,17 +1,18 @@
-// VARIANT: soft-choppiness
+// VARIANT: peak-sanity-fix
 /**
- * adaptive-regime-mt.js — Soft Choppiness Gate
+ * adaptive-regime-mt.js — Peak Sanity Self-Heal
  *
- * Core structural fix: Replace hard isChoppy gate in shouldSwitch with
- * continuous choppiness penalty on switch threshold. In choppy markets,
- * a proportionally larger score advantage is required to switch, but
- * sufficiently strong opportunities can still pass through.
+ * Identical to soft-choppiness variant with one critical addition:
+ * Peak corruption self-healing. On each tick, verifies peakPriceSinceEntry
+ * against actual max close from candle data. If peak is lower (corruption),
+ * corrects it automatically — enabling trailing stop to fire correctly.
+ *
+ * In normal operation this check is a no-op (peak already correct).
+ * In corrupted state (peak=3218K vs actual ~3555K), restores correct peak.
  *
  * Changes from previous version:
- * - shouldSwitch: !bestScore.isChoppy removed, replaced with dynamic threshold
- * - switchThreshold 0.04 (lowered, compensated by choppiness penalty)
- * - adxMinTrend 5 (relaxed for low-volatility environments)
- * - New params: choppinessBase 0.45, choppinessPenalty 1.5
+ * - Added peak sanity check after peak update in onNewCandle
+ * - No parameter changes — backtest behavior identical
  */
 
 'use strict';
@@ -402,6 +403,22 @@ function onNewCandle(state, candleData, config = DEFAULT_CONFIG) {
     if (currentPrice !== null) {
         if (!state.peakPriceSinceEntry || currentPrice > state.peakPriceSinceEntry) {
             state.peakPriceSinceEntry = currentPrice;
+        }
+    }
+
+    // === PEAK SANITY: self-heal corrupted peakPriceSinceEntry ===
+    // In normal operation, peak == max close since entry (this is a no-op).
+    // If state was externally corrupted (e.g., state mismatch), peak may be
+    // lower than candle data indicates — correct it from actual candle closes.
+    if (state.peakPriceSinceEntry && candles15 && candles15.length > 0) {
+        const lookback = Math.min(candles15.length, state.candlesSinceLastTrade);
+        if (lookback > 0) {
+            const startIdx = Math.max(0, candles15.length - lookback);
+            for (let i = startIdx; i < candles15.length; i++) {
+                if (candles15[i].close > state.peakPriceSinceEntry) {
+                    state.peakPriceSinceEntry = candles15[i].close;
+                }
+            }
         }
     }
 
