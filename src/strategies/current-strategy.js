@@ -37,7 +37,7 @@ const DEFAULT_CONFIG = {
     // Adaptive cooldown (15m candles)
     cooldownTrending: 12,
     cooldownChoppy: 96,
-    opportunityOverrideMultiplier: 1.15,
+    opportunityOverrideMultiplier: 1.25,
 
     // Risk management — CASH conversion
     trailingStopPct: 0.045,
@@ -49,7 +49,7 @@ const DEFAULT_CONFIG = {
     reentryRsiMin: 30,
     reentryMinScore: 0.001,
     reentryTrendConfirm: false,
-    reentryCooldown: 24,
+    reentryCooldown: 36,
     reentryPhase2Candles: 24,
     maxCashCandles: 48,
     reentryIntensityMin: 0.3,
