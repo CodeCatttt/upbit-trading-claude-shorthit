@@ -32,7 +32,7 @@ const DEFAULT_CONFIG = {
 
     // Soft choppiness for switching
     choppinessBase: 0.7,
-    choppinessPenalty: 0.3,
+    choppinessPenalty: 0.4,
 
     // Adaptive cooldown (15m candles)
     cooldownTrending: 12,
@@ -52,7 +52,7 @@ const DEFAULT_CONFIG = {
     reentryCooldown: 36,
     reentryPhase2Candles: 24,
     maxCashCandles: 48,
-    reentryIntensityMin: 0.3,
+    reentryIntensityMin: 0.5,
     reentryStochMax: 95,
 
     // Scoring weights
