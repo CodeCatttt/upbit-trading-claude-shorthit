@@ -109,27 +109,40 @@ function buildErrorLogSection() {
         { name: 'batch-scheduler', file: 'batch-scheduler-error.log' },
     ];
 
-    const lines = ['## PM2 에러 로그 (최근 200줄)'];
+    const MAX_ERROR_LOG_CHARS = 20000;
+    const lines = ['## PM2 에러 로그 (최근)'];
+    let totalChars = 0;
 
     for (const { name, file } of logFiles) {
         const logPath = path.join(PM2_LOG_DIR, file);
-        const content = readFileSafe(logPath, 200);
+        const content = readFileSafe(logPath, 100);
 
         if (content === null) {
             lines.push(`\n### ${name}\n파일 없음: ${file}`);
             continue;
         }
 
-        const trimmed = content.trim();
+        let trimmed = content.trim();
         if (trimmed.length === 0) {
             lines.push(`\n### ${name}\n에러 로그 비어 있음.`);
             continue;
+        }
+
+        // Enforce per-section budget
+        const remaining = MAX_ERROR_LOG_CHARS - totalChars;
+        if (remaining < 500) {
+            lines.push(`\n### ${name}\n(용량 제한으로 생략)`);
+            continue;
+        }
+        if (trimmed.length > remaining) {
+            trimmed = trimmed.slice(-remaining);
         }
 
         lines.push(`\n### ${name}`);
         lines.push('```');
         lines.push(trimmed);
         lines.push('```');
+        totalChars += trimmed.length;
     }
 
     return lines.join('\n');
@@ -385,10 +398,13 @@ function buildInfraPrompt(triggerType) {
 
     let prompt = sections.join('\n\n');
 
-    // Enforce total prompt size limit
+    // Enforce total prompt size limit — preserve tail (constraints + response format)
     if (prompt.length > MAX_PROMPT_CHARS) {
-        log.warn(`Prompt exceeds ${MAX_PROMPT_CHARS} chars (${prompt.length}), truncating`);
-        prompt = prompt.slice(0, MAX_PROMPT_CHARS) + '\n\n... (프롬프트 용량 제한으로 일부 생략)';
+        log.warn(`Prompt exceeds ${MAX_PROMPT_CHARS} chars (${prompt.length}), truncating middle`);
+        const tail = sections.slice(-2).join('\n\n'); // constraints + response format
+        const headBudget = MAX_PROMPT_CHARS - tail.length - 100;
+        const head = sections.slice(0, -2).join('\n\n').slice(0, headBudget);
+        prompt = head + '\n\n... (프롬프트 용량 제한으로 중간 생략)\n\n' + tail;
     }
 
     return prompt;

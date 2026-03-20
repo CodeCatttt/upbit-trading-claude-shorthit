@@ -2,6 +2,49 @@
   "active": [],
   "completed": [
     {
+      "id": "exp-004",
+      "hypothesis": "ATR 적응형 trailing stop(3-10%) + TTM Squeeze 브레이크아웃 시그널(scoring 20%) + 절대 모멘텀 게이트 + MACD 확인을 통합하면, 저변동성 구간에서 타이트한 보호 + 브레이크아웃 시 정확한 진입으로 현재 전략 대비 alpha 개선. exp-003 재시도 (shadow deploy 버그 수정 완료).",
+      "design": {
+        "type": "shadow_strategy",
+        "duration": "7d",
+        "changes": {
+          "trailing_stop": "fixed 7% → ATR(14)×3.0 adaptive, clamped 3-10%",
+          "scoring": "+TTM Squeeze signal (BB/KC ratio, 20% weight), momentum 25%, trend 30%, MACD 10%",
+          "re_entry": "squeeze-fire boost (phase1에서 RSI 30, score -0.01로 완화 when squeeze fires)",
+          "switch_gate": "+absolute momentum filter (totalReturn > 0 필수)",
+          "adx_threshold": "20 유지"
+        },
+        "successCriteria": "alpha >= 2% vs live strategy over 7d"
+      },
+      "status": "completed",
+      "successCriteria": "alpha >= 2% vs live strategy over 7d",
+      "results": { "reason": "Shadow deploy failed. 8일간 active 슬롯 점유 후 수동 정리." },
+      "startedAt": "2026-03-12T17:32:35.086Z",
+      "completedAt": "2026-03-20T12:30:00.000Z",
+      "outcome": "inconclusive"
+    },
+    {
+      "id": "exp-005",
+      "hypothesis": "ATR 적응형 trailing stop(3-10%) + Sharpe 중심 스코어링(50%) + 절대 모멘텀 게이트 3가지 조합이 현재 전략 대비 alpha 개선. 2025 연구(Sharpe 2.41, MDD -12.7%)와 동일한 핵심 구성요소만 적용하되 TTM Squeeze를 제외하여 구현 안정성 확보.",
+      "design": {
+        "type": "shadow_strategy",
+        "duration": "7d",
+        "changes": {
+          "trailing_stop": "fixed 7% → ATR(14, 4h)×3.0 adaptive, clamped 3-10%",
+          "scoring_weights": "momentum 35%→50%, trend 35%→30%, volume 15%→15%, Bollinger 15%→5%",
+          "switch_gate": "+absolute momentum filter (totalReturn > 0 required for switch and phase 1-2 re-entry)",
+          "simplification": "exp-004 대비 TTM Squeeze/MACD 제거 — 핵심 3개 개선에 집중"
+        },
+        "successCriteria": "alpha >= 2% vs live strategy over 7d"
+      },
+      "status": "completed",
+      "successCriteria": "alpha >= 2% vs live strategy over 7d",
+      "results": { "shadowId": "shadow-1773337347924", "reason": "7일 평가 기간 초과, alpha 미달. 8일간 shadow_running 상태로 슬롯 점유 후 수동 정리." },
+      "startedAt": "2026-03-12T17:42:27.513Z",
+      "completedAt": "2026-03-20T12:30:00.000Z",
+      "outcome": "rejected"
+    },
+    {
       "id": "exp-003",
       "hypothesis": "ATR 적응형 트레일링 스톱(3-10%) + TTM 스퀴즈 브레이크아웃 시그널(scoring 20%) + 절대 모멘텀 게이트를 통합하면, 저변동성 구간에서 타이트한 보호 + 변동성 복귀 시 정확한 진입으로 현재 전략 대비 alpha 개선 가능",
       "design": {

@@ -141,9 +141,9 @@ if [ "$ACTION" = "keep" ]; then
 fi
 
 if [ "$ACTION" = "modify" ]; then
-    echo "Claude chose MODIFY (parameter adjustment)."
+    echo "Claude chose MODIFY (parameter adjustment, retry enabled)."
 
-    # Extract parameters and apply to current strategy's DEFAULT_CONFIG
+    # Extract parameters from initial response
     PARAMS=$(echo "$PARSE_RESULT" | node -e "
         process.stdin.setEncoding('utf8');
         let d='';
@@ -165,83 +165,195 @@ if [ "$ACTION" = "modify" ]; then
         exit 0
     fi
 
-    # Step M1: Baseline backtest BEFORE modification
-    echo "  [Modify Gate] Backtesting baseline strategy..."
-    MODIFY_BASELINE=$(node src/batch/eval/backtest.js src/strategies/current-strategy.js 2>/dev/null || echo '{"error":"backtest failed"}')
+    # Step M0: Baseline walk-forward backtest (done once)
+    echo "  [Modify Gate] Backtesting baseline strategy (walk-forward)..."
+    MODIFY_BASELINE_WF=$(node src/batch/eval/backtest.js --walk-forward src/strategies/current-strategy.js 2>/dev/null || echo '{"test":{"error":"backtest failed"}}')
 
-    echo "  Applying parameter modifications: $PARAMS"
-
-    # Read current strategy, update DEFAULT_CONFIG values
-    node src/batch/eval/apply-modify.js "$PARAMS"
-
-    # Step M2: Backtest AFTER modification
-    echo "  [Modify Gate] Backtesting modified strategy..."
-    MODIFY_AFTER=$(node src/batch/eval/backtest.js src/strategies/current-strategy.js 2>/dev/null || echo '{"error":"backtest failed"}')
-
-    # Step M3: Compare with modify gate (pass JSON via env vars to prevent injection)
-    MODIFY_COMPARISON=$(BASELINE_JSON="$MODIFY_BASELINE" MODIFIED_JSON="$MODIFY_AFTER" node -e "
-        const { compareStrategies } = require('./src/batch/eval/backtest');
-        const baseline = JSON.parse(process.env.BASELINE_JSON);
-        const modified = JSON.parse(process.env.MODIFIED_JSON);
-        if (baseline.error || modified.error) {
-            console.log(JSON.stringify({pass:true, reasons:['Backtest error, allowing modify']}));
-        } else {
-            console.log(JSON.stringify(compareStrategies(baseline, modified, 'modify')));
-        }
+    MODIFY_BASELINE_METRICS=$(MOD_BL="$MODIFY_BASELINE_WF" node -e "
+        const wf = JSON.parse(process.env.MOD_BL);
+        const t = wf.test || {};
+        const m = t.measurePeriod || t;
+        console.log(JSON.stringify({
+            returnPct: m.returnPct || 0,
+            maxDrawdown: m.maxDrawdown || 0,
+            dailyTrades: m.dailyTrades || 0,
+            tradeDays: m.tradeDays || 0,
+        }));
     ")
 
-    MODIFY_PASS=$(json_field "$MODIFY_COMPARISON" "o.pass")
+    MODIFY_MAX_RETRIES=2
+    MODIFY_WINNING=false
+    MODIFY_LAST_PARAMS="$PARAMS"
+    MODIFY_LAST_GATE_RESULT=""
+    MODIFY_LAST_NEW_METRICS=""
+    MODIFY_CURRENT_PARSE="$PARSE_RESULT"
 
-    echo "  [Modify Gate] Result: pass=$MODIFY_PASS"
-    echo "$MODIFY_COMPARISON"
+    for M_ATTEMPT in $(seq 0 $MODIFY_MAX_RETRIES); do
+        echo ""
+        echo "  === Modify attempt $((M_ATTEMPT + 1))/$((MODIFY_MAX_RETRIES + 1)) ==="
 
-    if [ "$MODIFY_PASS" != "true" ]; then
-        echo "  [Modify Gate] FAILED. Reverting strategy."
-        git checkout -- src/strategies/current-strategy.js 2>/dev/null || true
-        # Update batch memory with modify gate failure
-        echo "$PARSE_RESULT" | COMP_JSON="$MODIFY_COMPARISON" TRIGGER="$TRIGGER_TYPE" node -e "
+        if [ "$M_ATTEMPT" -gt 0 ]; then
+            # Retry: build modify retry prompt and call Claude again
+            echo "  Building modify retry prompt..."
+            MODIFY_RETRY_PROMPT=$(LAST_PARAMS="$MODIFY_LAST_PARAMS" GATE_RESULT="$MODIFY_LAST_GATE_RESULT" CUR_METRICS="$MODIFY_BASELINE_METRICS" NEW_METRICS="$MODIFY_LAST_NEW_METRICS" ATTEMPT="$M_ATTEMPT" node -e "
+                const { buildModifyRetryPrompt } = require('./src/batch/prompt/build-retry-prompt');
+                const prompt = buildModifyRetryPrompt({
+                    failedParams: JSON.parse(process.env.LAST_PARAMS),
+                    gateResult: JSON.parse(process.env.GATE_RESULT),
+                    currentBacktest: JSON.parse(process.env.CUR_METRICS),
+                    newBacktest: JSON.parse(process.env.NEW_METRICS),
+                    attempt: Number(process.env.ATTEMPT),
+                });
+                process.stdout.write(prompt);
+            ")
+
+            echo "  Calling Claude for modify retry..."
+            MODIFY_RETRY_OUTPUT=$(echo "$MODIFY_RETRY_PROMPT" | timeout 600 env -u CLAUDECODE claude --model claude-opus-4-6 -p 2>/dev/null || true)
+
+            if [ -z "$MODIFY_RETRY_OUTPUT" ]; then
+                echo "  Retry Claude returned empty output. Skipping."
+                continue
+            fi
+            echo "  Retry response received (${#MODIFY_RETRY_OUTPUT} chars)."
+
+            RETRY_PARSE=$(echo "$MODIFY_RETRY_OUTPUT" | node src/batch/prompt/parse-response.js 2>/dev/null || echo '{"valid":false,"errors":["parse failed"]}')
+            RETRY_VALID=$(json_field "$RETRY_PARSE" "o.valid")
+            RETRY_ACTION=$(json_field "$RETRY_PARSE" "o.decision?o.decision.action:'none'")
+
+            if [ "$RETRY_VALID" != "true" ] || [ "$RETRY_ACTION" != "modify" ]; then
+                echo "  Retry parse failed or action changed ($RETRY_ACTION). Skipping attempt."
+                continue
+            fi
+
+            PARAMS=$(echo "$RETRY_PARSE" | node -e "
+                process.stdin.setEncoding('utf8');
+                let d='';
+                process.stdin.on('data',c=>d+=c);
+                process.stdin.on('end',()=>{
+                    const r=JSON.parse(d);
+                    const p = r.decision.parameters;
+                    if (!p || Object.keys(p).length === 0) {
+                        console.log('EMPTY');
+                    } else {
+                        console.log(JSON.stringify(p));
+                    }
+                });
+            ")
+
+            if [ "$PARAMS" = "EMPTY" ]; then
+                echo "  No parameters in retry response. Skipping."
+                continue
+            fi
+
+            MODIFY_CURRENT_PARSE="$RETRY_PARSE"
+        fi
+
+        echo "  Applying parameter modifications: $PARAMS"
+        node src/batch/eval/apply-modify.js "$PARAMS"
+
+        # Backtest modified strategy (walk-forward)
+        echo "  [Modify Gate] Backtesting modified strategy (walk-forward)..."
+        MODIFY_AFTER_WF=$(node src/batch/eval/backtest.js --walk-forward src/strategies/current-strategy.js 2>/dev/null || echo '{"test":{"error":"backtest failed"}}')
+
+        # Compare with modify gate (walk-forward results)
+        MODIFY_COMPARISON=$(BASELINE_WF="$MODIFY_BASELINE_WF" MODIFIED_WF="$MODIFY_AFTER_WF" node -e "
+            const { compareStrategies } = require('./src/batch/eval/backtest');
+            const baselineWF = JSON.parse(process.env.BASELINE_WF);
+            const modifiedWF = JSON.parse(process.env.MODIFIED_WF);
+            const bTest = baselineWF.test || {};
+            const mTest = modifiedWF.test || {};
+            if (bTest.error || mTest.error) {
+                console.log(JSON.stringify({pass:true, reasons:['Backtest error, allowing modify']}));
+            } else {
+                const bMetrics = bTest.measurePeriod || bTest;
+                const mMetrics = mTest.measurePeriod || mTest;
+                console.log(JSON.stringify(compareStrategies(bMetrics, mMetrics, 'modify')));
+            }
+        ")
+
+        MODIFY_PASS=$(json_field "$MODIFY_COMPARISON" "o.pass")
+
+        echo "  [Modify Gate] Result: pass=$MODIFY_PASS"
+        echo "$MODIFY_COMPARISON"
+
+        if [ "$MODIFY_PASS" = "true" ]; then
+            MODIFY_WINNING=true
+            break
+        else
+            # Gate failed — revert and prepare for retry
+            echo "  [Modify Gate] FAILED. Reverting strategy."
+            git checkout -- src/strategies/current-strategy.js 2>/dev/null || true
+
+            MODIFY_LAST_PARAMS="$PARAMS"
+            MODIFY_LAST_GATE_RESULT="$MODIFY_COMPARISON"
+            MODIFY_LAST_NEW_METRICS=$(MOD_AFT="$MODIFY_AFTER_WF" node -e "
+                const wf = JSON.parse(process.env.MOD_AFT);
+                const t = wf.test || {};
+                const m = t.measurePeriod || t;
+                console.log(JSON.stringify({
+                    returnPct: m.returnPct || 0,
+                    maxDrawdown: m.maxDrawdown || 0,
+                    dailyTrades: m.dailyTrades || 0,
+                    tradeDays: m.tradeDays || 0,
+                }));
+            ")
+
+            # Diagnose failure
+            MODIFY_DIAGNOSIS=$(COMP_JSON="$MODIFY_COMPARISON" NEW_M="$MODIFY_LAST_NEW_METRICS" CUR_M="$MODIFY_BASELINE_METRICS" node -e "
+                const { diagnoseGateFailure } = require('./src/batch/prompt/diagnose-failure');
+                const d = diagnoseGateFailure(JSON.parse(process.env.COMP_JSON), JSON.parse(process.env.NEW_M), JSON.parse(process.env.CUR_M));
+                console.log(d.summary);
+            " 2>/dev/null || echo "Diagnosis unavailable")
+            echo "  Diagnosis: $MODIFY_DIAGNOSIS"
+        fi
+    done
+
+    if [ "$MODIFY_WINNING" = "true" ]; then
+        # Git commit the modification
+        cd "$PROJECT_DIR"
+        REASONING=$(json_field "$MODIFY_CURRENT_PARSE" "o.decision.reasoning||'parameter modification'")
+        git add -A src/strategies/ trading-config.json 2>/dev/null || true
+        git commit -m "batch: modify strategy parameters - $REASONING" 2>/dev/null || true
+
+        # Restart PM2 to reload modified parameters
+        echo "  Restarting PM2 to apply modified parameters..."
+        pm2 restart upbit-trading-bot 2>/dev/null || echo "  WARNING: PM2 restart failed"
+
+        MODIFY_DECISION=$(json_field "$MODIFY_CURRENT_PARSE" "JSON.stringify(o.decision)")
+        MODIFY_JSON=$(PARAMS_JSON="$PARAMS" DECISION_JSON="$MODIFY_DECISION" node -e "
+            const p = JSON.parse(process.env.PARAMS_JSON);
+            const r = JSON.parse(process.env.DECISION_JSON);
+            console.log(JSON.stringify({type:'modify',reasoning:r.reasoning||'',confidence:r.confidence||0,parameters:p}));
+        ")
+        notify_batch "$MODIFY_JSON"
+        # Update batch memory
+        echo "$MODIFY_CURRENT_PARSE" | TRIGGER="$TRIGGER_TYPE" node -e "
             process.stdin.setEncoding('utf8');let d='';
             process.stdin.on('data',c=>d+=c);
             process.stdin.on('end',()=>{
                 const r=JSON.parse(d).decision;
-                const comp=JSON.parse(process.env.COMP_JSON);
                 const {appendEntry}=require('./src/batch/learning/update-memory');
-                appendEntry({action:'modify',reasoning:r.reasoning,confidence:r.confidence,parameters:r.parameters,outcome:'gate_failed',improvementAreas:r.improvementAreas||null,backtestResult:comp,notes:r.notes||'',strategicNotes:r.strategicNotes,knowledge:r.knowledge||null,triggerType:process.env.TRIGGER});
+                appendEntry({action:'modify',reasoning:r.reasoning,confidence:r.confidence,parameters:r.parameters,outcome:'applied',improvementAreas:r.improvementAreas||null,notes:r.notes||'',strategicNotes:r.strategicNotes,knowledge:r.knowledge||null,triggerType:process.env.TRIGGER});
             });
         "
-        notify_batch '{"type":"modify_fail","reasoning":"modify gate failed"}'
-        echo "Batch complete (modify gate failed)."
-        exit 0
+        echo "Batch complete (parameters modified)."
+    else
+        echo ""
+        echo "  All $((MODIFY_MAX_RETRIES + 1)) modify attempts FAILED. Not applying changes."
+        # Update batch memory with all retries failed
+        echo "$MODIFY_CURRENT_PARSE" | COMP_JSON="${MODIFY_LAST_GATE_RESULT:-'{}'}" TRIGGER="$TRIGGER_TYPE" RETRIES="$((MODIFY_MAX_RETRIES + 1))" node -e "
+            process.stdin.setEncoding('utf8');let d='';
+            process.stdin.on('data',c=>d+=c);
+            process.stdin.on('end',()=>{
+                const r=JSON.parse(d).decision;
+                let comp=null; try{comp=JSON.parse(process.env.COMP_JSON);}catch(e){}
+                const {appendEntry}=require('./src/batch/learning/update-memory');
+                appendEntry({action:'modify',reasoning:r.reasoning,confidence:r.confidence,parameters:r.parameters,outcome:'all_retries_failed',improvementAreas:r.improvementAreas||null,backtestResult:comp,notes:r.notes||'',strategicNotes:r.strategicNotes,knowledge:r.knowledge||null,triggerType:process.env.TRIGGER,retryAttempts:Number(process.env.RETRIES)});
+            });
+        "
+        notify_batch '{"type":"modify_fail","reasoning":"all modify retry attempts failed"}'
+        echo "Batch complete (all modify attempts failed)."
     fi
-
-    # Git commit the modification
-    cd "$PROJECT_DIR"
-    REASONING=$(json_field "$PARSE_RESULT" "o.decision.reasoning||'parameter modification'")
-    git add -A src/strategies/ trading-config.json 2>/dev/null || true
-    git commit -m "batch: modify strategy parameters - $REASONING" 2>/dev/null || true
-
-    # Restart PM2 to reload modified parameters
-    echo "  Restarting PM2 to apply modified parameters..."
-    pm2 restart upbit-trading-bot 2>/dev/null || echo "  WARNING: PM2 restart failed"
-
-    MODIFY_DECISION=$(json_field "$PARSE_RESULT" "JSON.stringify(o.decision)")
-    MODIFY_JSON=$(PARAMS_JSON="$PARAMS" DECISION_JSON="$MODIFY_DECISION" node -e "
-        const p = JSON.parse(process.env.PARAMS_JSON);
-        const r = JSON.parse(process.env.DECISION_JSON);
-        console.log(JSON.stringify({type:'modify',reasoning:r.reasoning||'',confidence:r.confidence||0,parameters:p}));
-    ")
-    notify_batch "$MODIFY_JSON"
-    # Update batch memory
-    echo "$PARSE_RESULT" | TRIGGER="$TRIGGER_TYPE" node -e "
-        process.stdin.setEncoding('utf8');let d='';
-        process.stdin.on('data',c=>d+=c);
-        process.stdin.on('end',()=>{
-            const r=JSON.parse(d).decision;
-            const {appendEntry}=require('./src/batch/learning/update-memory');
-            appendEntry({action:'modify',reasoning:r.reasoning,confidence:r.confidence,parameters:r.parameters,outcome:'applied',improvementAreas:r.improvementAreas||null,notes:r.notes||'',strategicNotes:r.strategicNotes,knowledge:r.knowledge||null,triggerType:process.env.TRIGGER});
-        });
-    "
-    echo "Batch complete (parameters modified)."
     exit 0
 fi
 

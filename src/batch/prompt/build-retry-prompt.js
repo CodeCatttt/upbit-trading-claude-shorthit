@@ -78,6 +78,71 @@ JSON의 action은 반드시 "replace"로 설정하세요.
     return prompt;
 }
 
+function buildModifyRetryPrompt({ failedParams, gateResult, currentBacktest, newBacktest, attempt, diagnosis }) {
+    // Auto-diagnose if not provided
+    if (!diagnosis && gateResult && newBacktest && currentBacktest) {
+        diagnosis = diagnoseGateFailure(gateResult, newBacktest, currentBacktest);
+    }
+
+    const issuesList = (diagnosis?.issues || [])
+        .map(i => `  - [${i.severity.toUpperCase()}] ${i.message}`)
+        .join('\n');
+
+    const suggestionsList = (diagnosis?.suggestions || [])
+        .map((s, i) => `  ${i + 1}. ${s}`)
+        .join('\n');
+
+    const thresholds = diagnosis?.thresholds || { minReturn: -1, maxMddWorsening: 3, maxDailyTrades: 10, minDailyTrades: 0.1 };
+
+    const prompt = `## 파라미터 수정 재시도 요청 (시도 ${attempt + 1}/3)
+
+이전 modify 시도가 백테스트 게이트에서 실패했습니다.
+아래 진단 결과를 참고하여 다른 파라미터 조합을 제안하세요.
+
+### 실패한 파라미터
+\`\`\`json
+${JSON.stringify(failedParams, null, 2)}
+\`\`\`
+
+### 실패 진단
+${diagnosis?.summary || '진단 정보 없음'}
+
+#### 실패 항목
+${issuesList || '  (없음)'}
+
+#### 개선 제안
+${suggestionsList || '  (없음)'}
+
+### 게이트 통과 기준 (modify)
+- 수익률 차이: >= ${thresholds.minReturn}% (현재 전략 대비)
+- MDD 악화: <= ${thresholds.maxMddWorsening}%
+- 일일 거래: >= ${thresholds.minDailyTrades || 0.1}회 and <= ${thresholds.maxDailyTrades}회
+
+### 현재 전략 벤치마크 (walk-forward TEST 구간)
+- 수익률: ${currentBacktest?.returnPct?.toFixed(2) ?? 'N/A'}%
+- MDD: ${currentBacktest?.maxDrawdown?.toFixed(2) ?? 'N/A'}%
+- 일일 거래: ${currentBacktest?.dailyTrades?.toFixed(1) ?? 'N/A'}회
+
+### 이전 시도 결과
+- 수익률: ${newBacktest?.returnPct?.toFixed(2) ?? 'N/A'}%
+- MDD: ${newBacktest?.maxDrawdown?.toFixed(2) ?? 'N/A'}%
+- 일일 거래: ${newBacktest?.dailyTrades?.toFixed(1) ?? 'N/A'}회
+
+### 지시사항
+1. 이전에 실패한 파라미터와는 **다른 값**을 사용하세요.
+2. 게이트 기준을 충족하는 보수적인 조정을 우선하세요.
+3. 수익률이 악화되었다면: 변경 폭을 줄이거나, 다른 파라미터를 조정하세요.
+4. MDD가 악화되었다면: 리스크 파라미터를 더 보수적으로 설정하세요.
+5. 거래 빈도가 너무 높다면: 쿨다운/문턱 값을 높이세요.
+
+### 응답 포맷
+결정 JSON을 \`\`\`json 블록으로 출력하세요.
+action은 반드시 "modify"로, parameters에 새로운 파라미터 조합을 포함하세요.
+`;
+
+    return prompt;
+}
+
 // Self-test
 if (require.main === module) {
     const prompt = buildRetryPrompt({
@@ -99,4 +164,4 @@ if (require.main === module) {
     console.log('--- Self-test passed ---');
 }
 
-module.exports = { buildRetryPrompt };
+module.exports = { buildRetryPrompt, buildModifyRetryPrompt };

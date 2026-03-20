@@ -159,28 +159,52 @@ function completeExperiment(experimentId, outcome, finalResults) {
 }
 
 /**
- * Auto-expire experiments stuck in 'proposed' status for too long (> 3 days).
- * Moves them to completed with outcome 'expired'.
+ * Auto-expire stale experiments.
+ * - 'proposed' status: expire after 3 days (no code/execution)
+ * - Any other non-completed status: expire after design.duration × 2 (default 14 days)
+ *   Covers shadow_deploy_failed, shadow_running, backtest_passed, etc.
  */
 function autoExpireStaleExperiments() {
     const experiments = loadExperiments();
-    const EXPIRY_MS = 3 * 24 * 60 * 60 * 1000; // 3 days
+    const PROPOSED_EXPIRY_MS = 3 * 24 * 60 * 60 * 1000; // 3 days
+    const DEFAULT_MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000; // 14 days fallback
     const now = Date.now();
     const stale = [];
 
     experiments.active = experiments.active.filter(exp => {
-        if (exp.status === 'proposed' && exp.startedAt) {
-            const age = now - new Date(exp.startedAt).getTime();
-            if (age > EXPIRY_MS) {
+        if (!exp.startedAt) return true;
+        const age = now - new Date(exp.startedAt).getTime();
+
+        // Case 1: proposed — 3 days without execution
+        if (exp.status === 'proposed' && age > PROPOSED_EXPIRY_MS) {
+            exp.status = 'completed';
+            exp.outcome = 'expired';
+            exp.completedAt = new Date().toISOString();
+            exp.results = { ...exp.results, reason: 'Auto-expired: stuck in proposed status for >3 days' };
+            experiments.completed.push(exp);
+            stale.push(exp.id);
+            return false;
+        }
+
+        // Case 2: any other non-completed status — expire after duration × 2
+        if (exp.status !== 'proposed' && exp.status !== 'completed') {
+            const durationStr = exp.design?.duration || '7d';
+            const durationDays = parseInt(durationStr) || 7;
+            const maxAgeMs = Math.min(durationDays * 2, 14) * 24 * 60 * 60 * 1000 || DEFAULT_MAX_AGE_MS;
+
+            if (age > maxAgeMs) {
+                const originalStatus = exp.status;
                 exp.status = 'completed';
-                exp.outcome = 'expired';
+                exp.outcome = 'inconclusive';
                 exp.completedAt = new Date().toISOString();
-                exp.results = { reason: 'Auto-expired: stuck in proposed status for >3 days without code/execution' };
+                exp.results = { ...exp.results, reason: `Auto-expired: stuck in '${originalStatus}' for ${Math.round(age / 86400000)}d (limit: ${Math.round(maxAgeMs / 86400000)}d)` };
                 experiments.completed.push(exp);
                 stale.push(exp.id);
+                log.warn(`Auto-expired ${exp.id}: status='${originalStatus}', age=${Math.round(age / 86400000)}d`);
                 return false;
             }
         }
+
         return true;
     });
 

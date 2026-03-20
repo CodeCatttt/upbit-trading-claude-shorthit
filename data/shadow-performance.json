@@ -1,3 +1,6994 @@
 {
-  "shadows": {}
+  "shadows": {
+    "shadow-1773336755483": {
+      "label": "ATR 적응형 trailing stop(3-10%) + TTM Squeeze 브레이크아웃 시그널(scoring 20%) + 절대 모멘텀 게이트 + MACD 확인을 통합하면, 저변동성 구간에서 타이트한 보호 + 브레이크아웃 시 정확한 진입으로 현재 전략 대비 alpha 개선. exp-003 재시도 (shadow deploy 버그 수정 완료).",
+      "experimentId": "exp-004",
+      "filePath": "/home/kook/programming/upbit-trading-claude/data/shadow-strategies/shadow-1773336755483.js",
+      "runtimePath": "/home/kook/programming/upbit-trading-claude/src/strategies/shadow-1773336755483.js",
+      "deployedAt": "2026-03-12T17:32:35.487Z",
+      "state": {
+        "assetHeld": "KRW-ETH",
+        "candlesSinceLastTrade": 65,
+        "peakPriceSinceEntry": 3234000,
+        "_cachedScoresKey": "100:2026-03-21T01:00:00,100:2026-03-21T01:00:00,100:2026-03-21T01:00:00,100:2026-03-21T01:00:00|72,9,26,14,20,0.58,14,0.25,0.3,0.15,0.2,0.1",
+        "_cachedScores": {
+          "KRW-BTC": {
+            "score": 2.0020839948217724,
+            "choppiness": 0.43329784416778006,
+            "isChoppy": false,
+            "totalReturn": 0.06832234656855231,
+            "sharpe": 9.655162794345603,
+            "trendCross": -0.007848773446051165,
+            "trendSignal": -0.4656,
+            "adx": 29.659156488997574,
+            "volumeSignal": -0.3591,
+            "squeezeSignal": -1,
+            "squeezeState": {
+              "on": false,
+              "ratio": 1.996,
+              "momentum": -1.3337
+            },
+            "macdSignal": -0.1818,
+            "rsi": 41.612658717314524,
+            "stochK": 37.107516650808755
+          },
+          "KRW-ETH": {
+            "score": 2.1166309073728793,
+            "choppiness": 0.4266816644389982,
+            "isChoppy": false,
+            "totalReturn": 0.11223422795399093,
+            "sharpe": 10.463010719560318,
+            "trendCross": -0.010035538887837536,
+            "trendSignal": -0.6202,
+            "adx": 30.902566566702586,
+            "volumeSignal": -0.4198,
+            "squeezeSignal": -1,
+            "squeezeState": {
+              "on": false,
+              "ratio": 2.172,
+              "momentum": -2.0406
+            },
+            "macdSignal": -0.5007,
+            "rsi": 42.22987068027403,
+            "stochK": 26.905829596412556
+          },
+          "KRW-SOL": {
+            "score": 1.869152175670165,
+            "choppiness": 0.47862070841254517,
+            "isChoppy": false,
+            "totalReturn": 0.10090984284532671,
+            "sharpe": 8.909505614834142,
+            "trendCross": -0.005232708526194782,
+            "trendSignal": -0.2643,
+            "adx": 25.25775211592367,
+            "volumeSignal": -0.5187,
+            "squeezeSignal": -0.8926,
+            "squeezeState": {
+              "on": false,
+              "ratio": 1.601,
+              "momentum": -0.8926
+            },
+            "macdSignal": -0.226,
+            "rsi": 46.86683595028592,
+            "stochK": 53.125
+          },
+          "KRW-XRP": {
+            "score": 1.8838205451117263,
+            "choppiness": 0.5260031783341246,
+            "isChoppy": false,
+            "totalReturn": 0.08312342569269521,
+            "sharpe": 8.926400215025481,
+            "trendCross": -0.0025119705573825044,
+            "trendSignal": -0.1206,
+            "adx": 24.000137554135584,
+            "volumeSignal": -0.5191,
+            "squeezeSignal": -1,
+            "squeezeState": {
+              "on": false,
+              "ratio": 1.532,
+              "momentum": -1.2243
+            },
+            "macdSignal": -0.3374,
+            "rsi": 46.173000996675036,
+            "stochK": 34.93975903614458
+          }
+        }
+      },
+      "trades": [
+        {
+          "timestamp": "2026-03-16T00:00:10.122Z",
+          "from": "KRW-BTC",
+          "to": "KRW-ETH",
+          "reason": "trend_advantage",
+          "fromPrice": 106973000,
+          "toPrice": 3202000
+        },
+        {
+          "timestamp": "2026-03-18T12:15:10.140Z",
+          "from": "KRW-ETH",
+          "to": "CASH",
+          "reason": "crash_detected",
+          "fromPrice": 3337000,
+          "toPrice": 0
+        },
+        {
+          "timestamp": "2026-03-19T00:15:10.115Z",
+          "from": "CASH",
+          "to": "KRW-ETH",
+          "reason": "reentry_from_cash",
+          "fromPrice": 0,
+          "toPrice": 3271000
+        },
+        {
+          "timestamp": "2026-03-19T13:00:10.126Z",
+          "from": "KRW-ETH",
+          "to": "CASH",
+          "reason": "crash_detected",
+          "fromPrice": 3175000,
+          "toPrice": 0
+        },
+        {
+          "timestamp": "2026-03-20T01:00:10.122Z",
+          "from": "CASH",
+          "to": "KRW-ETH",
+          "reason": "reentry_from_cash",
+          "fromPrice": 0,
+          "toPrice": 3189000
+        }
+      ],
+      "snapshots": [
+        {
+          "timestamp": "2026-03-13T19:00:10.129Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104508000
+        },
+        {
+          "timestamp": "2026-03-13T19:15:10.114Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104755000
+        },
+        {
+          "timestamp": "2026-03-13T19:30:10.150Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104538000
+        },
+        {
+          "timestamp": "2026-03-13T19:45:10.128Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104581000
+        },
+        {
+          "timestamp": "2026-03-13T20:00:10.128Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104653000
+        },
+        {
+          "timestamp": "2026-03-13T20:15:10.142Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104949000
+        },
+        {
+          "timestamp": "2026-03-13T20:30:10.132Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104931000
+        },
+        {
+          "timestamp": "2026-03-13T20:45:10.134Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104898000
+        },
+        {
+          "timestamp": "2026-03-13T21:00:10.112Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104970000
+        },
+        {
+          "timestamp": "2026-03-13T21:15:10.133Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105077000
+        },
+        {
+          "timestamp": "2026-03-13T21:30:10.105Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104721000
+        },
+        {
+          "timestamp": "2026-03-13T21:45:10.121Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104684000
+        },
+        {
+          "timestamp": "2026-03-13T22:00:10.130Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104681000
+        },
+        {
+          "timestamp": "2026-03-13T22:15:10.133Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104296000
+        },
+        {
+          "timestamp": "2026-03-13T22:30:10.113Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104023000
+        },
+        {
+          "timestamp": "2026-03-13T22:45:10.131Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104152000
+        },
+        {
+          "timestamp": "2026-03-13T23:00:10.115Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104181000
+        },
+        {
+          "timestamp": "2026-03-13T23:15:10.127Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104262000
+        },
+        {
+          "timestamp": "2026-03-13T23:30:10.107Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104427000
+        },
+        {
+          "timestamp": "2026-03-13T23:45:10.131Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104568000
+        },
+        {
+          "timestamp": "2026-03-14T00:00:10.118Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104388000
+        },
+        {
+          "timestamp": "2026-03-14T00:15:10.126Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104393000
+        },
+        {
+          "timestamp": "2026-03-14T00:30:10.119Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104523000
+        },
+        {
+          "timestamp": "2026-03-14T00:45:10.136Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104059000
+        },
+        {
+          "timestamp": "2026-03-14T01:00:10.137Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104112000
+        },
+        {
+          "timestamp": "2026-03-14T01:15:10.111Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104221000
+        },
+        {
+          "timestamp": "2026-03-14T01:30:10.131Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104490000
+        },
+        {
+          "timestamp": "2026-03-14T01:45:10.125Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104484000
+        },
+        {
+          "timestamp": "2026-03-14T02:00:10.120Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104382000
+        },
+        {
+          "timestamp": "2026-03-14T02:15:10.127Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104511000
+        },
+        {
+          "timestamp": "2026-03-14T02:30:10.114Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104478000
+        },
+        {
+          "timestamp": "2026-03-14T02:45:10.124Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104384000
+        },
+        {
+          "timestamp": "2026-03-14T03:00:10.131Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104413000
+        },
+        {
+          "timestamp": "2026-03-14T03:15:10.121Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104703000
+        },
+        {
+          "timestamp": "2026-03-14T03:30:10.125Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104789000
+        },
+        {
+          "timestamp": "2026-03-14T03:45:10.125Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104940000
+        },
+        {
+          "timestamp": "2026-03-14T04:00:10.135Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104889000
+        },
+        {
+          "timestamp": "2026-03-14T04:15:10.118Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105024000
+        },
+        {
+          "timestamp": "2026-03-14T04:30:10.124Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104975000
+        },
+        {
+          "timestamp": "2026-03-14T04:45:10.128Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105050000
+        },
+        {
+          "timestamp": "2026-03-14T05:00:10.126Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104713000
+        },
+        {
+          "timestamp": "2026-03-14T05:15:10.122Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104915000
+        },
+        {
+          "timestamp": "2026-03-14T05:30:10.127Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104909000
+        },
+        {
+          "timestamp": "2026-03-14T05:45:10.116Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104671000
+        },
+        {
+          "timestamp": "2026-03-14T06:00:10.123Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104822000
+        },
+        {
+          "timestamp": "2026-03-14T06:15:10.138Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104671000
+        },
+        {
+          "timestamp": "2026-03-14T06:30:10.125Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104371000
+        },
+        {
+          "timestamp": "2026-03-14T06:45:10.133Z",
+          "assetHeld": "KRW-BTC",
+          "price": 103993000
+        },
+        {
+          "timestamp": "2026-03-14T07:00:10.131Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104233000
+        },
+        {
+          "timestamp": "2026-03-14T07:15:10.127Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104372000
+        },
+        {
+          "timestamp": "2026-03-14T07:30:10.154Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104275000
+        },
+        {
+          "timestamp": "2026-03-14T07:45:10.118Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104075000
+        },
+        {
+          "timestamp": "2026-03-14T08:00:10.119Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104177000
+        },
+        {
+          "timestamp": "2026-03-14T08:15:10.119Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104345000
+        },
+        {
+          "timestamp": "2026-03-14T08:30:10.116Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104293000
+        },
+        {
+          "timestamp": "2026-03-14T08:45:10.125Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104193000
+        },
+        {
+          "timestamp": "2026-03-14T09:00:10.131Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104169000
+        },
+        {
+          "timestamp": "2026-03-14T09:15:10.118Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104338000
+        },
+        {
+          "timestamp": "2026-03-14T09:30:10.164Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104344000
+        },
+        {
+          "timestamp": "2026-03-14T09:45:10.127Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104318000
+        },
+        {
+          "timestamp": "2026-03-14T10:00:10.129Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104240000
+        },
+        {
+          "timestamp": "2026-03-14T10:15:10.127Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104199000
+        },
+        {
+          "timestamp": "2026-03-14T10:30:10.115Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104082000
+        },
+        {
+          "timestamp": "2026-03-14T10:45:10.121Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104249000
+        },
+        {
+          "timestamp": "2026-03-14T11:00:10.124Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104346000
+        },
+        {
+          "timestamp": "2026-03-14T11:15:10.117Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104500000
+        },
+        {
+          "timestamp": "2026-03-14T11:30:10.128Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104492000
+        },
+        {
+          "timestamp": "2026-03-14T11:45:10.115Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104574000
+        },
+        {
+          "timestamp": "2026-03-14T12:00:10.131Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104666000
+        },
+        {
+          "timestamp": "2026-03-14T12:15:10.117Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104689000
+        },
+        {
+          "timestamp": "2026-03-14T12:30:10.127Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104676000
+        },
+        {
+          "timestamp": "2026-03-14T12:45:10.127Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104506000
+        },
+        {
+          "timestamp": "2026-03-14T13:00:10.125Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104706000
+        },
+        {
+          "timestamp": "2026-03-14T13:15:10.141Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104650000
+        },
+        {
+          "timestamp": "2026-03-14T13:24:32.620Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104800000
+        },
+        {
+          "timestamp": "2026-03-14T13:30:10.148Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104771000
+        },
+        {
+          "timestamp": "2026-03-14T13:45:10.137Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104752000
+        },
+        {
+          "timestamp": "2026-03-14T14:00:10.122Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104738000
+        },
+        {
+          "timestamp": "2026-03-14T14:15:10.138Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104535000
+        },
+        {
+          "timestamp": "2026-03-14T14:30:10.133Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104665000
+        },
+        {
+          "timestamp": "2026-03-14T14:45:10.131Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104400000
+        },
+        {
+          "timestamp": "2026-03-14T15:00:10.148Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104340000
+        },
+        {
+          "timestamp": "2026-03-14T15:15:10.126Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104463000
+        },
+        {
+          "timestamp": "2026-03-14T15:30:10.127Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104446000
+        },
+        {
+          "timestamp": "2026-03-14T15:45:10.146Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104333000
+        },
+        {
+          "timestamp": "2026-03-14T16:00:10.119Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104381000
+        },
+        {
+          "timestamp": "2026-03-14T16:15:10.126Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104376000
+        },
+        {
+          "timestamp": "2026-03-14T16:30:10.123Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104430000
+        },
+        {
+          "timestamp": "2026-03-14T16:45:10.119Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104410000
+        },
+        {
+          "timestamp": "2026-03-14T17:00:10.119Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104480000
+        },
+        {
+          "timestamp": "2026-03-14T17:15:10.123Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104398000
+        },
+        {
+          "timestamp": "2026-03-14T17:30:10.101Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104490000
+        },
+        {
+          "timestamp": "2026-03-14T17:45:10.119Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104413000
+        },
+        {
+          "timestamp": "2026-03-14T18:00:10.115Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104302000
+        },
+        {
+          "timestamp": "2026-03-14T18:15:10.120Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104340000
+        },
+        {
+          "timestamp": "2026-03-14T18:30:10.128Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104397000
+        },
+        {
+          "timestamp": "2026-03-14T18:45:10.102Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104336000
+        },
+        {
+          "timestamp": "2026-03-14T19:00:10.128Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104453000
+        },
+        {
+          "timestamp": "2026-03-14T19:15:10.116Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104500000
+        },
+        {
+          "timestamp": "2026-03-14T19:30:10.133Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104511000
+        },
+        {
+          "timestamp": "2026-03-14T19:35:52.261Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104481000
+        },
+        {
+          "timestamp": "2026-03-14T19:45:10.142Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104548000
+        },
+        {
+          "timestamp": "2026-03-14T20:00:10.128Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104559000
+        },
+        {
+          "timestamp": "2026-03-14T20:15:10.121Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104545000
+        },
+        {
+          "timestamp": "2026-03-14T20:30:10.126Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104552000
+        },
+        {
+          "timestamp": "2026-03-14T20:45:10.136Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104644000
+        },
+        {
+          "timestamp": "2026-03-14T21:00:10.128Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104663000
+        },
+        {
+          "timestamp": "2026-03-14T21:15:10.125Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104550000
+        },
+        {
+          "timestamp": "2026-03-14T21:30:10.123Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104590000
+        },
+        {
+          "timestamp": "2026-03-14T21:45:10.117Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104652000
+        },
+        {
+          "timestamp": "2026-03-14T22:00:10.124Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104695000
+        },
+        {
+          "timestamp": "2026-03-14T22:15:10.130Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104607000
+        },
+        {
+          "timestamp": "2026-03-14T22:30:10.133Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104550000
+        },
+        {
+          "timestamp": "2026-03-14T22:45:10.129Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104650000
+        },
+        {
+          "timestamp": "2026-03-14T23:00:10.134Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104531000
+        },
+        {
+          "timestamp": "2026-03-14T23:15:10.134Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104903000
+        },
+        {
+          "timestamp": "2026-03-14T23:30:10.128Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104950000
+        },
+        {
+          "timestamp": "2026-03-14T23:45:10.131Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105099000
+        },
+        {
+          "timestamp": "2026-03-15T00:00:10.150Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105184000
+        },
+        {
+          "timestamp": "2026-03-15T00:15:10.134Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105000000
+        },
+        {
+          "timestamp": "2026-03-15T00:30:10.125Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105062000
+        },
+        {
+          "timestamp": "2026-03-15T00:45:10.135Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105040000
+        },
+        {
+          "timestamp": "2026-03-15T01:00:10.127Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104932000
+        },
+        {
+          "timestamp": "2026-03-15T01:15:10.132Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104802000
+        },
+        {
+          "timestamp": "2026-03-15T01:30:10.152Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104805000
+        },
+        {
+          "timestamp": "2026-03-15T01:45:10.144Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104730000
+        },
+        {
+          "timestamp": "2026-03-15T01:50:37.582Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104807000
+        },
+        {
+          "timestamp": "2026-03-15T02:00:10.146Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104896000
+        },
+        {
+          "timestamp": "2026-03-15T02:15:10.116Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105261000
+        },
+        {
+          "timestamp": "2026-03-15T02:30:10.143Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105081000
+        },
+        {
+          "timestamp": "2026-03-15T02:45:10.123Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105246000
+        },
+        {
+          "timestamp": "2026-03-15T03:00:10.128Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105330000
+        },
+        {
+          "timestamp": "2026-03-15T03:15:10.137Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105370000
+        },
+        {
+          "timestamp": "2026-03-15T03:30:10.131Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105087000
+        },
+        {
+          "timestamp": "2026-03-15T03:45:10.134Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105189000
+        },
+        {
+          "timestamp": "2026-03-15T04:00:10.137Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105231000
+        },
+        {
+          "timestamp": "2026-03-15T04:15:10.120Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105608000
+        },
+        {
+          "timestamp": "2026-03-15T04:30:10.127Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105451000
+        },
+        {
+          "timestamp": "2026-03-15T04:45:10.131Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105464000
+        },
+        {
+          "timestamp": "2026-03-15T05:00:10.161Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105500000
+        },
+        {
+          "timestamp": "2026-03-15T05:15:10.145Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105485000
+        },
+        {
+          "timestamp": "2026-03-15T05:30:10.123Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105635000
+        },
+        {
+          "timestamp": "2026-03-15T05:45:10.139Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105682000
+        },
+        {
+          "timestamp": "2026-03-15T06:00:10.119Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105415000
+        },
+        {
+          "timestamp": "2026-03-15T06:15:10.120Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105559000
+        },
+        {
+          "timestamp": "2026-03-15T06:30:10.127Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105441000
+        },
+        {
+          "timestamp": "2026-03-15T06:45:10.121Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105378000
+        },
+        {
+          "timestamp": "2026-03-15T07:00:10.121Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105418000
+        },
+        {
+          "timestamp": "2026-03-15T07:15:10.132Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105604000
+        },
+        {
+          "timestamp": "2026-03-15T07:30:10.123Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105554000
+        },
+        {
+          "timestamp": "2026-03-15T07:45:10.121Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105430000
+        },
+        {
+          "timestamp": "2026-03-15T08:00:10.132Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105450000
+        },
+        {
+          "timestamp": "2026-03-15T08:15:10.119Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105656000
+        },
+        {
+          "timestamp": "2026-03-15T08:30:10.115Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105624000
+        },
+        {
+          "timestamp": "2026-03-15T08:45:10.125Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105558000
+        },
+        {
+          "timestamp": "2026-03-15T09:00:10.130Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105637000
+        },
+        {
+          "timestamp": "2026-03-15T09:15:10.163Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105921000
+        },
+        {
+          "timestamp": "2026-03-15T09:30:10.143Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105923000
+        },
+        {
+          "timestamp": "2026-03-15T09:45:10.175Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105820000
+        },
+        {
+          "timestamp": "2026-03-15T10:00:10.264Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105862000
+        },
+        {
+          "timestamp": "2026-03-15T10:15:10.127Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105888000
+        },
+        {
+          "timestamp": "2026-03-15T10:30:10.122Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105989000
+        },
+        {
+          "timestamp": "2026-03-15T10:45:10.138Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105915000
+        },
+        {
+          "timestamp": "2026-03-15T11:00:10.120Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105813000
+        },
+        {
+          "timestamp": "2026-03-15T11:15:10.131Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105724000
+        },
+        {
+          "timestamp": "2026-03-15T11:30:10.124Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105690000
+        },
+        {
+          "timestamp": "2026-03-15T11:45:10.134Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105699000
+        },
+        {
+          "timestamp": "2026-03-15T12:00:10.118Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105840000
+        },
+        {
+          "timestamp": "2026-03-15T12:15:10.151Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105645000
+        },
+        {
+          "timestamp": "2026-03-15T12:30:10.134Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105600000
+        },
+        {
+          "timestamp": "2026-03-15T12:45:10.126Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105419000
+        },
+        {
+          "timestamp": "2026-03-15T13:00:10.116Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105463000
+        },
+        {
+          "timestamp": "2026-03-15T13:15:10.125Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105176000
+        },
+        {
+          "timestamp": "2026-03-15T13:30:10.105Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105463000
+        },
+        {
+          "timestamp": "2026-03-15T13:45:10.221Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105305000
+        },
+        {
+          "timestamp": "2026-03-15T14:00:10.115Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105450000
+        },
+        {
+          "timestamp": "2026-03-15T14:15:10.114Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105428000
+        },
+        {
+          "timestamp": "2026-03-15T14:30:10.127Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105244000
+        },
+        {
+          "timestamp": "2026-03-15T14:45:10.127Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105319000
+        },
+        {
+          "timestamp": "2026-03-15T15:00:10.131Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105487000
+        },
+        {
+          "timestamp": "2026-03-15T15:15:10.136Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105390000
+        },
+        {
+          "timestamp": "2026-03-15T15:30:10.106Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105305000
+        },
+        {
+          "timestamp": "2026-03-15T15:45:10.125Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105311000
+        },
+        {
+          "timestamp": "2026-03-15T16:00:10.160Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105417000
+        },
+        {
+          "timestamp": "2026-03-15T16:15:10.119Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105435000
+        },
+        {
+          "timestamp": "2026-03-15T16:30:10.120Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105249000
+        },
+        {
+          "timestamp": "2026-03-15T16:45:10.134Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105331000
+        },
+        {
+          "timestamp": "2026-03-15T17:00:10.133Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105280000
+        },
+        {
+          "timestamp": "2026-03-15T17:15:10.123Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105318000
+        },
+        {
+          "timestamp": "2026-03-15T17:30:10.117Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105410000
+        },
+        {
+          "timestamp": "2026-03-15T17:45:10.136Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105460000
+        },
+        {
+          "timestamp": "2026-03-15T18:00:10.127Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105844000
+        },
+        {
+          "timestamp": "2026-03-15T18:15:10.120Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105633000
+        },
+        {
+          "timestamp": "2026-03-15T18:30:10.127Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105620000
+        },
+        {
+          "timestamp": "2026-03-15T18:45:10.122Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105695000
+        },
+        {
+          "timestamp": "2026-03-15T19:00:10.127Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105265000
+        },
+        {
+          "timestamp": "2026-03-15T19:15:10.111Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105320000
+        },
+        {
+          "timestamp": "2026-03-15T19:30:10.123Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105381000
+        },
+        {
+          "timestamp": "2026-03-15T19:45:10.125Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105447000
+        },
+        {
+          "timestamp": "2026-03-15T20:00:10.135Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105479000
+        },
+        {
+          "timestamp": "2026-03-15T20:15:10.118Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105489000
+        },
+        {
+          "timestamp": "2026-03-15T20:30:10.107Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105469000
+        },
+        {
+          "timestamp": "2026-03-15T20:45:10.124Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105849000
+        },
+        {
+          "timestamp": "2026-03-15T21:00:10.298Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105708000
+        },
+        {
+          "timestamp": "2026-03-15T21:15:10.131Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105445000
+        },
+        {
+          "timestamp": "2026-03-15T21:30:10.110Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105671000
+        },
+        {
+          "timestamp": "2026-03-15T21:45:10.133Z",
+          "assetHeld": "KRW-BTC",
+          "price": 106100000
+        },
+        {
+          "timestamp": "2026-03-15T22:00:10.113Z",
+          "assetHeld": "KRW-BTC",
+          "price": 106069000
+        },
+        {
+          "timestamp": "2026-03-15T22:15:10.097Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105661000
+        },
+        {
+          "timestamp": "2026-03-15T22:30:10.111Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105851000
+        },
+        {
+          "timestamp": "2026-03-15T22:45:10.143Z",
+          "assetHeld": "KRW-BTC",
+          "price": 106400000
+        },
+        {
+          "timestamp": "2026-03-15T23:00:10.125Z",
+          "assetHeld": "KRW-BTC",
+          "price": 106890000
+        },
+        {
+          "timestamp": "2026-03-15T23:15:10.130Z",
+          "assetHeld": "KRW-BTC",
+          "price": 107121000
+        },
+        {
+          "timestamp": "2026-03-15T23:30:10.126Z",
+          "assetHeld": "KRW-BTC",
+          "price": 106516000
+        },
+        {
+          "timestamp": "2026-03-15T23:45:10.108Z",
+          "assetHeld": "KRW-BTC",
+          "price": 106808000
+        },
+        {
+          "timestamp": "2026-03-16T00:00:10.122Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3202000
+        },
+        {
+          "timestamp": "2026-03-16T00:15:10.122Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3189000
+        },
+        {
+          "timestamp": "2026-03-16T00:30:10.129Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3180000
+        },
+        {
+          "timestamp": "2026-03-16T00:45:10.109Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3181000
+        },
+        {
+          "timestamp": "2026-03-16T01:00:10.126Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3185000
+        },
+        {
+          "timestamp": "2026-03-16T01:15:10.130Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3176000
+        },
+        {
+          "timestamp": "2026-03-16T01:30:10.129Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3195000
+        },
+        {
+          "timestamp": "2026-03-16T01:45:10.135Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3199000
+        },
+        {
+          "timestamp": "2026-03-16T02:00:10.116Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3208000
+        },
+        {
+          "timestamp": "2026-03-16T02:15:10.117Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3201000
+        },
+        {
+          "timestamp": "2026-03-16T02:30:10.123Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3188000
+        },
+        {
+          "timestamp": "2026-03-16T02:45:10.144Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3196000
+        },
+        {
+          "timestamp": "2026-03-16T02:55:52.917Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3204000
+        },
+        {
+          "timestamp": "2026-03-16T03:00:10.141Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3202000
+        },
+        {
+          "timestamp": "2026-03-16T03:15:10.131Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3202000
+        },
+        {
+          "timestamp": "2026-03-16T03:30:10.125Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3230000
+        },
+        {
+          "timestamp": "2026-03-16T03:45:10.140Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3286000
+        },
+        {
+          "timestamp": "2026-03-16T04:00:10.130Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3280000
+        },
+        {
+          "timestamp": "2026-03-16T04:15:10.123Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3294000
+        },
+        {
+          "timestamp": "2026-03-16T04:30:10.117Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3299000
+        },
+        {
+          "timestamp": "2026-03-16T04:45:10.138Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3319000
+        },
+        {
+          "timestamp": "2026-03-16T05:00:10.126Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3319000
+        },
+        {
+          "timestamp": "2026-03-16T05:15:10.137Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3321000
+        },
+        {
+          "timestamp": "2026-03-16T05:30:10.126Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3327000
+        },
+        {
+          "timestamp": "2026-03-16T05:45:10.121Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3327000
+        },
+        {
+          "timestamp": "2026-03-16T06:00:10.132Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3343000
+        },
+        {
+          "timestamp": "2026-03-16T06:15:10.131Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3318000
+        },
+        {
+          "timestamp": "2026-03-16T06:30:10.131Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3326000
+        },
+        {
+          "timestamp": "2026-03-16T06:45:10.122Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3326000
+        },
+        {
+          "timestamp": "2026-03-16T07:00:10.121Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3316000
+        },
+        {
+          "timestamp": "2026-03-16T07:15:10.142Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3324000
+        },
+        {
+          "timestamp": "2026-03-16T07:30:10.157Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3323000
+        },
+        {
+          "timestamp": "2026-03-16T07:45:10.138Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3303000
+        },
+        {
+          "timestamp": "2026-03-16T08:00:10.131Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3297000
+        },
+        {
+          "timestamp": "2026-03-16T08:15:10.124Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3297000
+        },
+        {
+          "timestamp": "2026-03-16T08:30:10.128Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3298000
+        },
+        {
+          "timestamp": "2026-03-16T08:45:10.123Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3277000
+        },
+        {
+          "timestamp": "2026-03-16T09:00:10.149Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3286000
+        },
+        {
+          "timestamp": "2026-03-16T09:15:10.124Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3293000
+        },
+        {
+          "timestamp": "2026-03-16T09:30:10.129Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3308000
+        },
+        {
+          "timestamp": "2026-03-16T09:45:10.121Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3306000
+        },
+        {
+          "timestamp": "2026-03-16T10:00:10.132Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3319000
+        },
+        {
+          "timestamp": "2026-03-16T10:15:10.129Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3329000
+        },
+        {
+          "timestamp": "2026-03-16T10:30:10.108Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3328000
+        },
+        {
+          "timestamp": "2026-03-16T10:45:10.138Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3317000
+        },
+        {
+          "timestamp": "2026-03-16T11:00:10.119Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3344000
+        },
+        {
+          "timestamp": "2026-03-16T11:15:10.122Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3340000
+        },
+        {
+          "timestamp": "2026-03-16T11:30:10.133Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3327000
+        },
+        {
+          "timestamp": "2026-03-16T11:45:10.132Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3336000
+        },
+        {
+          "timestamp": "2026-03-16T12:00:10.133Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3333000
+        },
+        {
+          "timestamp": "2026-03-16T12:15:10.121Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3351000
+        },
+        {
+          "timestamp": "2026-03-16T12:30:10.122Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3373000
+        },
+        {
+          "timestamp": "2026-03-16T12:45:10.171Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3350000
+        },
+        {
+          "timestamp": "2026-03-16T13:00:10.133Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3351000
+        },
+        {
+          "timestamp": "2026-03-16T13:15:10.130Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3349000
+        },
+        {
+          "timestamp": "2026-03-16T13:30:10.135Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3352000
+        },
+        {
+          "timestamp": "2026-03-16T13:45:10.172Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3369000
+        },
+        {
+          "timestamp": "2026-03-16T14:00:10.169Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3366000
+        },
+        {
+          "timestamp": "2026-03-16T14:15:10.124Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3376000
+        },
+        {
+          "timestamp": "2026-03-16T14:30:10.137Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3349000
+        },
+        {
+          "timestamp": "2026-03-16T14:45:10.127Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3334000
+        },
+        {
+          "timestamp": "2026-03-16T15:00:10.170Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3365000
+        },
+        {
+          "timestamp": "2026-03-16T15:15:10.143Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3360000
+        },
+        {
+          "timestamp": "2026-03-16T15:30:10.130Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3369000
+        },
+        {
+          "timestamp": "2026-03-16T15:45:10.124Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3360000
+        },
+        {
+          "timestamp": "2026-03-16T15:49:32.365Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3359000
+        },
+        {
+          "timestamp": "2026-03-16T16:00:10.152Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3347000
+        },
+        {
+          "timestamp": "2026-03-16T16:15:10.109Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3352000
+        },
+        {
+          "timestamp": "2026-03-16T16:30:10.150Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3359000
+        },
+        {
+          "timestamp": "2026-03-16T16:45:10.146Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3367000
+        },
+        {
+          "timestamp": "2026-03-16T17:00:10.136Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3375000
+        },
+        {
+          "timestamp": "2026-03-16T17:15:10.132Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3385000
+        },
+        {
+          "timestamp": "2026-03-16T17:30:10.135Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3379000
+        },
+        {
+          "timestamp": "2026-03-16T17:45:10.139Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3396000
+        },
+        {
+          "timestamp": "2026-03-16T18:00:10.131Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3396000
+        },
+        {
+          "timestamp": "2026-03-16T18:15:10.138Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3423000
+        },
+        {
+          "timestamp": "2026-03-16T18:30:10.124Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3424000
+        },
+        {
+          "timestamp": "2026-03-16T18:45:10.138Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3432000
+        },
+        {
+          "timestamp": "2026-03-16T19:00:10.147Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3403000
+        },
+        {
+          "timestamp": "2026-03-16T19:15:10.120Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3431000
+        },
+        {
+          "timestamp": "2026-03-16T19:30:10.126Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3418000
+        },
+        {
+          "timestamp": "2026-03-16T19:45:10.133Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3421000
+        },
+        {
+          "timestamp": "2026-03-16T20:00:10.142Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3419000
+        },
+        {
+          "timestamp": "2026-03-16T20:15:10.128Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3410000
+        },
+        {
+          "timestamp": "2026-03-16T20:30:10.141Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3418000
+        },
+        {
+          "timestamp": "2026-03-16T20:45:10.138Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3429000
+        },
+        {
+          "timestamp": "2026-03-16T21:00:10.125Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3441000
+        },
+        {
+          "timestamp": "2026-03-16T21:15:10.123Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3451000
+        },
+        {
+          "timestamp": "2026-03-16T21:30:10.124Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3441000
+        },
+        {
+          "timestamp": "2026-03-16T21:45:10.144Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3467000
+        },
+        {
+          "timestamp": "2026-03-16T22:00:10.123Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3474000
+        },
+        {
+          "timestamp": "2026-03-16T22:15:10.125Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3491000
+        },
+        {
+          "timestamp": "2026-03-16T22:30:10.134Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3469000
+        },
+        {
+          "timestamp": "2026-03-16T22:45:10.125Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3481000
+        },
+        {
+          "timestamp": "2026-03-16T23:00:10.120Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3465000
+        },
+        {
+          "timestamp": "2026-03-16T23:15:10.107Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3439000
+        },
+        {
+          "timestamp": "2026-03-16T23:30:10.130Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3457000
+        },
+        {
+          "timestamp": "2026-03-16T23:45:10.122Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3471000
+        },
+        {
+          "timestamp": "2026-03-17T00:00:10.140Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3459000
+        },
+        {
+          "timestamp": "2026-03-17T00:15:10.130Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3493000
+        },
+        {
+          "timestamp": "2026-03-17T00:30:10.125Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3475000
+        },
+        {
+          "timestamp": "2026-03-17T00:45:10.240Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3479000
+        },
+        {
+          "timestamp": "2026-03-17T01:00:10.123Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3481000
+        },
+        {
+          "timestamp": "2026-03-17T01:15:10.125Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3495000
+        },
+        {
+          "timestamp": "2026-03-17T01:30:10.121Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3496000
+        },
+        {
+          "timestamp": "2026-03-17T01:45:10.132Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3494000
+        },
+        {
+          "timestamp": "2026-03-17T02:00:10.129Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3498000
+        },
+        {
+          "timestamp": "2026-03-17T02:15:10.140Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3479000
+        },
+        {
+          "timestamp": "2026-03-17T02:30:10.124Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3473000
+        },
+        {
+          "timestamp": "2026-03-17T02:45:10.121Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3486000
+        },
+        {
+          "timestamp": "2026-03-17T03:00:10.119Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3477000
+        },
+        {
+          "timestamp": "2026-03-17T03:15:10.128Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3466000
+        },
+        {
+          "timestamp": "2026-03-17T03:30:10.112Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3451000
+        },
+        {
+          "timestamp": "2026-03-17T03:45:10.137Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3416000
+        },
+        {
+          "timestamp": "2026-03-17T04:00:10.137Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3422000
+        },
+        {
+          "timestamp": "2026-03-17T04:15:10.135Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3438000
+        },
+        {
+          "timestamp": "2026-03-17T04:30:10.130Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3411000
+        },
+        {
+          "timestamp": "2026-03-17T04:45:10.124Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3395000
+        },
+        {
+          "timestamp": "2026-03-17T05:00:10.121Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3402000
+        },
+        {
+          "timestamp": "2026-03-17T05:15:10.135Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3408000
+        },
+        {
+          "timestamp": "2026-03-17T05:30:10.119Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3412000
+        },
+        {
+          "timestamp": "2026-03-17T05:45:10.129Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3393000
+        },
+        {
+          "timestamp": "2026-03-17T06:00:10.123Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3396000
+        },
+        {
+          "timestamp": "2026-03-17T06:15:10.121Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3407000
+        },
+        {
+          "timestamp": "2026-03-17T06:30:10.119Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3420000
+        },
+        {
+          "timestamp": "2026-03-17T06:45:10.124Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3406000
+        },
+        {
+          "timestamp": "2026-03-17T07:00:10.103Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3413000
+        },
+        {
+          "timestamp": "2026-03-17T07:15:10.127Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3430000
+        },
+        {
+          "timestamp": "2026-03-17T07:30:10.131Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3449000
+        },
+        {
+          "timestamp": "2026-03-17T07:45:10.120Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3438000
+        },
+        {
+          "timestamp": "2026-03-17T08:00:10.127Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3432000
+        },
+        {
+          "timestamp": "2026-03-17T08:15:10.114Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3431000
+        },
+        {
+          "timestamp": "2026-03-17T08:30:10.144Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3435000
+        },
+        {
+          "timestamp": "2026-03-17T08:45:10.100Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3442000
+        },
+        {
+          "timestamp": "2026-03-17T09:00:10.127Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3429000
+        },
+        {
+          "timestamp": "2026-03-17T09:15:10.126Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3409000
+        },
+        {
+          "timestamp": "2026-03-17T09:30:10.126Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3429000
+        },
+        {
+          "timestamp": "2026-03-17T09:45:10.127Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3431000
+        },
+        {
+          "timestamp": "2026-03-17T10:00:10.138Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3416000
+        },
+        {
+          "timestamp": "2026-03-17T10:15:10.127Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3413000
+        },
+        {
+          "timestamp": "2026-03-17T10:30:10.129Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3414000
+        },
+        {
+          "timestamp": "2026-03-17T10:45:10.132Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3410000
+        },
+        {
+          "timestamp": "2026-03-17T11:00:10.120Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3413000
+        },
+        {
+          "timestamp": "2026-03-17T11:15:10.126Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3438000
+        },
+        {
+          "timestamp": "2026-03-17T11:30:10.145Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3436000
+        },
+        {
+          "timestamp": "2026-03-17T11:45:10.125Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3442000
+        },
+        {
+          "timestamp": "2026-03-17T12:00:10.129Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3440000
+        },
+        {
+          "timestamp": "2026-03-17T12:15:10.109Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3440000
+        },
+        {
+          "timestamp": "2026-03-17T12:30:10.114Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3430000
+        },
+        {
+          "timestamp": "2026-03-17T12:45:10.129Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3432000
+        },
+        {
+          "timestamp": "2026-03-17T13:00:10.116Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3421000
+        },
+        {
+          "timestamp": "2026-03-17T13:15:10.139Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3427000
+        },
+        {
+          "timestamp": "2026-03-17T13:30:10.123Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3428000
+        },
+        {
+          "timestamp": "2026-03-17T13:45:10.134Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3441000
+        },
+        {
+          "timestamp": "2026-03-17T14:00:10.120Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3440000
+        },
+        {
+          "timestamp": "2026-03-17T14:15:10.126Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3437000
+        },
+        {
+          "timestamp": "2026-03-17T14:30:10.111Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3444000
+        },
+        {
+          "timestamp": "2026-03-17T14:45:10.137Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3460000
+        },
+        {
+          "timestamp": "2026-03-17T15:00:10.157Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3462000
+        },
+        {
+          "timestamp": "2026-03-17T15:15:10.143Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3442000
+        },
+        {
+          "timestamp": "2026-03-17T15:30:10.113Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3434000
+        },
+        {
+          "timestamp": "2026-03-17T15:45:10.128Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3419000
+        },
+        {
+          "timestamp": "2026-03-17T16:00:10.141Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3425000
+        },
+        {
+          "timestamp": "2026-03-17T16:15:10.134Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3423000
+        },
+        {
+          "timestamp": "2026-03-17T16:30:10.126Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3442000
+        },
+        {
+          "timestamp": "2026-03-17T16:45:10.132Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3432000
+        },
+        {
+          "timestamp": "2026-03-17T17:00:10.123Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3431000
+        },
+        {
+          "timestamp": "2026-03-17T17:15:10.141Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3429000
+        },
+        {
+          "timestamp": "2026-03-17T17:30:10.135Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3438000
+        },
+        {
+          "timestamp": "2026-03-17T17:45:10.126Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3443000
+        },
+        {
+          "timestamp": "2026-03-17T18:00:10.138Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3449000
+        },
+        {
+          "timestamp": "2026-03-17T18:15:10.145Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3449000
+        },
+        {
+          "timestamp": "2026-03-17T18:30:10.120Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3441000
+        },
+        {
+          "timestamp": "2026-03-17T18:45:10.128Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3445000
+        },
+        {
+          "timestamp": "2026-03-17T19:00:11.273Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3439000
+        },
+        {
+          "timestamp": "2026-03-17T19:15:10.138Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3444000
+        },
+        {
+          "timestamp": "2026-03-17T19:30:10.127Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3440000
+        },
+        {
+          "timestamp": "2026-03-17T19:45:10.130Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3430000
+        },
+        {
+          "timestamp": "2026-03-17T20:00:10.118Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3423000
+        },
+        {
+          "timestamp": "2026-03-17T20:15:10.119Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3421000
+        },
+        {
+          "timestamp": "2026-03-17T20:30:10.126Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3435000
+        },
+        {
+          "timestamp": "2026-03-17T20:45:10.127Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3434000
+        },
+        {
+          "timestamp": "2026-03-17T21:00:10.122Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3436000
+        },
+        {
+          "timestamp": "2026-03-17T21:15:10.118Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3451000
+        },
+        {
+          "timestamp": "2026-03-17T21:30:10.133Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3447000
+        },
+        {
+          "timestamp": "2026-03-17T21:45:10.134Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3451000
+        },
+        {
+          "timestamp": "2026-03-17T22:00:10.134Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3451000
+        },
+        {
+          "timestamp": "2026-03-17T22:15:10.120Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3446000
+        },
+        {
+          "timestamp": "2026-03-17T22:30:10.121Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3438000
+        },
+        {
+          "timestamp": "2026-03-17T22:45:10.128Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3434000
+        },
+        {
+          "timestamp": "2026-03-17T23:00:10.124Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3439000
+        },
+        {
+          "timestamp": "2026-03-17T23:15:10.129Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3439000
+        },
+        {
+          "timestamp": "2026-03-17T23:30:10.130Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3433000
+        },
+        {
+          "timestamp": "2026-03-17T23:45:10.130Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3425000
+        },
+        {
+          "timestamp": "2026-03-18T00:00:10.130Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3419000
+        },
+        {
+          "timestamp": "2026-03-18T00:15:10.121Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3429000
+        },
+        {
+          "timestamp": "2026-03-18T00:30:10.124Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3413000
+        },
+        {
+          "timestamp": "2026-03-18T00:45:10.131Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3416000
+        },
+        {
+          "timestamp": "2026-03-18T01:00:10.120Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3433000
+        },
+        {
+          "timestamp": "2026-03-18T01:15:10.122Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3436000
+        },
+        {
+          "timestamp": "2026-03-18T01:30:10.131Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3441000
+        },
+        {
+          "timestamp": "2026-03-18T01:45:10.124Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3445000
+        },
+        {
+          "timestamp": "2026-03-18T02:00:10.129Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3434000
+        },
+        {
+          "timestamp": "2026-03-18T02:15:10.126Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3446000
+        },
+        {
+          "timestamp": "2026-03-18T02:19:24.646Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3446000
+        },
+        {
+          "timestamp": "2026-03-18T02:30:10.161Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3443000
+        },
+        {
+          "timestamp": "2026-03-18T02:45:10.143Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3451000
+        },
+        {
+          "timestamp": "2026-03-18T03:00:10.128Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3440000
+        },
+        {
+          "timestamp": "2026-03-18T03:15:10.135Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3440000
+        },
+        {
+          "timestamp": "2026-03-18T03:30:10.136Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3453000
+        },
+        {
+          "timestamp": "2026-03-18T03:45:10.146Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3452000
+        },
+        {
+          "timestamp": "2026-03-18T04:00:10.125Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3456000
+        },
+        {
+          "timestamp": "2026-03-18T04:15:10.130Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3454000
+        },
+        {
+          "timestamp": "2026-03-18T04:30:10.124Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3444000
+        },
+        {
+          "timestamp": "2026-03-18T04:45:10.156Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3442000
+        },
+        {
+          "timestamp": "2026-03-18T05:00:10.139Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3438000
+        },
+        {
+          "timestamp": "2026-03-18T05:15:10.128Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3443000
+        },
+        {
+          "timestamp": "2026-03-18T05:30:10.110Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3435000
+        },
+        {
+          "timestamp": "2026-03-18T05:45:10.132Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3428000
+        },
+        {
+          "timestamp": "2026-03-18T06:00:10.133Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3426000
+        },
+        {
+          "timestamp": "2026-03-18T06:15:10.151Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3431000
+        },
+        {
+          "timestamp": "2026-03-18T06:30:10.217Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3439000
+        },
+        {
+          "timestamp": "2026-03-18T06:45:10.126Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3429000
+        },
+        {
+          "timestamp": "2026-03-18T07:00:10.123Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3428000
+        },
+        {
+          "timestamp": "2026-03-18T07:15:10.126Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3425000
+        },
+        {
+          "timestamp": "2026-03-18T07:30:10.146Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3420000
+        },
+        {
+          "timestamp": "2026-03-18T07:45:10.130Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3417000
+        },
+        {
+          "timestamp": "2026-03-18T08:00:10.120Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3425000
+        },
+        {
+          "timestamp": "2026-03-18T08:15:10.134Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3426000
+        },
+        {
+          "timestamp": "2026-03-18T08:30:10.132Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3427000
+        },
+        {
+          "timestamp": "2026-03-18T08:45:10.123Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3426000
+        },
+        {
+          "timestamp": "2026-03-18T09:00:10.139Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3431000
+        },
+        {
+          "timestamp": "2026-03-18T09:15:10.148Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3441000
+        },
+        {
+          "timestamp": "2026-03-18T09:30:10.127Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3440000
+        },
+        {
+          "timestamp": "2026-03-18T09:45:10.114Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3445000
+        },
+        {
+          "timestamp": "2026-03-18T10:00:10.128Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3436000
+        },
+        {
+          "timestamp": "2026-03-18T10:15:10.123Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3442000
+        },
+        {
+          "timestamp": "2026-03-18T10:30:10.132Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3440000
+        },
+        {
+          "timestamp": "2026-03-18T10:45:10.143Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3419000
+        },
+        {
+          "timestamp": "2026-03-18T11:00:10.133Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3419000
+        },
+        {
+          "timestamp": "2026-03-18T11:15:10.128Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3421000
+        },
+        {
+          "timestamp": "2026-03-18T11:30:10.148Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3395000
+        },
+        {
+          "timestamp": "2026-03-18T11:45:10.126Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3365000
+        },
+        {
+          "timestamp": "2026-03-18T12:00:10.115Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3350000
+        },
+        {
+          "timestamp": "2026-03-18T12:15:10.140Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T12:30:10.120Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T12:45:10.157Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T13:00:10.129Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T13:15:10.116Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T13:30:10.113Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T13:45:10.132Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T14:00:10.116Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T14:15:10.132Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T14:30:10.123Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T14:45:10.129Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T15:00:10.127Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T15:15:10.127Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T15:30:10.120Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T15:45:10.115Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T16:00:10.126Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T16:15:10.121Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T16:30:10.161Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T16:45:10.138Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T17:00:10.125Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T17:15:10.143Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T17:30:10.127Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T17:45:10.129Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T18:00:10.131Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T18:15:10.115Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T18:30:10.135Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T18:45:10.131Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T19:00:10.125Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T19:15:10.125Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T19:30:10.116Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T19:45:10.130Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T20:00:10.143Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T20:15:10.122Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T20:30:10.130Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T20:45:10.137Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T21:00:10.115Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T21:15:10.153Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T21:30:10.103Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T21:45:10.137Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T22:00:10.126Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T22:15:10.132Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T22:30:10.126Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T22:45:10.123Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T23:00:10.123Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T23:15:10.139Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T23:30:10.135Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T23:45:10.131Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T00:00:10.131Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T00:15:10.115Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3271000
+        },
+        {
+          "timestamp": "2026-03-19T00:30:10.138Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3277000
+        },
+        {
+          "timestamp": "2026-03-19T00:45:10.130Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3265000
+        },
+        {
+          "timestamp": "2026-03-19T01:00:10.120Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3261000
+        },
+        {
+          "timestamp": "2026-03-19T01:15:10.126Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3253000
+        },
+        {
+          "timestamp": "2026-03-19T01:30:10.121Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3251000
+        },
+        {
+          "timestamp": "2026-03-19T01:45:10.122Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3265000
+        },
+        {
+          "timestamp": "2026-03-19T02:00:10.123Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3261000
+        },
+        {
+          "timestamp": "2026-03-19T02:15:10.155Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3264000
+        },
+        {
+          "timestamp": "2026-03-19T02:30:10.118Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3268000
+        },
+        {
+          "timestamp": "2026-03-19T02:45:10.125Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3273000
+        },
+        {
+          "timestamp": "2026-03-19T03:00:10.139Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3263000
+        },
+        {
+          "timestamp": "2026-03-19T03:15:10.131Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3280000
+        },
+        {
+          "timestamp": "2026-03-19T03:30:10.126Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3315000
+        },
+        {
+          "timestamp": "2026-03-19T03:45:10.136Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3293000
+        },
+        {
+          "timestamp": "2026-03-19T04:00:10.128Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3296000
+        },
+        {
+          "timestamp": "2026-03-19T04:15:10.134Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3279000
+        },
+        {
+          "timestamp": "2026-03-19T04:30:10.132Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3265000
+        },
+        {
+          "timestamp": "2026-03-19T04:45:10.122Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3268000
+        },
+        {
+          "timestamp": "2026-03-19T05:00:10.130Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3266000
+        },
+        {
+          "timestamp": "2026-03-19T05:15:10.122Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3265000
+        },
+        {
+          "timestamp": "2026-03-19T05:30:10.123Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3261000
+        },
+        {
+          "timestamp": "2026-03-19T05:45:10.132Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3258000
+        },
+        {
+          "timestamp": "2026-03-19T06:00:10.137Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3258000
+        },
+        {
+          "timestamp": "2026-03-19T06:15:10.135Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3264000
+        },
+        {
+          "timestamp": "2026-03-19T06:30:10.128Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3257000
+        },
+        {
+          "timestamp": "2026-03-19T06:45:10.132Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3255000
+        },
+        {
+          "timestamp": "2026-03-19T07:00:10.119Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3243000
+        },
+        {
+          "timestamp": "2026-03-19T07:15:10.119Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3218000
+        },
+        {
+          "timestamp": "2026-03-19T07:30:10.146Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3208000
+        },
+        {
+          "timestamp": "2026-03-19T07:45:10.146Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3226000
+        },
+        {
+          "timestamp": "2026-03-19T08:00:10.197Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3226000
+        },
+        {
+          "timestamp": "2026-03-19T08:15:10.124Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3225000
+        },
+        {
+          "timestamp": "2026-03-19T08:30:10.123Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3212000
+        },
+        {
+          "timestamp": "2026-03-19T08:45:10.126Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3215000
+        },
+        {
+          "timestamp": "2026-03-19T09:00:10.140Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3210000
+        },
+        {
+          "timestamp": "2026-03-19T09:15:10.125Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3218000
+        },
+        {
+          "timestamp": "2026-03-19T09:30:10.128Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3239000
+        },
+        {
+          "timestamp": "2026-03-19T09:45:10.115Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3244000
+        },
+        {
+          "timestamp": "2026-03-19T10:00:10.135Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3253000
+        },
+        {
+          "timestamp": "2026-03-19T10:15:10.130Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3248000
+        },
+        {
+          "timestamp": "2026-03-19T10:30:10.129Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3243000
+        },
+        {
+          "timestamp": "2026-03-19T10:45:10.134Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3236000
+        },
+        {
+          "timestamp": "2026-03-19T11:00:10.127Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3229000
+        },
+        {
+          "timestamp": "2026-03-19T11:15:10.128Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3229000
+        },
+        {
+          "timestamp": "2026-03-19T11:30:10.142Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3236000
+        },
+        {
+          "timestamp": "2026-03-19T11:45:10.115Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3226000
+        },
+        {
+          "timestamp": "2026-03-19T12:00:10.125Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3222000
+        },
+        {
+          "timestamp": "2026-03-19T12:15:10.120Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3221000
+        },
+        {
+          "timestamp": "2026-03-19T12:30:10.119Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3207000
+        },
+        {
+          "timestamp": "2026-03-19T12:45:10.121Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3207000
+        },
+        {
+          "timestamp": "2026-03-19T13:00:10.126Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T13:15:10.121Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T13:30:10.174Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T13:45:10.138Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T14:00:10.105Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T14:15:10.128Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T14:30:10.126Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T14:45:10.124Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T15:00:10.148Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T15:15:10.122Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T15:30:10.126Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T15:45:10.123Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T16:00:10.118Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T16:15:10.125Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T16:30:10.118Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T16:45:10.135Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T17:00:10.117Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T17:15:10.112Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T17:30:10.132Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T17:45:10.125Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T18:00:10.109Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T18:15:10.124Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T18:30:10.121Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T18:45:10.120Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T19:00:10.115Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T19:15:10.116Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T19:30:10.126Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T19:45:10.142Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T20:00:10.124Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T20:15:10.132Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T20:30:10.115Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T20:45:10.110Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T21:00:10.119Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T21:15:10.121Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T21:30:10.118Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T21:45:10.110Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T22:00:10.119Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T22:15:10.120Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T22:30:10.148Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T22:45:10.121Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T23:00:10.105Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T23:15:10.119Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T23:30:10.126Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T23:45:10.112Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-20T00:00:10.131Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-20T00:15:10.117Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-20T00:30:10.135Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-20T00:45:10.130Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-20T01:00:10.122Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3189000
+        },
+        {
+          "timestamp": "2026-03-20T01:15:10.123Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3203000
+        },
+        {
+          "timestamp": "2026-03-20T01:30:10.152Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3202000
+        },
+        {
+          "timestamp": "2026-03-20T01:45:10.129Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3215000
+        },
+        {
+          "timestamp": "2026-03-20T02:00:10.121Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3203000
+        },
+        {
+          "timestamp": "2026-03-20T02:15:10.130Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3197000
+        },
+        {
+          "timestamp": "2026-03-20T02:30:10.131Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3188000
+        },
+        {
+          "timestamp": "2026-03-20T02:45:10.134Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3195000
+        },
+        {
+          "timestamp": "2026-03-20T03:00:10.144Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3196000
+        },
+        {
+          "timestamp": "2026-03-20T03:15:10.114Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3199000
+        },
+        {
+          "timestamp": "2026-03-20T03:30:10.124Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3207000
+        },
+        {
+          "timestamp": "2026-03-20T03:45:10.149Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3204000
+        },
+        {
+          "timestamp": "2026-03-20T04:00:10.118Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3207000
+        },
+        {
+          "timestamp": "2026-03-20T04:15:10.122Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3217000
+        },
+        {
+          "timestamp": "2026-03-20T04:30:10.126Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3214000
+        },
+        {
+          "timestamp": "2026-03-20T04:45:10.138Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3197000
+        },
+        {
+          "timestamp": "2026-03-20T05:00:10.126Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3204000
+        },
+        {
+          "timestamp": "2026-03-20T05:15:10.130Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3206000
+        },
+        {
+          "timestamp": "2026-03-20T05:30:10.132Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3197000
+        },
+        {
+          "timestamp": "2026-03-20T05:45:10.132Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3200000
+        },
+        {
+          "timestamp": "2026-03-20T06:00:10.125Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3191000
+        },
+        {
+          "timestamp": "2026-03-20T06:15:10.129Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3191000
+        },
+        {
+          "timestamp": "2026-03-20T06:30:10.124Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3191000
+        },
+        {
+          "timestamp": "2026-03-20T06:45:10.133Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3190000
+        },
+        {
+          "timestamp": "2026-03-20T07:00:10.133Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3188000
+        },
+        {
+          "timestamp": "2026-03-20T07:15:10.130Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3171000
+        },
+        {
+          "timestamp": "2026-03-20T07:30:10.131Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3190000
+        },
+        {
+          "timestamp": "2026-03-20T07:45:10.142Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3208000
+        },
+        {
+          "timestamp": "2026-03-20T08:00:10.138Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3206000
+        },
+        {
+          "timestamp": "2026-03-20T08:15:10.151Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3234000
+        },
+        {
+          "timestamp": "2026-03-20T08:30:10.138Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3225000
+        },
+        {
+          "timestamp": "2026-03-20T08:45:10.149Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3225000
+        },
+        {
+          "timestamp": "2026-03-20T09:00:10.121Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3227000
+        },
+        {
+          "timestamp": "2026-03-20T09:15:10.137Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3214000
+        },
+        {
+          "timestamp": "2026-03-20T09:30:10.119Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3200000
+        },
+        {
+          "timestamp": "2026-03-20T09:45:10.138Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3204000
+        },
+        {
+          "timestamp": "2026-03-20T09:52:59.008Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3194000
+        },
+        {
+          "timestamp": "2026-03-20T10:00:10.139Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3198000
+        },
+        {
+          "timestamp": "2026-03-20T10:15:10.147Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3190000
+        },
+        {
+          "timestamp": "2026-03-20T10:30:10.123Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3187000
+        },
+        {
+          "timestamp": "2026-03-20T10:40:37.606Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3200000
+        },
+        {
+          "timestamp": "2026-03-20T10:45:10.137Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3204000
+        },
+        {
+          "timestamp": "2026-03-20T10:49:22.581Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3205000
+        },
+        {
+          "timestamp": "2026-03-20T11:00:10.141Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3207000
+        },
+        {
+          "timestamp": "2026-03-20T11:07:33.681Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3215000
+        },
+        {
+          "timestamp": "2026-03-20T11:15:10.157Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3218000
+        },
+        {
+          "timestamp": "2026-03-20T11:30:10.135Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3209000
+        },
+        {
+          "timestamp": "2026-03-20T11:45:10.125Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3194000
+        },
+        {
+          "timestamp": "2026-03-20T12:00:10.151Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3201000
+        },
+        {
+          "timestamp": "2026-03-20T12:15:10.131Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3205000
+        },
+        {
+          "timestamp": "2026-03-20T12:30:10.136Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3200000
+        },
+        {
+          "timestamp": "2026-03-20T12:43:58.809Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3194000
+        },
+        {
+          "timestamp": "2026-03-20T12:45:10.153Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3195000
+        },
+        {
+          "timestamp": "2026-03-20T13:00:10.219Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3199000
+        },
+        {
+          "timestamp": "2026-03-20T13:15:10.133Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3198000
+        },
+        {
+          "timestamp": "2026-03-20T13:30:10.131Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3205000
+        },
+        {
+          "timestamp": "2026-03-20T13:45:10.137Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3200000
+        },
+        {
+          "timestamp": "2026-03-20T14:00:10.684Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3179000
+        },
+        {
+          "timestamp": "2026-03-20T14:15:11.057Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3175000
+        },
+        {
+          "timestamp": "2026-03-20T14:30:10.136Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3193000
+        },
+        {
+          "timestamp": "2026-03-20T14:45:10.127Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3190000
+        },
+        {
+          "timestamp": "2026-03-20T15:00:10.137Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3184000
+        },
+        {
+          "timestamp": "2026-03-20T15:15:10.124Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3187000
+        },
+        {
+          "timestamp": "2026-03-20T15:30:10.123Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3185000
+        },
+        {
+          "timestamp": "2026-03-20T15:45:10.125Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3189000
+        },
+        {
+          "timestamp": "2026-03-20T16:00:10.103Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3191000
+        }
+      ]
+    },
+    "shadow-1773337347924": {
+      "label": "ATR 적응형 trailing stop(3-10%) + Sharpe 중심 스코어링(50%) + 절대 모멘텀 게이트 3가지 조합이 현재 전략 대비 alpha 개선. 2025 연구(Sharpe 2.41, MDD -12.7%)와 동일한 핵심 구성요소만 적용하되 TTM Squeeze를 제외하여 구현 안정성 확보.",
+      "experimentId": "exp-005",
+      "filePath": "/home/kook/programming/upbit-trading-claude/data/shadow-strategies/shadow-1773337347924.js",
+      "runtimePath": "/home/kook/programming/upbit-trading-claude/src/strategies/shadow-1773337347924.js",
+      "deployedAt": "2026-03-12T17:42:27.928Z",
+      "state": {
+        "assetHeld": "KRW-ETH",
+        "candlesSinceLastTrade": 65,
+        "peakPriceSinceEntry": 3234000,
+        "_cachedScoresKey": "100:2026-03-21T01:00:00,100:2026-03-21T01:00:00,100:2026-03-21T01:00:00,100:2026-03-21T01:00:00|72,9,26,14,20,0.58,14,0.5,0.3,0.15,0.05",
+        "_cachedScores": {
+          "KRW-BTC": {
+            "score": 4.654353061734889,
+            "choppiness": 0.43329784416778006,
+            "isChoppy": false,
+            "totalReturn": 0.06832234656855231,
+            "sharpe": 9.655162794345603,
+            "trendCross": -0.007848773446051165,
+            "trendSignal": -0.4656,
+            "adx": 29.659156488997574,
+            "volumeSignal": -0.3591,
+            "bollingerSignal": 0.4061,
+            "rsi": 41.612658717314524,
+            "stochK": 37.107516650808755
+          },
+          "KRW-ETH": {
+            "score": 5.004094175797758,
+            "choppiness": 0.4266816644389982,
+            "isChoppy": false,
+            "totalReturn": 0.11223422795399093,
+            "sharpe": 10.463010719560318,
+            "trendCross": -0.010035538887837536,
+            "trendSignal": -0.6202,
+            "adx": 30.902566566702586,
+            "volumeSignal": -0.4198,
+            "bollingerSignal": 0.4328,
+            "rsi": 42.22987068027403,
+            "stochK": 26.905829596412556
+          },
+          "KRW-SOL": {
+            "score": 4.31178586988316,
+            "choppiness": 0.47862070841254517,
+            "isChoppy": false,
+            "totalReturn": 0.10090984284532671,
+            "sharpe": 8.909505614834142,
+            "trendCross": -0.005232708526194782,
+            "trendSignal": -0.2643,
+            "adx": 25.25775211592367,
+            "volumeSignal": -0.5187,
+            "bollingerSignal": 0.2829,
+            "rsi": 46.86683595028592,
+            "stochK": 53.125
+          },
+          "KRW-XRP": {
+            "score": 4.370188101951926,
+            "choppiness": 0.5260031783341246,
+            "isChoppy": false,
+            "totalReturn": 0.08312342569269521,
+            "sharpe": 8.926400215025481,
+            "trendCross": -0.0025119705573825044,
+            "trendSignal": -0.1206,
+            "adx": 24.000137554135584,
+            "volumeSignal": -0.5191,
+            "bollingerSignal": 0.4206,
+            "rsi": 46.173000996675036,
+            "stochK": 34.93975903614458
+          }
+        }
+      },
+      "trades": [
+        {
+          "timestamp": "2026-03-16T00:00:10.125Z",
+          "from": "KRW-BTC",
+          "to": "KRW-ETH",
+          "reason": "trend_advantage",
+          "fromPrice": 106973000,
+          "toPrice": 3202000
+        },
+        {
+          "timestamp": "2026-03-17T04:00:10.139Z",
+          "from": "KRW-ETH",
+          "to": "KRW-XRP",
+          "reason": "opportunity_override",
+          "fromPrice": 3422000,
+          "toPrice": 2278
+        },
+        {
+          "timestamp": "2026-03-17T08:00:10.129Z",
+          "from": "KRW-XRP",
+          "to": "KRW-ETH",
+          "reason": "opportunity_override",
+          "fromPrice": 2254,
+          "toPrice": 3432000
+        },
+        {
+          "timestamp": "2026-03-18T12:15:10.141Z",
+          "from": "KRW-ETH",
+          "to": "CASH",
+          "reason": "crash_detected",
+          "fromPrice": 3337000,
+          "toPrice": 0
+        },
+        {
+          "timestamp": "2026-03-19T00:15:10.116Z",
+          "from": "CASH",
+          "to": "KRW-ETH",
+          "reason": "reentry_from_cash",
+          "fromPrice": 0,
+          "toPrice": 3271000
+        },
+        {
+          "timestamp": "2026-03-19T13:00:10.126Z",
+          "from": "KRW-ETH",
+          "to": "CASH",
+          "reason": "crash_detected",
+          "fromPrice": 3175000,
+          "toPrice": 0
+        },
+        {
+          "timestamp": "2026-03-20T01:00:10.123Z",
+          "from": "CASH",
+          "to": "KRW-ETH",
+          "reason": "reentry_from_cash",
+          "fromPrice": 0,
+          "toPrice": 3189000
+        }
+      ],
+      "snapshots": [
+        {
+          "timestamp": "2026-03-13T19:00:10.129Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104508000
+        },
+        {
+          "timestamp": "2026-03-13T19:15:10.115Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104755000
+        },
+        {
+          "timestamp": "2026-03-13T19:30:10.151Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104538000
+        },
+        {
+          "timestamp": "2026-03-13T19:45:10.129Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104581000
+        },
+        {
+          "timestamp": "2026-03-13T20:00:10.130Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104653000
+        },
+        {
+          "timestamp": "2026-03-13T20:15:10.143Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104949000
+        },
+        {
+          "timestamp": "2026-03-13T20:30:10.133Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104931000
+        },
+        {
+          "timestamp": "2026-03-13T20:45:10.135Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104898000
+        },
+        {
+          "timestamp": "2026-03-13T21:00:10.112Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104970000
+        },
+        {
+          "timestamp": "2026-03-13T21:15:10.133Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105077000
+        },
+        {
+          "timestamp": "2026-03-13T21:30:10.106Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104721000
+        },
+        {
+          "timestamp": "2026-03-13T21:45:10.121Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104684000
+        },
+        {
+          "timestamp": "2026-03-13T22:00:10.130Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104681000
+        },
+        {
+          "timestamp": "2026-03-13T22:15:10.133Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104296000
+        },
+        {
+          "timestamp": "2026-03-13T22:30:10.114Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104023000
+        },
+        {
+          "timestamp": "2026-03-13T22:45:10.132Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104152000
+        },
+        {
+          "timestamp": "2026-03-13T23:00:10.116Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104181000
+        },
+        {
+          "timestamp": "2026-03-13T23:15:10.127Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104262000
+        },
+        {
+          "timestamp": "2026-03-13T23:30:10.107Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104427000
+        },
+        {
+          "timestamp": "2026-03-13T23:45:10.132Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104568000
+        },
+        {
+          "timestamp": "2026-03-14T00:00:10.120Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104388000
+        },
+        {
+          "timestamp": "2026-03-14T00:15:10.126Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104393000
+        },
+        {
+          "timestamp": "2026-03-14T00:30:10.120Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104523000
+        },
+        {
+          "timestamp": "2026-03-14T00:45:10.136Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104059000
+        },
+        {
+          "timestamp": "2026-03-14T01:00:10.137Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104112000
+        },
+        {
+          "timestamp": "2026-03-14T01:15:10.111Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104221000
+        },
+        {
+          "timestamp": "2026-03-14T01:30:10.132Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104490000
+        },
+        {
+          "timestamp": "2026-03-14T01:45:10.126Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104484000
+        },
+        {
+          "timestamp": "2026-03-14T02:00:10.120Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104382000
+        },
+        {
+          "timestamp": "2026-03-14T02:15:10.128Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104511000
+        },
+        {
+          "timestamp": "2026-03-14T02:30:10.115Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104478000
+        },
+        {
+          "timestamp": "2026-03-14T02:45:10.124Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104384000
+        },
+        {
+          "timestamp": "2026-03-14T03:00:10.131Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104413000
+        },
+        {
+          "timestamp": "2026-03-14T03:15:10.122Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104703000
+        },
+        {
+          "timestamp": "2026-03-14T03:30:10.125Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104789000
+        },
+        {
+          "timestamp": "2026-03-14T03:45:10.126Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104940000
+        },
+        {
+          "timestamp": "2026-03-14T04:00:10.137Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104889000
+        },
+        {
+          "timestamp": "2026-03-14T04:15:10.118Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105024000
+        },
+        {
+          "timestamp": "2026-03-14T04:30:10.124Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104975000
+        },
+        {
+          "timestamp": "2026-03-14T04:45:10.128Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105050000
+        },
+        {
+          "timestamp": "2026-03-14T05:00:10.126Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104713000
+        },
+        {
+          "timestamp": "2026-03-14T05:15:10.122Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104915000
+        },
+        {
+          "timestamp": "2026-03-14T05:30:10.128Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104909000
+        },
+        {
+          "timestamp": "2026-03-14T05:45:10.117Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104671000
+        },
+        {
+          "timestamp": "2026-03-14T06:00:10.124Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104822000
+        },
+        {
+          "timestamp": "2026-03-14T06:15:10.139Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104671000
+        },
+        {
+          "timestamp": "2026-03-14T06:30:10.125Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104371000
+        },
+        {
+          "timestamp": "2026-03-14T06:45:10.134Z",
+          "assetHeld": "KRW-BTC",
+          "price": 103993000
+        },
+        {
+          "timestamp": "2026-03-14T07:00:10.131Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104233000
+        },
+        {
+          "timestamp": "2026-03-14T07:15:10.128Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104372000
+        },
+        {
+          "timestamp": "2026-03-14T07:30:10.154Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104275000
+        },
+        {
+          "timestamp": "2026-03-14T07:45:10.118Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104075000
+        },
+        {
+          "timestamp": "2026-03-14T08:00:10.121Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104177000
+        },
+        {
+          "timestamp": "2026-03-14T08:15:10.120Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104345000
+        },
+        {
+          "timestamp": "2026-03-14T08:30:10.117Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104293000
+        },
+        {
+          "timestamp": "2026-03-14T08:45:10.126Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104193000
+        },
+        {
+          "timestamp": "2026-03-14T09:00:10.131Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104169000
+        },
+        {
+          "timestamp": "2026-03-14T09:15:10.118Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104338000
+        },
+        {
+          "timestamp": "2026-03-14T09:30:10.165Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104344000
+        },
+        {
+          "timestamp": "2026-03-14T09:45:10.128Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104318000
+        },
+        {
+          "timestamp": "2026-03-14T10:00:10.130Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104240000
+        },
+        {
+          "timestamp": "2026-03-14T10:15:10.128Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104199000
+        },
+        {
+          "timestamp": "2026-03-14T10:30:10.116Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104082000
+        },
+        {
+          "timestamp": "2026-03-14T10:45:10.123Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104249000
+        },
+        {
+          "timestamp": "2026-03-14T11:00:10.124Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104346000
+        },
+        {
+          "timestamp": "2026-03-14T11:15:10.118Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104500000
+        },
+        {
+          "timestamp": "2026-03-14T11:30:10.129Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104492000
+        },
+        {
+          "timestamp": "2026-03-14T11:45:10.116Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104574000
+        },
+        {
+          "timestamp": "2026-03-14T12:00:10.133Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104666000
+        },
+        {
+          "timestamp": "2026-03-14T12:15:10.117Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104689000
+        },
+        {
+          "timestamp": "2026-03-14T12:30:10.128Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104676000
+        },
+        {
+          "timestamp": "2026-03-14T12:45:10.128Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104506000
+        },
+        {
+          "timestamp": "2026-03-14T13:00:10.126Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104706000
+        },
+        {
+          "timestamp": "2026-03-14T13:15:10.141Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104650000
+        },
+        {
+          "timestamp": "2026-03-14T13:24:32.622Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104800000
+        },
+        {
+          "timestamp": "2026-03-14T13:30:10.149Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104771000
+        },
+        {
+          "timestamp": "2026-03-14T13:45:10.138Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104752000
+        },
+        {
+          "timestamp": "2026-03-14T14:00:10.123Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104738000
+        },
+        {
+          "timestamp": "2026-03-14T14:15:10.139Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104535000
+        },
+        {
+          "timestamp": "2026-03-14T14:30:10.134Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104665000
+        },
+        {
+          "timestamp": "2026-03-14T14:45:10.131Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104400000
+        },
+        {
+          "timestamp": "2026-03-14T15:00:10.149Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104340000
+        },
+        {
+          "timestamp": "2026-03-14T15:15:10.127Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104463000
+        },
+        {
+          "timestamp": "2026-03-14T15:30:10.128Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104446000
+        },
+        {
+          "timestamp": "2026-03-14T15:45:10.146Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104333000
+        },
+        {
+          "timestamp": "2026-03-14T16:00:10.122Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104381000
+        },
+        {
+          "timestamp": "2026-03-14T16:15:10.127Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104376000
+        },
+        {
+          "timestamp": "2026-03-14T16:30:10.123Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104430000
+        },
+        {
+          "timestamp": "2026-03-14T16:45:10.120Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104410000
+        },
+        {
+          "timestamp": "2026-03-14T17:00:10.120Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104480000
+        },
+        {
+          "timestamp": "2026-03-14T17:15:10.123Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104398000
+        },
+        {
+          "timestamp": "2026-03-14T17:30:10.101Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104490000
+        },
+        {
+          "timestamp": "2026-03-14T17:45:10.120Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104413000
+        },
+        {
+          "timestamp": "2026-03-14T18:00:10.115Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104302000
+        },
+        {
+          "timestamp": "2026-03-14T18:15:10.121Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104340000
+        },
+        {
+          "timestamp": "2026-03-14T18:30:10.128Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104397000
+        },
+        {
+          "timestamp": "2026-03-14T18:45:10.103Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104336000
+        },
+        {
+          "timestamp": "2026-03-14T19:00:10.128Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104453000
+        },
+        {
+          "timestamp": "2026-03-14T19:15:10.117Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104500000
+        },
+        {
+          "timestamp": "2026-03-14T19:30:10.134Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104511000
+        },
+        {
+          "timestamp": "2026-03-14T19:35:52.263Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104481000
+        },
+        {
+          "timestamp": "2026-03-14T19:45:10.143Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104548000
+        },
+        {
+          "timestamp": "2026-03-14T20:00:10.133Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104559000
+        },
+        {
+          "timestamp": "2026-03-14T20:15:10.122Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104545000
+        },
+        {
+          "timestamp": "2026-03-14T20:30:10.127Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104552000
+        },
+        {
+          "timestamp": "2026-03-14T20:45:10.136Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104644000
+        },
+        {
+          "timestamp": "2026-03-14T21:00:10.128Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104663000
+        },
+        {
+          "timestamp": "2026-03-14T21:15:10.125Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104550000
+        },
+        {
+          "timestamp": "2026-03-14T21:30:10.123Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104590000
+        },
+        {
+          "timestamp": "2026-03-14T21:45:10.118Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104652000
+        },
+        {
+          "timestamp": "2026-03-14T22:00:10.125Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104695000
+        },
+        {
+          "timestamp": "2026-03-14T22:15:10.130Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104607000
+        },
+        {
+          "timestamp": "2026-03-14T22:30:10.134Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104550000
+        },
+        {
+          "timestamp": "2026-03-14T22:45:10.129Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104650000
+        },
+        {
+          "timestamp": "2026-03-14T23:00:10.134Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104531000
+        },
+        {
+          "timestamp": "2026-03-14T23:15:10.134Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104903000
+        },
+        {
+          "timestamp": "2026-03-14T23:30:10.128Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104950000
+        },
+        {
+          "timestamp": "2026-03-14T23:45:10.132Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105099000
+        },
+        {
+          "timestamp": "2026-03-15T00:00:10.152Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105184000
+        },
+        {
+          "timestamp": "2026-03-15T00:15:10.135Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105000000
+        },
+        {
+          "timestamp": "2026-03-15T00:30:10.125Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105062000
+        },
+        {
+          "timestamp": "2026-03-15T00:45:10.136Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105040000
+        },
+        {
+          "timestamp": "2026-03-15T01:00:10.127Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104932000
+        },
+        {
+          "timestamp": "2026-03-15T01:15:10.133Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104802000
+        },
+        {
+          "timestamp": "2026-03-15T01:30:10.153Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104805000
+        },
+        {
+          "timestamp": "2026-03-15T01:45:10.144Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104730000
+        },
+        {
+          "timestamp": "2026-03-15T01:50:37.585Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104807000
+        },
+        {
+          "timestamp": "2026-03-15T02:00:10.147Z",
+          "assetHeld": "KRW-BTC",
+          "price": 104896000
+        },
+        {
+          "timestamp": "2026-03-15T02:15:10.117Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105261000
+        },
+        {
+          "timestamp": "2026-03-15T02:30:10.144Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105081000
+        },
+        {
+          "timestamp": "2026-03-15T02:45:10.124Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105246000
+        },
+        {
+          "timestamp": "2026-03-15T03:00:10.128Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105330000
+        },
+        {
+          "timestamp": "2026-03-15T03:15:10.137Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105370000
+        },
+        {
+          "timestamp": "2026-03-15T03:30:10.132Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105087000
+        },
+        {
+          "timestamp": "2026-03-15T03:45:10.134Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105189000
+        },
+        {
+          "timestamp": "2026-03-15T04:00:10.142Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105231000
+        },
+        {
+          "timestamp": "2026-03-15T04:15:10.121Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105608000
+        },
+        {
+          "timestamp": "2026-03-15T04:30:10.127Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105451000
+        },
+        {
+          "timestamp": "2026-03-15T04:45:10.131Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105464000
+        },
+        {
+          "timestamp": "2026-03-15T05:00:10.162Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105500000
+        },
+        {
+          "timestamp": "2026-03-15T05:15:10.146Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105485000
+        },
+        {
+          "timestamp": "2026-03-15T05:30:10.123Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105635000
+        },
+        {
+          "timestamp": "2026-03-15T05:45:10.139Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105682000
+        },
+        {
+          "timestamp": "2026-03-15T06:00:10.120Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105415000
+        },
+        {
+          "timestamp": "2026-03-15T06:15:10.121Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105559000
+        },
+        {
+          "timestamp": "2026-03-15T06:30:10.127Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105441000
+        },
+        {
+          "timestamp": "2026-03-15T06:45:10.122Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105378000
+        },
+        {
+          "timestamp": "2026-03-15T07:00:10.121Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105418000
+        },
+        {
+          "timestamp": "2026-03-15T07:15:10.133Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105604000
+        },
+        {
+          "timestamp": "2026-03-15T07:30:10.124Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105554000
+        },
+        {
+          "timestamp": "2026-03-15T07:45:10.122Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105430000
+        },
+        {
+          "timestamp": "2026-03-15T08:00:10.134Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105450000
+        },
+        {
+          "timestamp": "2026-03-15T08:15:10.119Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105656000
+        },
+        {
+          "timestamp": "2026-03-15T08:30:10.115Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105624000
+        },
+        {
+          "timestamp": "2026-03-15T08:45:10.126Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105558000
+        },
+        {
+          "timestamp": "2026-03-15T09:00:10.130Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105637000
+        },
+        {
+          "timestamp": "2026-03-15T09:15:10.163Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105921000
+        },
+        {
+          "timestamp": "2026-03-15T09:30:10.144Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105923000
+        },
+        {
+          "timestamp": "2026-03-15T09:45:10.176Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105820000
+        },
+        {
+          "timestamp": "2026-03-15T10:00:10.265Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105862000
+        },
+        {
+          "timestamp": "2026-03-15T10:15:10.127Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105888000
+        },
+        {
+          "timestamp": "2026-03-15T10:30:10.123Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105989000
+        },
+        {
+          "timestamp": "2026-03-15T10:45:10.138Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105915000
+        },
+        {
+          "timestamp": "2026-03-15T11:00:10.121Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105813000
+        },
+        {
+          "timestamp": "2026-03-15T11:15:10.132Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105724000
+        },
+        {
+          "timestamp": "2026-03-15T11:30:10.125Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105690000
+        },
+        {
+          "timestamp": "2026-03-15T11:45:10.135Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105699000
+        },
+        {
+          "timestamp": "2026-03-15T12:00:10.119Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105840000
+        },
+        {
+          "timestamp": "2026-03-15T12:15:10.152Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105645000
+        },
+        {
+          "timestamp": "2026-03-15T12:30:10.135Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105600000
+        },
+        {
+          "timestamp": "2026-03-15T12:45:10.126Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105419000
+        },
+        {
+          "timestamp": "2026-03-15T13:00:10.116Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105463000
+        },
+        {
+          "timestamp": "2026-03-15T13:15:10.127Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105176000
+        },
+        {
+          "timestamp": "2026-03-15T13:30:10.105Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105463000
+        },
+        {
+          "timestamp": "2026-03-15T13:45:10.222Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105305000
+        },
+        {
+          "timestamp": "2026-03-15T14:00:10.115Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105450000
+        },
+        {
+          "timestamp": "2026-03-15T14:15:10.115Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105428000
+        },
+        {
+          "timestamp": "2026-03-15T14:30:10.127Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105244000
+        },
+        {
+          "timestamp": "2026-03-15T14:45:10.127Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105319000
+        },
+        {
+          "timestamp": "2026-03-15T15:00:10.132Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105487000
+        },
+        {
+          "timestamp": "2026-03-15T15:15:10.137Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105390000
+        },
+        {
+          "timestamp": "2026-03-15T15:30:10.107Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105305000
+        },
+        {
+          "timestamp": "2026-03-15T15:45:10.125Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105311000
+        },
+        {
+          "timestamp": "2026-03-15T16:00:10.163Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105417000
+        },
+        {
+          "timestamp": "2026-03-15T16:15:10.119Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105435000
+        },
+        {
+          "timestamp": "2026-03-15T16:30:10.120Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105249000
+        },
+        {
+          "timestamp": "2026-03-15T16:45:10.135Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105331000
+        },
+        {
+          "timestamp": "2026-03-15T17:00:10.133Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105280000
+        },
+        {
+          "timestamp": "2026-03-15T17:15:10.123Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105318000
+        },
+        {
+          "timestamp": "2026-03-15T17:30:10.118Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105410000
+        },
+        {
+          "timestamp": "2026-03-15T17:45:10.136Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105460000
+        },
+        {
+          "timestamp": "2026-03-15T18:00:10.128Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105844000
+        },
+        {
+          "timestamp": "2026-03-15T18:15:10.121Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105633000
+        },
+        {
+          "timestamp": "2026-03-15T18:30:10.128Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105620000
+        },
+        {
+          "timestamp": "2026-03-15T18:45:10.122Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105695000
+        },
+        {
+          "timestamp": "2026-03-15T19:00:10.127Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105265000
+        },
+        {
+          "timestamp": "2026-03-15T19:15:10.111Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105320000
+        },
+        {
+          "timestamp": "2026-03-15T19:30:10.124Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105381000
+        },
+        {
+          "timestamp": "2026-03-15T19:45:10.125Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105447000
+        },
+        {
+          "timestamp": "2026-03-15T20:00:10.137Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105479000
+        },
+        {
+          "timestamp": "2026-03-15T20:15:10.119Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105489000
+        },
+        {
+          "timestamp": "2026-03-15T20:30:10.107Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105469000
+        },
+        {
+          "timestamp": "2026-03-15T20:45:10.124Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105849000
+        },
+        {
+          "timestamp": "2026-03-15T21:00:10.299Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105708000
+        },
+        {
+          "timestamp": "2026-03-15T21:15:10.132Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105445000
+        },
+        {
+          "timestamp": "2026-03-15T21:30:10.111Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105671000
+        },
+        {
+          "timestamp": "2026-03-15T21:45:10.134Z",
+          "assetHeld": "KRW-BTC",
+          "price": 106100000
+        },
+        {
+          "timestamp": "2026-03-15T22:00:10.113Z",
+          "assetHeld": "KRW-BTC",
+          "price": 106069000
+        },
+        {
+          "timestamp": "2026-03-15T22:15:10.097Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105661000
+        },
+        {
+          "timestamp": "2026-03-15T22:30:10.112Z",
+          "assetHeld": "KRW-BTC",
+          "price": 105851000
+        },
+        {
+          "timestamp": "2026-03-15T22:45:10.144Z",
+          "assetHeld": "KRW-BTC",
+          "price": 106400000
+        },
+        {
+          "timestamp": "2026-03-15T23:00:10.125Z",
+          "assetHeld": "KRW-BTC",
+          "price": 106890000
+        },
+        {
+          "timestamp": "2026-03-15T23:15:10.131Z",
+          "assetHeld": "KRW-BTC",
+          "price": 107121000
+        },
+        {
+          "timestamp": "2026-03-15T23:30:10.127Z",
+          "assetHeld": "KRW-BTC",
+          "price": 106516000
+        },
+        {
+          "timestamp": "2026-03-15T23:45:10.109Z",
+          "assetHeld": "KRW-BTC",
+          "price": 106808000
+        },
+        {
+          "timestamp": "2026-03-16T00:00:10.125Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3202000
+        },
+        {
+          "timestamp": "2026-03-16T00:15:10.123Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3189000
+        },
+        {
+          "timestamp": "2026-03-16T00:30:10.130Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3180000
+        },
+        {
+          "timestamp": "2026-03-16T00:45:10.110Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3181000
+        },
+        {
+          "timestamp": "2026-03-16T01:00:10.126Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3185000
+        },
+        {
+          "timestamp": "2026-03-16T01:15:10.131Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3176000
+        },
+        {
+          "timestamp": "2026-03-16T01:30:10.130Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3195000
+        },
+        {
+          "timestamp": "2026-03-16T01:45:10.136Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3199000
+        },
+        {
+          "timestamp": "2026-03-16T02:00:10.117Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3208000
+        },
+        {
+          "timestamp": "2026-03-16T02:15:10.117Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3201000
+        },
+        {
+          "timestamp": "2026-03-16T02:30:10.126Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3188000
+        },
+        {
+          "timestamp": "2026-03-16T02:45:10.145Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3196000
+        },
+        {
+          "timestamp": "2026-03-16T02:55:52.920Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3204000
+        },
+        {
+          "timestamp": "2026-03-16T03:00:10.142Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3202000
+        },
+        {
+          "timestamp": "2026-03-16T03:15:10.132Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3202000
+        },
+        {
+          "timestamp": "2026-03-16T03:30:10.126Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3230000
+        },
+        {
+          "timestamp": "2026-03-16T03:45:10.141Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3286000
+        },
+        {
+          "timestamp": "2026-03-16T04:00:10.135Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3280000
+        },
+        {
+          "timestamp": "2026-03-16T04:15:10.124Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3294000
+        },
+        {
+          "timestamp": "2026-03-16T04:30:10.118Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3299000
+        },
+        {
+          "timestamp": "2026-03-16T04:45:10.139Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3319000
+        },
+        {
+          "timestamp": "2026-03-16T05:00:10.127Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3319000
+        },
+        {
+          "timestamp": "2026-03-16T05:15:10.138Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3321000
+        },
+        {
+          "timestamp": "2026-03-16T05:30:10.127Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3327000
+        },
+        {
+          "timestamp": "2026-03-16T05:45:10.122Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3327000
+        },
+        {
+          "timestamp": "2026-03-16T06:00:10.132Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3343000
+        },
+        {
+          "timestamp": "2026-03-16T06:15:10.131Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3318000
+        },
+        {
+          "timestamp": "2026-03-16T06:30:10.132Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3326000
+        },
+        {
+          "timestamp": "2026-03-16T06:45:10.123Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3326000
+        },
+        {
+          "timestamp": "2026-03-16T07:00:10.121Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3316000
+        },
+        {
+          "timestamp": "2026-03-16T07:15:10.142Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3324000
+        },
+        {
+          "timestamp": "2026-03-16T07:30:10.157Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3323000
+        },
+        {
+          "timestamp": "2026-03-16T07:45:10.139Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3303000
+        },
+        {
+          "timestamp": "2026-03-16T08:00:10.135Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3297000
+        },
+        {
+          "timestamp": "2026-03-16T08:15:10.125Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3297000
+        },
+        {
+          "timestamp": "2026-03-16T08:30:10.129Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3298000
+        },
+        {
+          "timestamp": "2026-03-16T08:45:10.124Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3277000
+        },
+        {
+          "timestamp": "2026-03-16T09:00:10.149Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3286000
+        },
+        {
+          "timestamp": "2026-03-16T09:15:10.125Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3293000
+        },
+        {
+          "timestamp": "2026-03-16T09:30:10.129Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3308000
+        },
+        {
+          "timestamp": "2026-03-16T09:45:10.121Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3306000
+        },
+        {
+          "timestamp": "2026-03-16T10:00:10.132Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3319000
+        },
+        {
+          "timestamp": "2026-03-16T10:15:10.129Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3329000
+        },
+        {
+          "timestamp": "2026-03-16T10:30:10.108Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3328000
+        },
+        {
+          "timestamp": "2026-03-16T10:45:10.139Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3317000
+        },
+        {
+          "timestamp": "2026-03-16T11:00:10.119Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3344000
+        },
+        {
+          "timestamp": "2026-03-16T11:15:10.123Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3340000
+        },
+        {
+          "timestamp": "2026-03-16T11:30:10.133Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3327000
+        },
+        {
+          "timestamp": "2026-03-16T11:45:10.132Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3336000
+        },
+        {
+          "timestamp": "2026-03-16T12:00:10.137Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3333000
+        },
+        {
+          "timestamp": "2026-03-16T12:15:10.121Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3351000
+        },
+        {
+          "timestamp": "2026-03-16T12:30:10.123Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3373000
+        },
+        {
+          "timestamp": "2026-03-16T12:45:10.172Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3350000
+        },
+        {
+          "timestamp": "2026-03-16T13:00:10.133Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3351000
+        },
+        {
+          "timestamp": "2026-03-16T13:15:10.130Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3349000
+        },
+        {
+          "timestamp": "2026-03-16T13:30:10.136Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3352000
+        },
+        {
+          "timestamp": "2026-03-16T13:45:10.173Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3369000
+        },
+        {
+          "timestamp": "2026-03-16T14:00:10.169Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3366000
+        },
+        {
+          "timestamp": "2026-03-16T14:15:10.125Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3376000
+        },
+        {
+          "timestamp": "2026-03-16T14:30:10.137Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3349000
+        },
+        {
+          "timestamp": "2026-03-16T14:45:10.128Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3334000
+        },
+        {
+          "timestamp": "2026-03-16T15:00:10.171Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3365000
+        },
+        {
+          "timestamp": "2026-03-16T15:15:10.143Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3360000
+        },
+        {
+          "timestamp": "2026-03-16T15:30:10.130Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3369000
+        },
+        {
+          "timestamp": "2026-03-16T15:45:10.125Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3360000
+        },
+        {
+          "timestamp": "2026-03-16T15:49:32.367Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3359000
+        },
+        {
+          "timestamp": "2026-03-16T16:00:10.157Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3347000
+        },
+        {
+          "timestamp": "2026-03-16T16:15:10.109Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3352000
+        },
+        {
+          "timestamp": "2026-03-16T16:30:10.151Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3359000
+        },
+        {
+          "timestamp": "2026-03-16T16:45:10.146Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3367000
+        },
+        {
+          "timestamp": "2026-03-16T17:00:10.137Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3375000
+        },
+        {
+          "timestamp": "2026-03-16T17:15:10.132Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3385000
+        },
+        {
+          "timestamp": "2026-03-16T17:30:10.135Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3379000
+        },
+        {
+          "timestamp": "2026-03-16T17:45:10.139Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3396000
+        },
+        {
+          "timestamp": "2026-03-16T18:00:10.132Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3396000
+        },
+        {
+          "timestamp": "2026-03-16T18:15:10.138Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3423000
+        },
+        {
+          "timestamp": "2026-03-16T18:30:10.124Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3424000
+        },
+        {
+          "timestamp": "2026-03-16T18:45:10.139Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3432000
+        },
+        {
+          "timestamp": "2026-03-16T19:00:10.148Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3403000
+        },
+        {
+          "timestamp": "2026-03-16T19:15:10.121Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3431000
+        },
+        {
+          "timestamp": "2026-03-16T19:30:10.126Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3418000
+        },
+        {
+          "timestamp": "2026-03-16T19:45:10.133Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3421000
+        },
+        {
+          "timestamp": "2026-03-16T20:00:10.146Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3419000
+        },
+        {
+          "timestamp": "2026-03-16T20:15:10.128Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3410000
+        },
+        {
+          "timestamp": "2026-03-16T20:30:10.142Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3418000
+        },
+        {
+          "timestamp": "2026-03-16T20:45:10.139Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3429000
+        },
+        {
+          "timestamp": "2026-03-16T21:00:10.125Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3441000
+        },
+        {
+          "timestamp": "2026-03-16T21:15:10.124Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3451000
+        },
+        {
+          "timestamp": "2026-03-16T21:30:10.124Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3441000
+        },
+        {
+          "timestamp": "2026-03-16T21:45:10.145Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3467000
+        },
+        {
+          "timestamp": "2026-03-16T22:00:10.123Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3474000
+        },
+        {
+          "timestamp": "2026-03-16T22:15:10.125Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3491000
+        },
+        {
+          "timestamp": "2026-03-16T22:30:10.135Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3469000
+        },
+        {
+          "timestamp": "2026-03-16T22:45:10.127Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3481000
+        },
+        {
+          "timestamp": "2026-03-16T23:00:10.121Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3465000
+        },
+        {
+          "timestamp": "2026-03-16T23:15:10.108Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3439000
+        },
+        {
+          "timestamp": "2026-03-16T23:30:10.130Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3457000
+        },
+        {
+          "timestamp": "2026-03-16T23:45:10.122Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3471000
+        },
+        {
+          "timestamp": "2026-03-17T00:00:10.143Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3459000
+        },
+        {
+          "timestamp": "2026-03-17T00:15:10.131Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3493000
+        },
+        {
+          "timestamp": "2026-03-17T00:30:10.126Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3475000
+        },
+        {
+          "timestamp": "2026-03-17T00:45:10.241Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3479000
+        },
+        {
+          "timestamp": "2026-03-17T01:00:10.124Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3481000
+        },
+        {
+          "timestamp": "2026-03-17T01:15:10.125Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3495000
+        },
+        {
+          "timestamp": "2026-03-17T01:30:10.121Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3496000
+        },
+        {
+          "timestamp": "2026-03-17T01:45:10.133Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3494000
+        },
+        {
+          "timestamp": "2026-03-17T02:00:10.130Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3498000
+        },
+        {
+          "timestamp": "2026-03-17T02:15:10.141Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3479000
+        },
+        {
+          "timestamp": "2026-03-17T02:30:10.124Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3473000
+        },
+        {
+          "timestamp": "2026-03-17T02:45:10.121Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3486000
+        },
+        {
+          "timestamp": "2026-03-17T03:00:10.119Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3477000
+        },
+        {
+          "timestamp": "2026-03-17T03:15:10.129Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3466000
+        },
+        {
+          "timestamp": "2026-03-17T03:30:10.112Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3451000
+        },
+        {
+          "timestamp": "2026-03-17T03:45:10.138Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3416000
+        },
+        {
+          "timestamp": "2026-03-17T04:00:10.139Z",
+          "assetHeld": "KRW-XRP",
+          "price": 2278
+        },
+        {
+          "timestamp": "2026-03-17T04:15:10.135Z",
+          "assetHeld": "KRW-XRP",
+          "price": 2292
+        },
+        {
+          "timestamp": "2026-03-17T04:30:10.130Z",
+          "assetHeld": "KRW-XRP",
+          "price": 2273
+        },
+        {
+          "timestamp": "2026-03-17T04:45:10.124Z",
+          "assetHeld": "KRW-XRP",
+          "price": 2251
+        },
+        {
+          "timestamp": "2026-03-17T05:00:10.121Z",
+          "assetHeld": "KRW-XRP",
+          "price": 2252
+        },
+        {
+          "timestamp": "2026-03-17T05:15:10.135Z",
+          "assetHeld": "KRW-XRP",
+          "price": 2242
+        },
+        {
+          "timestamp": "2026-03-17T05:30:10.119Z",
+          "assetHeld": "KRW-XRP",
+          "price": 2254
+        },
+        {
+          "timestamp": "2026-03-17T05:45:10.129Z",
+          "assetHeld": "KRW-XRP",
+          "price": 2232
+        },
+        {
+          "timestamp": "2026-03-17T06:00:10.124Z",
+          "assetHeld": "KRW-XRP",
+          "price": 2230
+        },
+        {
+          "timestamp": "2026-03-17T06:15:10.122Z",
+          "assetHeld": "KRW-XRP",
+          "price": 2232
+        },
+        {
+          "timestamp": "2026-03-17T06:30:10.119Z",
+          "assetHeld": "KRW-XRP",
+          "price": 2243
+        },
+        {
+          "timestamp": "2026-03-17T06:45:10.125Z",
+          "assetHeld": "KRW-XRP",
+          "price": 2232
+        },
+        {
+          "timestamp": "2026-03-17T07:00:10.103Z",
+          "assetHeld": "KRW-XRP",
+          "price": 2237
+        },
+        {
+          "timestamp": "2026-03-17T07:15:10.127Z",
+          "assetHeld": "KRW-XRP",
+          "price": 2253
+        },
+        {
+          "timestamp": "2026-03-17T07:30:10.132Z",
+          "assetHeld": "KRW-XRP",
+          "price": 2271
+        },
+        {
+          "timestamp": "2026-03-17T07:45:10.121Z",
+          "assetHeld": "KRW-XRP",
+          "price": 2264
+        },
+        {
+          "timestamp": "2026-03-17T08:00:10.129Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3432000
+        },
+        {
+          "timestamp": "2026-03-17T08:15:10.114Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3431000
+        },
+        {
+          "timestamp": "2026-03-17T08:30:10.144Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3435000
+        },
+        {
+          "timestamp": "2026-03-17T08:45:10.101Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3442000
+        },
+        {
+          "timestamp": "2026-03-17T09:00:10.127Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3429000
+        },
+        {
+          "timestamp": "2026-03-17T09:15:10.127Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3409000
+        },
+        {
+          "timestamp": "2026-03-17T09:30:10.127Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3429000
+        },
+        {
+          "timestamp": "2026-03-17T09:45:10.127Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3431000
+        },
+        {
+          "timestamp": "2026-03-17T10:00:10.139Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3416000
+        },
+        {
+          "timestamp": "2026-03-17T10:15:10.127Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3413000
+        },
+        {
+          "timestamp": "2026-03-17T10:30:10.129Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3414000
+        },
+        {
+          "timestamp": "2026-03-17T10:45:10.132Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3410000
+        },
+        {
+          "timestamp": "2026-03-17T11:00:10.121Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3413000
+        },
+        {
+          "timestamp": "2026-03-17T11:15:10.127Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3438000
+        },
+        {
+          "timestamp": "2026-03-17T11:30:10.145Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3436000
+        },
+        {
+          "timestamp": "2026-03-17T11:45:10.126Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3442000
+        },
+        {
+          "timestamp": "2026-03-17T12:00:10.132Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3440000
+        },
+        {
+          "timestamp": "2026-03-17T12:15:10.109Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3440000
+        },
+        {
+          "timestamp": "2026-03-17T12:30:10.115Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3430000
+        },
+        {
+          "timestamp": "2026-03-17T12:45:10.129Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3432000
+        },
+        {
+          "timestamp": "2026-03-17T13:00:10.117Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3421000
+        },
+        {
+          "timestamp": "2026-03-17T13:15:10.140Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3427000
+        },
+        {
+          "timestamp": "2026-03-17T13:30:10.124Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3428000
+        },
+        {
+          "timestamp": "2026-03-17T13:45:10.134Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3441000
+        },
+        {
+          "timestamp": "2026-03-17T14:00:10.120Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3440000
+        },
+        {
+          "timestamp": "2026-03-17T14:15:10.127Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3437000
+        },
+        {
+          "timestamp": "2026-03-17T14:30:10.112Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3444000
+        },
+        {
+          "timestamp": "2026-03-17T14:45:10.138Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3460000
+        },
+        {
+          "timestamp": "2026-03-17T15:00:10.158Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3462000
+        },
+        {
+          "timestamp": "2026-03-17T15:15:10.144Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3442000
+        },
+        {
+          "timestamp": "2026-03-17T15:30:10.114Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3434000
+        },
+        {
+          "timestamp": "2026-03-17T15:45:10.129Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3419000
+        },
+        {
+          "timestamp": "2026-03-17T16:00:10.143Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3425000
+        },
+        {
+          "timestamp": "2026-03-17T16:15:10.135Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3423000
+        },
+        {
+          "timestamp": "2026-03-17T16:30:10.127Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3442000
+        },
+        {
+          "timestamp": "2026-03-17T16:45:10.132Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3432000
+        },
+        {
+          "timestamp": "2026-03-17T17:00:10.124Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3431000
+        },
+        {
+          "timestamp": "2026-03-17T17:15:10.141Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3429000
+        },
+        {
+          "timestamp": "2026-03-17T17:30:10.135Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3438000
+        },
+        {
+          "timestamp": "2026-03-17T17:45:10.127Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3443000
+        },
+        {
+          "timestamp": "2026-03-17T18:00:10.139Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3449000
+        },
+        {
+          "timestamp": "2026-03-17T18:15:10.145Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3449000
+        },
+        {
+          "timestamp": "2026-03-17T18:30:10.120Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3441000
+        },
+        {
+          "timestamp": "2026-03-17T18:45:10.129Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3445000
+        },
+        {
+          "timestamp": "2026-03-17T19:00:11.273Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3439000
+        },
+        {
+          "timestamp": "2026-03-17T19:15:10.139Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3444000
+        },
+        {
+          "timestamp": "2026-03-17T19:30:10.128Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3440000
+        },
+        {
+          "timestamp": "2026-03-17T19:45:10.131Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3430000
+        },
+        {
+          "timestamp": "2026-03-17T20:00:10.120Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3423000
+        },
+        {
+          "timestamp": "2026-03-17T20:15:10.120Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3421000
+        },
+        {
+          "timestamp": "2026-03-17T20:30:10.127Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3435000
+        },
+        {
+          "timestamp": "2026-03-17T20:45:10.128Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3434000
+        },
+        {
+          "timestamp": "2026-03-17T21:00:10.123Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3436000
+        },
+        {
+          "timestamp": "2026-03-17T21:15:10.119Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3451000
+        },
+        {
+          "timestamp": "2026-03-17T21:30:10.134Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3447000
+        },
+        {
+          "timestamp": "2026-03-17T21:45:10.134Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3451000
+        },
+        {
+          "timestamp": "2026-03-17T22:00:10.134Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3451000
+        },
+        {
+          "timestamp": "2026-03-17T22:15:10.121Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3446000
+        },
+        {
+          "timestamp": "2026-03-17T22:30:10.121Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3438000
+        },
+        {
+          "timestamp": "2026-03-17T22:45:10.128Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3434000
+        },
+        {
+          "timestamp": "2026-03-17T23:00:10.125Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3439000
+        },
+        {
+          "timestamp": "2026-03-17T23:15:10.130Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3439000
+        },
+        {
+          "timestamp": "2026-03-17T23:30:10.133Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3433000
+        },
+        {
+          "timestamp": "2026-03-17T23:45:10.133Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3425000
+        },
+        {
+          "timestamp": "2026-03-18T00:00:10.133Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3419000
+        },
+        {
+          "timestamp": "2026-03-18T00:15:10.122Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3429000
+        },
+        {
+          "timestamp": "2026-03-18T00:30:10.124Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3413000
+        },
+        {
+          "timestamp": "2026-03-18T00:45:10.131Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3416000
+        },
+        {
+          "timestamp": "2026-03-18T01:00:10.120Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3433000
+        },
+        {
+          "timestamp": "2026-03-18T01:15:10.123Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3436000
+        },
+        {
+          "timestamp": "2026-03-18T01:30:10.132Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3441000
+        },
+        {
+          "timestamp": "2026-03-18T01:45:10.125Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3445000
+        },
+        {
+          "timestamp": "2026-03-18T02:00:10.130Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3434000
+        },
+        {
+          "timestamp": "2026-03-18T02:15:10.127Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3446000
+        },
+        {
+          "timestamp": "2026-03-18T02:19:24.649Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3446000
+        },
+        {
+          "timestamp": "2026-03-18T02:30:10.163Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3443000
+        },
+        {
+          "timestamp": "2026-03-18T02:45:10.143Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3451000
+        },
+        {
+          "timestamp": "2026-03-18T03:00:10.129Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3440000
+        },
+        {
+          "timestamp": "2026-03-18T03:15:10.136Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3440000
+        },
+        {
+          "timestamp": "2026-03-18T03:30:10.136Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3453000
+        },
+        {
+          "timestamp": "2026-03-18T03:45:10.146Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3452000
+        },
+        {
+          "timestamp": "2026-03-18T04:00:10.131Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3456000
+        },
+        {
+          "timestamp": "2026-03-18T04:15:10.131Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3454000
+        },
+        {
+          "timestamp": "2026-03-18T04:30:10.125Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3444000
+        },
+        {
+          "timestamp": "2026-03-18T04:45:10.157Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3442000
+        },
+        {
+          "timestamp": "2026-03-18T05:00:10.139Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3438000
+        },
+        {
+          "timestamp": "2026-03-18T05:15:10.129Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3443000
+        },
+        {
+          "timestamp": "2026-03-18T05:30:10.111Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3435000
+        },
+        {
+          "timestamp": "2026-03-18T05:45:10.132Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3428000
+        },
+        {
+          "timestamp": "2026-03-18T06:00:10.134Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3426000
+        },
+        {
+          "timestamp": "2026-03-18T06:15:10.152Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3431000
+        },
+        {
+          "timestamp": "2026-03-18T06:30:10.218Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3439000
+        },
+        {
+          "timestamp": "2026-03-18T06:45:10.127Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3429000
+        },
+        {
+          "timestamp": "2026-03-18T07:00:10.123Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3428000
+        },
+        {
+          "timestamp": "2026-03-18T07:15:10.127Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3425000
+        },
+        {
+          "timestamp": "2026-03-18T07:30:10.147Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3420000
+        },
+        {
+          "timestamp": "2026-03-18T07:45:10.130Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3417000
+        },
+        {
+          "timestamp": "2026-03-18T08:00:10.122Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3425000
+        },
+        {
+          "timestamp": "2026-03-18T08:15:10.135Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3426000
+        },
+        {
+          "timestamp": "2026-03-18T08:30:10.132Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3427000
+        },
+        {
+          "timestamp": "2026-03-18T08:45:10.123Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3426000
+        },
+        {
+          "timestamp": "2026-03-18T09:00:10.139Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3431000
+        },
+        {
+          "timestamp": "2026-03-18T09:15:10.149Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3441000
+        },
+        {
+          "timestamp": "2026-03-18T09:30:10.128Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3440000
+        },
+        {
+          "timestamp": "2026-03-18T09:45:10.114Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3445000
+        },
+        {
+          "timestamp": "2026-03-18T10:00:10.128Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3436000
+        },
+        {
+          "timestamp": "2026-03-18T10:15:10.124Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3442000
+        },
+        {
+          "timestamp": "2026-03-18T10:30:10.133Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3440000
+        },
+        {
+          "timestamp": "2026-03-18T10:45:10.143Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3419000
+        },
+        {
+          "timestamp": "2026-03-18T11:00:10.134Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3419000
+        },
+        {
+          "timestamp": "2026-03-18T11:15:10.129Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3421000
+        },
+        {
+          "timestamp": "2026-03-18T11:30:10.149Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3395000
+        },
+        {
+          "timestamp": "2026-03-18T11:45:10.127Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3365000
+        },
+        {
+          "timestamp": "2026-03-18T12:00:10.117Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3350000
+        },
+        {
+          "timestamp": "2026-03-18T12:15:10.141Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T12:30:10.122Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T12:45:10.158Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T13:00:10.130Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T13:15:10.116Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T13:30:10.113Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T13:45:10.133Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T14:00:10.117Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T14:15:10.132Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T14:30:10.123Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T14:45:10.130Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T15:00:10.127Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T15:15:10.128Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T15:30:10.120Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T15:45:10.116Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T16:00:10.128Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T16:15:10.121Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T16:30:10.164Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T16:45:10.139Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T17:00:10.126Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T17:15:10.143Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T17:30:10.128Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T17:45:10.129Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T18:00:10.131Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T18:15:10.116Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T18:30:10.135Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T18:45:10.132Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T19:00:10.126Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T19:15:10.125Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T19:30:10.116Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T19:45:10.131Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T20:00:10.146Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T20:15:10.123Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T20:30:10.131Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T20:45:10.138Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T21:00:10.116Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T21:15:10.154Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T21:30:10.104Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T21:45:10.137Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T22:00:10.127Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T22:15:10.132Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T22:30:10.127Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T22:45:10.124Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T23:00:10.123Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T23:15:10.142Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T23:30:10.136Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-18T23:45:10.132Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T00:00:10.135Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T00:15:10.116Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3271000
+        },
+        {
+          "timestamp": "2026-03-19T00:30:10.139Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3277000
+        },
+        {
+          "timestamp": "2026-03-19T00:45:10.133Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3265000
+        },
+        {
+          "timestamp": "2026-03-19T01:00:10.121Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3261000
+        },
+        {
+          "timestamp": "2026-03-19T01:15:10.127Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3253000
+        },
+        {
+          "timestamp": "2026-03-19T01:30:10.122Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3251000
+        },
+        {
+          "timestamp": "2026-03-19T01:45:10.123Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3265000
+        },
+        {
+          "timestamp": "2026-03-19T02:00:10.124Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3261000
+        },
+        {
+          "timestamp": "2026-03-19T02:15:10.156Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3264000
+        },
+        {
+          "timestamp": "2026-03-19T02:30:10.118Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3268000
+        },
+        {
+          "timestamp": "2026-03-19T02:45:10.126Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3273000
+        },
+        {
+          "timestamp": "2026-03-19T03:00:10.140Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3263000
+        },
+        {
+          "timestamp": "2026-03-19T03:15:10.132Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3280000
+        },
+        {
+          "timestamp": "2026-03-19T03:30:10.126Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3315000
+        },
+        {
+          "timestamp": "2026-03-19T03:45:10.137Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3293000
+        },
+        {
+          "timestamp": "2026-03-19T04:00:10.130Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3296000
+        },
+        {
+          "timestamp": "2026-03-19T04:15:10.135Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3279000
+        },
+        {
+          "timestamp": "2026-03-19T04:30:10.133Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3265000
+        },
+        {
+          "timestamp": "2026-03-19T04:45:10.122Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3268000
+        },
+        {
+          "timestamp": "2026-03-19T05:00:10.130Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3266000
+        },
+        {
+          "timestamp": "2026-03-19T05:15:10.123Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3265000
+        },
+        {
+          "timestamp": "2026-03-19T05:30:10.124Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3261000
+        },
+        {
+          "timestamp": "2026-03-19T05:45:10.132Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3258000
+        },
+        {
+          "timestamp": "2026-03-19T06:00:10.137Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3258000
+        },
+        {
+          "timestamp": "2026-03-19T06:15:10.135Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3264000
+        },
+        {
+          "timestamp": "2026-03-19T06:30:10.129Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3257000
+        },
+        {
+          "timestamp": "2026-03-19T06:45:10.133Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3255000
+        },
+        {
+          "timestamp": "2026-03-19T07:00:10.121Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3243000
+        },
+        {
+          "timestamp": "2026-03-19T07:15:10.120Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3218000
+        },
+        {
+          "timestamp": "2026-03-19T07:30:10.147Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3208000
+        },
+        {
+          "timestamp": "2026-03-19T07:45:10.147Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3226000
+        },
+        {
+          "timestamp": "2026-03-19T08:00:10.199Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3226000
+        },
+        {
+          "timestamp": "2026-03-19T08:15:10.125Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3225000
+        },
+        {
+          "timestamp": "2026-03-19T08:30:10.123Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3212000
+        },
+        {
+          "timestamp": "2026-03-19T08:45:10.127Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3215000
+        },
+        {
+          "timestamp": "2026-03-19T09:00:10.140Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3210000
+        },
+        {
+          "timestamp": "2026-03-19T09:15:10.126Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3218000
+        },
+        {
+          "timestamp": "2026-03-19T09:30:10.129Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3239000
+        },
+        {
+          "timestamp": "2026-03-19T09:45:10.115Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3244000
+        },
+        {
+          "timestamp": "2026-03-19T10:00:10.136Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3253000
+        },
+        {
+          "timestamp": "2026-03-19T10:15:10.131Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3248000
+        },
+        {
+          "timestamp": "2026-03-19T10:30:10.130Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3243000
+        },
+        {
+          "timestamp": "2026-03-19T10:45:10.135Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3236000
+        },
+        {
+          "timestamp": "2026-03-19T11:00:10.128Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3229000
+        },
+        {
+          "timestamp": "2026-03-19T11:15:10.128Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3229000
+        },
+        {
+          "timestamp": "2026-03-19T11:30:10.143Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3236000
+        },
+        {
+          "timestamp": "2026-03-19T11:45:10.115Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3226000
+        },
+        {
+          "timestamp": "2026-03-19T12:00:10.127Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3222000
+        },
+        {
+          "timestamp": "2026-03-19T12:15:10.121Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3221000
+        },
+        {
+          "timestamp": "2026-03-19T12:30:10.120Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3207000
+        },
+        {
+          "timestamp": "2026-03-19T12:45:10.122Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3207000
+        },
+        {
+          "timestamp": "2026-03-19T13:00:10.126Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T13:15:10.122Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T13:30:10.175Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T13:45:10.138Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T14:00:10.105Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T14:15:10.129Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T14:30:10.126Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T14:45:10.125Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T15:00:10.149Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T15:15:10.123Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T15:30:10.127Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T15:45:10.124Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T16:00:10.120Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T16:15:10.125Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T16:30:10.118Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T16:45:10.136Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T17:00:10.120Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T17:15:10.113Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T17:30:10.132Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T17:45:10.126Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T18:00:10.110Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T18:15:10.124Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T18:30:10.121Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T18:45:10.120Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T19:00:10.116Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T19:15:10.116Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T19:30:10.126Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T19:45:10.145Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T20:00:10.127Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T20:15:10.132Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T20:30:10.118Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T20:45:10.110Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T21:00:10.119Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T21:15:10.122Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T21:30:10.120Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T21:45:10.110Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T22:00:10.121Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T22:15:10.121Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T22:30:10.149Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T22:45:10.122Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T23:00:10.105Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T23:15:10.119Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T23:30:10.126Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-19T23:45:10.112Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-20T00:00:10.133Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-20T00:15:10.117Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-20T00:30:10.136Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-20T00:45:10.131Z",
+          "assetHeld": "CASH",
+          "price": 0
+        },
+        {
+          "timestamp": "2026-03-20T01:00:10.123Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3189000
+        },
+        {
+          "timestamp": "2026-03-20T01:15:10.123Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3203000
+        },
+        {
+          "timestamp": "2026-03-20T01:30:10.153Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3202000
+        },
+        {
+          "timestamp": "2026-03-20T01:45:10.129Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3215000
+        },
+        {
+          "timestamp": "2026-03-20T02:00:10.121Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3203000
+        },
+        {
+          "timestamp": "2026-03-20T02:15:10.130Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3197000
+        },
+        {
+          "timestamp": "2026-03-20T02:30:10.132Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3188000
+        },
+        {
+          "timestamp": "2026-03-20T02:45:10.135Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3195000
+        },
+        {
+          "timestamp": "2026-03-20T03:00:10.144Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3196000
+        },
+        {
+          "timestamp": "2026-03-20T03:15:10.115Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3199000
+        },
+        {
+          "timestamp": "2026-03-20T03:30:10.125Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3207000
+        },
+        {
+          "timestamp": "2026-03-20T03:45:10.150Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3204000
+        },
+        {
+          "timestamp": "2026-03-20T04:00:10.120Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3207000
+        },
+        {
+          "timestamp": "2026-03-20T04:15:10.123Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3217000
+        },
+        {
+          "timestamp": "2026-03-20T04:30:10.126Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3214000
+        },
+        {
+          "timestamp": "2026-03-20T04:45:10.138Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3197000
+        },
+        {
+          "timestamp": "2026-03-20T05:00:10.127Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3204000
+        },
+        {
+          "timestamp": "2026-03-20T05:15:10.131Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3206000
+        },
+        {
+          "timestamp": "2026-03-20T05:30:10.132Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3197000
+        },
+        {
+          "timestamp": "2026-03-20T05:45:10.133Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3200000
+        },
+        {
+          "timestamp": "2026-03-20T06:00:10.125Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3191000
+        },
+        {
+          "timestamp": "2026-03-20T06:15:10.129Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3191000
+        },
+        {
+          "timestamp": "2026-03-20T06:30:10.124Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3191000
+        },
+        {
+          "timestamp": "2026-03-20T06:45:10.134Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3190000
+        },
+        {
+          "timestamp": "2026-03-20T07:00:10.134Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3188000
+        },
+        {
+          "timestamp": "2026-03-20T07:15:10.131Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3171000
+        },
+        {
+          "timestamp": "2026-03-20T07:30:10.131Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3190000
+        },
+        {
+          "timestamp": "2026-03-20T07:45:10.143Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3208000
+        },
+        {
+          "timestamp": "2026-03-20T08:00:10.140Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3206000
+        },
+        {
+          "timestamp": "2026-03-20T08:15:10.152Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3234000
+        },
+        {
+          "timestamp": "2026-03-20T08:30:10.138Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3225000
+        },
+        {
+          "timestamp": "2026-03-20T08:45:10.149Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3225000
+        },
+        {
+          "timestamp": "2026-03-20T09:00:10.121Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3227000
+        },
+        {
+          "timestamp": "2026-03-20T09:15:10.138Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3214000
+        },
+        {
+          "timestamp": "2026-03-20T09:30:10.120Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3200000
+        },
+        {
+          "timestamp": "2026-03-20T09:45:10.139Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3204000
+        },
+        {
+          "timestamp": "2026-03-20T09:52:59.011Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3194000
+        },
+        {
+          "timestamp": "2026-03-20T10:00:10.139Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3198000
+        },
+        {
+          "timestamp": "2026-03-20T10:15:10.148Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3190000
+        },
+        {
+          "timestamp": "2026-03-20T10:30:10.124Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3187000
+        },
+        {
+          "timestamp": "2026-03-20T10:40:37.608Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3200000
+        },
+        {
+          "timestamp": "2026-03-20T10:45:10.138Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3204000
+        },
+        {
+          "timestamp": "2026-03-20T10:49:22.583Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3205000
+        },
+        {
+          "timestamp": "2026-03-20T11:00:10.142Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3207000
+        },
+        {
+          "timestamp": "2026-03-20T11:07:33.683Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3215000
+        },
+        {
+          "timestamp": "2026-03-20T11:15:10.158Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3218000
+        },
+        {
+          "timestamp": "2026-03-20T11:30:10.136Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3209000
+        },
+        {
+          "timestamp": "2026-03-20T11:45:10.126Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3194000
+        },
+        {
+          "timestamp": "2026-03-20T12:00:10.158Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3201000
+        },
+        {
+          "timestamp": "2026-03-20T12:15:10.132Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3205000
+        },
+        {
+          "timestamp": "2026-03-20T12:30:10.137Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3200000
+        },
+        {
+          "timestamp": "2026-03-20T12:43:58.812Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3194000
+        },
+        {
+          "timestamp": "2026-03-20T12:45:10.154Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3195000
+        },
+        {
+          "timestamp": "2026-03-20T13:00:10.219Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3199000
+        },
+        {
+          "timestamp": "2026-03-20T13:15:10.134Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3198000
+        },
+        {
+          "timestamp": "2026-03-20T13:30:10.132Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3205000
+        },
+        {
+          "timestamp": "2026-03-20T13:45:10.138Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3200000
+        },
+        {
+          "timestamp": "2026-03-20T14:00:10.685Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3179000
+        },
+        {
+          "timestamp": "2026-03-20T14:15:11.058Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3175000
+        },
+        {
+          "timestamp": "2026-03-20T14:30:10.137Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3193000
+        },
+        {
+          "timestamp": "2026-03-20T14:45:10.128Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3190000
+        },
+        {
+          "timestamp": "2026-03-20T15:00:10.137Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3184000
+        },
+        {
+          "timestamp": "2026-03-20T15:15:10.125Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3187000
+        },
+        {
+          "timestamp": "2026-03-20T15:30:10.123Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3185000
+        },
+        {
+          "timestamp": "2026-03-20T15:45:10.126Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3189000
+        },
+        {
+          "timestamp": "2026-03-20T16:00:10.110Z",
+          "assetHeld": "KRW-ETH",
+          "price": 3191000
+        }
+      ]
+    }
+  }
 }

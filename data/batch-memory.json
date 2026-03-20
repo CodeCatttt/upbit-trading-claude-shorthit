@@ -2,696 +2,6 @@
   "maxEntries": 50,
   "entries": [
     {
-      "timestamp": "2026-03-05T17:06:57.910Z",
-      "action": "modify",
-      "reasoning": "474캔들 무거래 — switchThreshold(0.4→0.2), 쿨다운(288/480→144/288), trailingStop(12→8%), crashThreshold(8→5%)로 완화하여 거래 활성화. 극저분산 약세장에서 CASH 전환 가능성을 높여 하방 보호 강화.",
-      "confidence": 0.82,
-      "parameters": {
-        "switchThreshold": 0.2,
-        "cooldownTrending": 144,
-        "cooldownChoppy": 288,
-        "opportunityOverrideMultiplier": 1.3,
-        "trailingStopPct": 0.08,
-        "crashThreshold": 0.05,
-        "crashWindowCandles": 96,
-        "riskGracePeriod": 48,
-        "reentryCooldown": 144,
-        "reentryRsiMin": 42,
-        "reentryMinScore": 0.05
-      },
-      "markets": null,
-      "improvementAreas": [
-        "strategy",
-        "risk"
-      ],
-      "backtestResult": null,
-      "outcome": "applied",
-      "notes": "다음 배치 체크: (1) 파라미터 완화 후 실제 거래 발생 여부 — 특히 trailing stop 8%와 crash 5% 트리거 확인, (2) 분산 급확대 시 switchThreshold 0.2로 스위칭 발생하는지 모니터링, (3) 여전히 무거래 시 replace 고려",
-      "retryAttempts": null,
-      "variantsTested": null,
-      "diagnosis": null,
-      "triggerType": "STAGNATION"
-    },
-    {
-      "timestamp": "2026-03-05T17:09:47.939Z",
-      "action": "modify",
-      "reasoning": "직전 modify(trailing 8%, crash 5%) 후에도 트리거 거리가 너무 멀어 무거래 지속. trailing 5%로 낮추면 피크 대비 -5% 시점(~102M)에서 CASH 전환되어 +8.45% 수익 중 상당 부분 보호 가능. crash 3%로 완화하여 급락 감지 민감도 향상. switchThreshold 0.15로 추가 완화하여 분산 확대 시 즉시 반응.",
-      "confidence": 0.78,
-      "parameters": {
-        "trailingStopPct": 0.05,
-        "crashThreshold": 0.03,
-        "switchThreshold": 0.15,
-        "riskGracePeriod": 24,
-        "reentryCooldown": 96,
-        "reentryRsiMin": 40
-      },
-      "markets": null,
-      "improvementAreas": [
-        "risk",
-        "strategy"
-      ],
-      "backtestResult": null,
-      "outcome": "applied",
-      "notes": "다음 배치 체크: (1) trailing 5% 트리거 여부 — 피크 107.35M 대비 ~102M 도달 시 CASH 전환 확인, (2) crash 3% 민감도 — 24h 내 -3% 하락 시 발동 확인, (3) CASH 전환 후 재진입 쿨다운 96캔들(1일)로 단축 효과, (4) 분산 급확대 시 switchThreshold 0.15 반응성 검증",
-      "retryAttempts": null,
-      "variantsTested": null,
-      "diagnosis": null,
-      "triggerType": "STAGNATION"
-    },
-    {
-      "timestamp": "2026-03-05T17:31:04.930Z",
-      "action": "keep",
-      "reasoning": "직전 배치에서 trailing 5%/crash 3%로 완화한 지 1일 미만. crash 임계값까지 0.38%만 남아 약세 지속 시 자동 CASH 전환 예상. 파라미터 효과 검증이 우선이며, 분산 0.39%로 스위칭 기대수익 < 수수료.",
-      "confidence": 0.85,
-      "parameters": null,
-      "markets": null,
-      "improvementAreas": [
-        "risk"
-      ],
-      "backtestResult": null,
-      "outcome": "kept",
-      "notes": "다음 배치 체크: (1) crash 3% 트리거 발동 여부 — BTC 24h 낙폭 -2.62%로 임계값 근접, 추가 0.38% 하락 시 CASH 전환, (2) BTC 체결 강도 0.22 매도 압도 지속 여부 — 알트 대비 약세 신호, (3) trailing 5% 트리거 거리 ~2% — 피크 107.35M 대비 101.99M 도달 시 발동, (4) 분산 0.39% 극저분산 지속 vs 급확대 전환 모니터링",
-      "retryAttempts": null,
-      "variantsTested": null,
-      "diagnosis": null,
-      "triggerType": "DAILY_REVIEW"
-    },
-    {
-      "timestamp": "2026-03-05T18:33:39.167Z",
-      "action": "modify",
-      "reasoning": "약세장 CASH 보유는 정상 동작이나, 재진입 조건이 과도하게 엄격하여 반등 시 기회 상실 위험. EMA 골든크로스 요구 제거(후행 지표 병목), 스코어/RSI 임계 완화, 쿨다운 18시간으로 단축하여 회복 시 적시 진입 가능하게 조정",
-      "confidence": 0.8,
-      "parameters": {
-        "reentryTrendConfirm": false,
-        "reentryMinScore": 0.03,
-        "reentryRsiMin": 38,
-        "reentryCooldown": 72
-      },
-      "markets": null,
-      "improvementAreas": [
-        "strategy",
-        "risk"
-      ],
-      "backtestResult": null,
-      "outcome": "applied",
-      "notes": "다음 배치 체크: (1) 재진입 조건 완화 후 CASH→자산 전환 발생 여부 — RSI 38+/score 0.03+ 도달 시점 모니터링, (2) BTC 체결 강도 0.76 매도 우위 지속 vs 반전 여부, (3) 역divergence 3회차(알트 매수 우위+가격 하락) 후 반등 발생 여부로 바닥 형성 가설 검증, (4) 분산 0.7%로 소폭 확대 — 1% 돌파 시 자산 간 차별화 본격화 가능",
-      "retryAttempts": null,
-      "variantsTested": null,
-      "diagnosis": null,
-      "triggerType": "DAILY_REVIEW"
-    },
-    {
-      "timestamp": "2026-03-05T19:32:28.315Z",
-      "action": "modify",
-      "reasoning": "reentryTrendConfirm이 true로 남아있어 EMA 골든크로스 없이 CASH→자산 재진입 불가. 약세장 회복 시 후행 지표 병목 제거 필요. RSI/score/cooldown/choppiness 조건만으로 충분한 안전장치.",
-      "confidence": 0.85,
-      "parameters": {
-        "reentryTrendConfirm": false
-      },
-      "markets": null,
-      "improvementAreas": [
-        "risk"
-      ],
-      "backtestResult": null,
-      "outcome": "applied",
-      "notes": "다음 배치 체크: (1) reentryTrendConfirm false 적용 후 CASH→자산 재진입 발생 여부 — RSI 38+/score 0.03+ 달성 시점 모니터링, (2) 역divergence 4회차 — BTC 매도(0.39) vs 알트 매수(SOL 2.02, XRP 2.34) 지속 여부, 5회차 확인 시 바닥 형성 선행 지표 확정, (3) 분산 0.56%로 확대 추세 — 1% 돌파 시 자산 간 차별화 본격화 가능",
-      "retryAttempts": null,
-      "variantsTested": null,
-      "diagnosis": null,
-      "triggerType": "DAILY_REVIEW"
-    },
-    {
-      "timestamp": "2026-03-05T20:31:29.504Z",
-      "action": "keep",
-      "reasoning": "CASH 전환 성공 후 안정화 관찰 단계. BTC 체결 강도 0.38 매도 압도적 우위로 재진입 시점 아님. candlesSinceLastTrade=0으로 쿨다운 미충족 상태이며, 최근 3회 modify 효과 확인 기간 필요. 시장 반전 신호(체결 강도 정상화 + RSI 반등) 대기.",
-      "confidence": 0.85,
-      "parameters": null,
-      "markets": null,
-      "improvementAreas": [
-        "regime"
-      ],
-      "backtestResult": null,
-      "outcome": "kept",
-      "notes": "다음 배치 체크: (1) BTC 체결 강도 회복 여부 — 0.38에서 1.0+ 복귀 시 매도 소진 신호, (2) 재진입 쿨다운 72캔들(18시간) 경과 후 RSI 38+/score 0.03+ 충족 여부, (3) 분산 변화 — 0.4%에서 1%+ 확대 시 자산 간 차별화 시작. CASH 보유 기간 동안 포트폴리오 가치 변동 없어야 정상.",
-      "retryAttempts": null,
-      "variantsTested": null,
-      "diagnosis": null,
-      "triggerType": "DAILY_REVIEW"
-    },
-    {
-      "timestamp": "2026-03-05T21:33:21.942Z",
-      "action": "modify",
-      "reasoning": "reentryTrendConfirm이 2회 modify 후에도 true로 잔존 — 배포 버그. CASH 고착 방지를 위해 false로 재수정. 나머지 파라미터는 CASH 전환 성공으로 검증 완료되어 유지.",
-      "confidence": 0.9,
-      "parameters": {
-        "reentryTrendConfirm": false
-      },
-      "markets": null,
-      "improvementAreas": [
-        "risk"
-      ],
-      "backtestResult": null,
-      "outcome": "applied",
-      "notes": "다음 배치 체크: (1) reentryTrendConfirm false 실제 반영 확인 — current-strategy.js line 42 검증, (2) 쿨다운 72캔들(18h) 경과 후 RSI 38+/score 0.03+ 충족 시 재진입 발생 여부, (3) BTC 체결강도 1.16 균형 회복 추세 지속 여부 — 반등 시 재진입 적기, (4) 분산 0.33% 극저분산 지속 vs 확대 전환 모니터링",
-      "retryAttempts": null,
-      "variantsTested": null,
-      "diagnosis": null,
-      "triggerType": "DAILY_REVIEW"
-    },
-    {
-      "timestamp": "2026-03-05T22:34:40.613Z",
-      "action": "replace",
-      "reasoning": "reentryTrendConfirm boolean 배포 버그 — modify 2회 실패 확인. replace로 전체 파일 교체하여 false 값 확실히 반영. 나머지 전략 로직/파라미터는 현재 잘 동작 중(CASH 전환 성공, 하방 보호 확인)이므로 동일 유지.",
-      "confidence": 0.9,
-      "parameters": null,
-      "markets": null,
-      "improvementAreas": [
-        "risk"
-      ],
-      "backtestResult": {
-        "pass": true,
-        "gateType": "replace",
-        "returnImprovement": 7.9291,
-        "drawdownWorsening": -1.5501,
-        "dailyTrades": 0.51,
-        "reasons": [
-          "PASSED",
-          "Return improvement: 7.93% (need >= -1%)",
-          "Drawdown worsening: -1.55% (need <= 3%)",
-          "Daily trades: 0.51 (need >= 0.15 and <= 10)"
-        ]
-      },
-      "outcome": "deployed",
-      "notes": "다음 배치 체크: (1) reentryTrendConfirm false 실제 반영 확인 — current-strategy.js line 42 검증, (2) 쿨다운 72캔들(18h) 경과 후 RSI 38+/score 0.03+ 달성 시 CASH→재진입 발생 여부, (3) BTC 체결 강도 1.0+ 돌파 여부 — 매수 우위 전환 시 재진입 적기, (4) 분산 0.16%에서 확대 추세 모니터링",
-      "retryAttempts": 1,
-      "variantsTested": 1,
-      "diagnosis": null,
-      "triggerType": "DAILY_REVIEW"
-    },
-    {
-      "timestamp": "2026-03-05T23:30:47.717Z",
-      "action": "keep",
-      "reasoning": "replace 배포 직후, CASH 보호 정상 작동 중. BTC 체결 강도 0.6 매도 우위 지속으로 재진입 시점 아님. 쿨다운 미경과 상태에서 전략 변경은 무의미 — reentryTrendConfirm false 반영 후 첫 재진입 동작을 관찰해야 함.",
-      "confidence": 0.85,
-      "parameters": null,
-      "markets": null,
-      "improvementAreas": [
-        "regime"
-      ],
-      "backtestResult": null,
-      "outcome": "kept",
-      "notes": "다음 배치 체크: (1) 쿨다운 72캔들 경과 후 재진입 조건(RSI>38, score>0.03, !choppy) 충족 여부, (2) BTC 체결 강도 0.6→1.5+ 회복 시 매수 우위 전환 신호, (3) ALT 체결 강도(ETH 1.97, SOL 2.26, XRP 3.73)와 가격 하락의 역divergence 지속 여부 — 4회차 관측 시 바닥 형성 선행 지표 가능성 검토",
-      "retryAttempts": null,
-      "variantsTested": null,
-      "diagnosis": null,
-      "triggerType": "DAILY_REVIEW"
-    },
-    {
-      "timestamp": "2026-03-06T00:08:30.863Z",
-      "action": "keep",
-      "reasoning": "CASH 전환 후 BTC 추가 -1.62% 하락에서 손실 회피 확인. BTC 체결 강도 0.52로 매도 압력 지속 — 재진입 시기 아님. replace 후 2일차로 전략 평가 기간 필요. 재진입 조건(RSI>38, score>0.03, 18h 쿨다운) 대기 중.",
-      "confidence": 0.85,
-      "parameters": null,
-      "markets": null,
-      "improvementAreas": [
-        "regime"
-      ],
-      "backtestResult": null,
-      "outcome": "kept",
-      "notes": "다음 배치 체크: (1) BTC 체결 강도 0.52→1.0+ 회복 여부 — 매도 소진 확인, (2) 쿨다운 72캔들(18h) 경과 후 재진입 조건 충족 여부(RSI>38, score>0.03, !choppy), (3) 알트 역divergence(매수 우위+가격 하락) 4회차 연속 여부 — 바닥 형성 선행 지표 가능성",
-      "retryAttempts": null,
-      "variantsTested": null,
-      "diagnosis": null,
-      "triggerType": "DAILY_REVIEW"
-    },
-    {
-      "timestamp": "2026-03-06T00:30:56.263Z",
-      "action": "keep",
-      "reasoning": "CASH 전환 직후, 쿨다운 미경과 상태. BTC 체결 강도 0.16으로 극단적 매도 우위 — 재진입 시기 아님. 전략 정상 동작 확인됨 (CASH 보호 효과 +1.6% 회피). 쿨다운 72캔들 경과 + 체결 강도 회복 시점까지 관망.",
-      "confidence": 0.9,
-      "parameters": null,
-      "markets": null,
-      "improvementAreas": [
-        "regime"
-      ],
-      "backtestResult": null,
-      "outcome": "kept",
-      "notes": "다음 배치 체크: (1) BTC 체결 강도 0.16→1.0+ 회복 여부 — 0.3 이하 지속 시 capitulation 구간 진입 가능, (2) 쿨다운 72캔들(18h) 경과 후 재진입 조건(RSI>38, score>0.03, !choppy) 충족 여부, (3) 역divergence 4회차 — 알트 매수 세력 지속 중 가격 반등 전환 여부",
-      "retryAttempts": null,
-      "variantsTested": null,
-      "diagnosis": null,
-      "triggerType": "DAILY_REVIEW"
-    },
-    {
-      "timestamp": "2026-03-06T01:31:10.285Z",
-      "action": "keep",
-      "reasoning": "CASH 전환 성공으로 BTC 추가 하락 회피 중. 체결 강도가 capitulation(0.16)에서 1.38로 급반등하여 매도 소진 징후 확인되나, 24h 가격이 전 종목 음수로 가격 반전 미확인. 현재 재진입 조건(RSI>38, score>0.03, cooldown 72)이 반등 시 자동 발동하므로 파라미터 변경 불필요.",
-      "confidence": 0.85,
-      "parameters": null,
-      "markets": null,
-      "improvementAreas": [
-        "regime"
-      ],
-      "backtestResult": null,
-      "outcome": "kept",
-      "notes": "다음 배치 체크: (1) BTC 체결 강도 1.38 유지/상승 여부 — 2.0+ 시 강한 반등 신호, (2) ETH 체결 강도 6.43 지속 여부 — 알트 선도 반등 가능성, (3) 쿨다운 72캔들(18h) 경과 후 재진입 조건 충족 여부(RSI>38, score>0.03), (4) 분산 0.52% → 1%+ 확대 시 자산 간 차별화 시작",
-      "retryAttempts": null,
-      "variantsTested": null,
-      "diagnosis": null,
-      "triggerType": "DAILY_REVIEW"
-    },
-    {
-      "timestamp": "2026-03-06T02:30:54.935Z",
-      "action": "keep",
-      "reasoning": "전략 replace 후 8시간 경과, CASH 보호 정상 동작 확인. 약세장(-0.6%) 지속 중 재진입 쿨다운(18h) 대기는 올바른 행동. 알파 -0.03%로 실질적 중립 — 재진입 로직이 작동할 시간 필요. ETH 체결 강도 급감(6.43→1.18), SOL/XRP 매수 우위 전환 관찰 중.",
-      "confidence": 0.85,
-      "parameters": null,
-      "markets": null,
-      "improvementAreas": [
-        "regime"
-      ],
-      "backtestResult": null,
-      "outcome": "kept",
-      "notes": "다음 배치 체크: (1) 재진입 쿨다운 72캔들(18h) 경과 후 실제 재진입 발생 여부 — RSI>38, score>0.03, !choppy 조건 확인, (2) SOL 체결 강도 2.96 지속 여부 — 알트 선도 반등 시 재진입 대상 후보, (3) 분산 0.41%로 극저분산 구간 유지 중 — 1%+ 돌파 시 자산 차별화 시작 신호",
-      "retryAttempts": null,
-      "variantsTested": null,
-      "diagnosis": null,
-      "triggerType": "DAILY_REVIEW"
-    },
-    {
-      "timestamp": "2026-03-06T03:31:05.884Z",
-      "action": "keep",
-      "reasoning": "BTC 체결 강도 1.38→0.27 급락으로 매도 압력 재심화 확인. CASH 보유가 정확한 포지션. 전략은 CASH 전환 및 재진입 조건 모두 정상 동작 중이며, 실거래 2일차로 성과 판단에 충분한 데이터 미확보. 시장 반등 신호(체결 강도 1.5+ 안정 유지) 없이 변경은 불필요.",
-      "confidence": 0.85,
-      "parameters": null,
-      "markets": null,
-      "improvementAreas": [
-        "regime"
-      ],
-      "backtestResult": null,
-      "outcome": "kept",
-      "notes": "다음 배치 체크: (1) BTC 체결 강도 0.27 추가 하락 vs 반등 추세 — 0.1 이하 시 2차 capitulation, 1.0+ 회복 시 매도 소진 시작, (2) SOL/XRP 체결 강도 매수 우위 지속 여부 — 재진입 시 자산 선택 참고, (3) 재진입 쿨다운 72캔들(18h) 경과 후 RSI>38, score>0.03 조건 충족 모니터링",
-      "retryAttempts": null,
-      "variantsTested": null,
-      "diagnosis": null,
-      "triggerType": "DAILY_REVIEW"
-    },
-    {
-      "timestamp": "2026-03-06T04:30:50.796Z",
-      "action": "keep",
-      "reasoning": "BTC 체결 강도 0.35로 매도 압력 지속 중. CASH 보유로 BTC 대비 거의 동행(-0.03% alpha) 보호 효과 확인. 전략 배포 2일차로 파라미터 변경 근거 불충분. 쿨다운 경과 후 재진입 로직이 자동 평가할 예정.",
-      "confidence": 0.85,
-      "parameters": null,
-      "markets": null,
-      "improvementAreas": [
-        "regime"
-      ],
-      "backtestResult": null,
-      "outcome": "kept",
-      "notes": "다음 배치 체크: (1) BTC 체결 강도 0.35 추이 — 0.1 이하 재진입 시 2차 capitulation, 1.0+ 회복 시 매도 소진. (2) 쿨다운 72캔들(18h) 경과 후 재진입 조건(RSI>38, score>0.03, !choppy) 충족 여부. (3) XRP 체결 강도 4.14 지속 시 알트 선도 반등 가능성. (4) 분산 0.52%→1%+ 확대 시 자산 차별화 시작 신호.",
-      "retryAttempts": null,
-      "variantsTested": null,
-      "diagnosis": null,
-      "triggerType": "DAILY_REVIEW"
-    },
-    {
-      "timestamp": "2026-03-06T05:30:55.172Z",
-      "action": "keep",
-      "reasoning": "CASH 보유로 BTC -2.6% 하락 구간 보호 중. 체결 강도 회복세(BTC 3.29, ETH 5.42)이나 시장 방향은 약세 유지. 2일차 데이터로 전략 변경은 시기상조 — 재진입 후 트레이딩 성과 축적 필요. 쿨다운 18h 경과 후 재진입 조건(RSI>38, score>0.03) 충족 시 자동 재진입 예정.",
-      "confidence": 0.85,
-      "parameters": null,
-      "markets": null,
-      "improvementAreas": [
-        "regime"
-      ],
-      "backtestResult": null,
-      "outcome": "kept",
-      "notes": "다음 배치 체크: (1) 쿨다운 72캔들(18h) 경과 후 재진입 발생 여부 — RSI>38, score>0.03 조건 모니터링, (2) 체결 강도 추이: BTC 3.29 유지/상승 시 매수 압력 지속 확인, ETH 5.42 높은 매수 우위 지속 여부, (3) 재진입 후 첫 트레이딩 성과로 전략 유효성 1차 검증, (4) 분산 0.62%로 극저분산 구간(0.17~0.45%)에서 이탈 — 1%+ 돌파 시 자산 간 차별화 본격화",
-      "retryAttempts": null,
-      "variantsTested": null,
-      "diagnosis": null,
-      "triggerType": "DAILY_REVIEW"
-    },
-    {
-      "timestamp": "2026-03-06T06:30:54.115Z",
-      "action": "keep",
-      "reasoning": "BTC 체결 강도 0.48로 매도 우위 지속, 전 종목 약세(-1.51%) 환경에서 CASH 보호 정상 동작 중. 알파 -0.03%는 2일 단기 구간 오차 범위. 재진입 조건 미충족(BTC 매도 우위 + 베어리시 레짐) 상태에서 전략 변경은 불필요.",
-      "confidence": 0.8,
-      "parameters": null,
-      "markets": null,
-      "improvementAreas": [
-        "regime"
-      ],
-      "backtestResult": null,
-      "outcome": "kept",
-      "notes": "다음 배치 체크: (1) BTC 체결 강도 1.0+ 회복 여부 — 안정적 매수 우위 전환 확인 필요, (2) 쿨다운 72캔들(18h) 경과 후 재진입 조건(RSI>38, score>0.03, !choppy) 충족 모니터링, (3) 분산 0.56% → 1%+ 확대 시 알트 차별화 시작 여부",
-      "retryAttempts": null,
-      "variantsTested": null,
-      "diagnosis": null,
-      "triggerType": "DAILY_REVIEW"
-    },
-    {
-      "timestamp": "2026-03-06T07:31:19.872Z",
-      "action": "keep",
-      "reasoning": "CASH 보유가 약세장 보호에 유효(BTC -1.69% 추가 하락 회피). 전략 교체 후 첫 재진입 사이클 미완료로 평가 부족. 쿨다운 경과 + RSI>38 + score>0.03 조건 충족 시 자동 재진입 예정. 잔여 실험 슬롯으로 공격적 재진입 shadow 전략 테스트 제안.",
-      "confidence": 0.75,
-      "parameters": null,
-      "markets": null,
-      "improvementAreas": [
-        "strategy",
-        "regime"
-      ],
-      "backtestResult": null,
-      "outcome": "kept",
-      "notes": "다음 배치 체크: (1) 재진입 발생 여부 — 쿨다운 72캔들 경과 후 RSI>38, score>0.03 조건 모니터링, (2) 체결 강도 BTC 2.65 안정 유지 vs 재하락 추이, (3) exp-003 shadow 전략 성과 추적 시작 여부",
-      "retryAttempts": null,
-      "variantsTested": null,
-      "diagnosis": null,
-      "triggerType": "DAILY_REVIEW"
-    },
-    {
-      "timestamp": "2026-03-06T08:30:56.959Z",
-      "action": "keep",
-      "reasoning": "CASH 보호가 약세장에서 정상 동작 중(BTC -1.78% 하락 회피). 체결 강도 전 종목 1.0+ 회복으로 매도 압력 소진 진행 중이나, 이전 반증(3.29→0.48 재하락)으로 지속성 미확인. 재진입 조건이 이미 적절히 완화되어 있어 시장 반전 시 자동 재진입 예상. 운용 2일차로 전략 변경은 시기상조.",
-      "confidence": 0.8,
-      "parameters": null,
-      "markets": null,
-      "improvementAreas": [
-        "regime"
-      ],
-      "backtestResult": null,
-      "outcome": "kept",
-      "notes": "다음 배치 체크: (1) 재진입 발생 여부 — 쿨다운 72캔들 경과 후 RSI>38, score>0.03 충족 시 자동 재진입, (2) 체결 강도 추이: 전 종목 1.0+ 유지 여부 — 4h 이상 안정 시 매도 소진 확인, (3) 분산 0.44% 수준 유지/이탈 — 1%+ 돌파 시 자산 간 차별화로 스위칭 기회, (4) 운용 7일차(3/12) 시점에서 alpha 기반 전략 평가 실시",
-      "retryAttempts": null,
-      "variantsTested": null,
-      "diagnosis": null,
-      "triggerType": "DAILY_REVIEW"
-    },
-    {
-      "timestamp": "2026-03-06T09:23:26.362Z",
-      "action": "keep",
-      "reasoning": "REGIME_CHANGE가 약세 심화 방향(SOL -5%, 평균 -3.9%). CASH 포지션이 올바르게 자산 보호 중. BTC 체결 강도 0.59으로 매도 우위 지속되어 재진입 시기 아님. 전략 파라미터 변경 불필요.",
-      "confidence": 0.85,
-      "parameters": null,
-      "markets": null,
-      "improvementAreas": [
-        "regime"
-      ],
-      "backtestResult": null,
-      "outcome": "kept",
-      "notes": "다음 배치 체크: (1) BTC 체결 강도 1.0+ 회복 여부 — 현재 0.59로 매도 우위 지속, (2) 분산 0.78% 추이 — 1%+ 돌파 시 자산 차별화 본격화하여 재진입 시 최적 자산 선별 중요, (3) SOL -5% 추가 하락 vs 반등 — 레짐 변화 방향성 확인",
-      "retryAttempts": null,
-      "variantsTested": null,
-      "diagnosis": null,
-      "triggerType": "REGIME_CHANGE"
-    },
-    {
-      "timestamp": "2026-03-06T09:30:52.056Z",
-      "action": "keep",
-      "reasoning": "전 종목 -3~5% 약세 지속 중 CASH 보유가 최적. 알파 -0.03%로 BTC 대비 중립이며, 체결 강도 전 종목 1.0+ 회복은 긍정적이나 가격 반등 미확인 상태. 쿨다운 경과 후 재진입 조건 충족 시 자동 매수 대기 중이므로 전략 변경 불필요.",
-      "confidence": 0.8,
-      "parameters": null,
-      "markets": null,
-      "improvementAreas": [
-        "regime"
-      ],
-      "backtestResult": null,
-      "outcome": "kept",
-      "notes": "다음 배치 체크: (1) 재진입 발생 여부 — 쿨다운 72캔들 경과 후 RSI>38, score>0.03 충족 모니터링, (2) 체결 강도 전 종목 1.0+ 유지 지속성 — 이전 2회는 단발성 재하락, 이번 3회차 4h+ 유지 여부 확인, (3) 분산 0.76% 추이 — 1%+ 돌파 시 자산 차별화 본격화 가능",
-      "retryAttempts": null,
-      "variantsTested": null,
-      "diagnosis": null,
-      "triggerType": "DAILY_REVIEW"
-    },
-    {
-      "timestamp": "2026-03-06T10:30:55.140Z",
-      "action": "keep",
-      "reasoning": "약세장(-2.75%) CASH 보유 정상 동작. 알파 -0.03%로 BTC 대비 동등하며, trailing stop 5%/crash 3%의 CASH 전환이 추가 하락 방어 확인됨. 재진입 조건(RSI>38, score>0.03)이 시장 전환 시 자동 트리거되므로 파라미터 수정 불필요. 48시간 가동으로 전략 판단에 충분한 데이터 미축적.",
-      "confidence": 0.8,
-      "parameters": null,
-      "markets": null,
-      "improvementAreas": [
-        "regime"
-      ],
-      "backtestResult": null,
-      "outcome": "kept",
-      "notes": "다음 배치 체크: (1) 재진입 발생 여부 — 쿨다운 경과 후 RSI>38 + score>0.03 충족 모니터링, (2) 체결 강도 추이 — SOL 2.62/XRP 1.58 매수 우위 지속 여부, ETH 0.88 매도 우위 해소 여부, (3) 분산 0.77% 추이 — 1%+ 돌파 시 자산 차별화 본격화하여 재진입 시 최적 자산 선택 중요",
-      "retryAttempts": null,
-      "variantsTested": null,
-      "diagnosis": null,
-      "triggerType": "DAILY_REVIEW"
-    },
-    {
-      "timestamp": "2026-03-06T11:31:01.102Z",
-      "action": "keep",
-      "reasoning": "BTC 체결 강도 0.29로 매도 압력 극심. 전 종목 약세(-3.23%) 지속 중 CASH 보호가 정상 동작하며, 알파 -0.03%로 BTC 대비 자본 보전 중. 재진입 조건 미충족 상태에서 파라미터 변경은 조기 진입 위험만 증가시킴.",
-      "confidence": 0.82,
-      "parameters": null,
-      "markets": null,
-      "improvementAreas": [
-        "regime"
-      ],
-      "backtestResult": null,
-      "outcome": "kept",
-      "notes": "다음 배치 체크: (1) BTC 체결 강도 1.0+ 회복 여부 — 0.29에서 반등 시작점 모니터링, (2) 재진입 발생 여부 — 쿨다운 72캔들 경과 + RSI>38 + score>0.03 충족 확인, (3) 분산 0.63% 추이 — 1%+ 돌파 시 자산 차별화 기회",
-      "retryAttempts": null,
-      "variantsTested": null,
-      "diagnosis": null,
-      "triggerType": "DAILY_REVIEW"
-    },
-    {
-      "timestamp": "2026-03-06T12:30:57.377Z",
-      "action": "keep",
-      "reasoning": "BTC 체결 강도 0.46 매도 우위 지속, 전 종목 24h 하락(-2.1~-4.05%). CASH 보유가 자본 보전 중(알파 -0.03%로 사실상 중립). 전략 배포 2일차로 재진입 로직 검증 시간 필요. 약세장에서 불필요한 변경 자제.",
-      "confidence": 0.82,
-      "parameters": null,
-      "markets": null,
-      "improvementAreas": [
-        "regime"
-      ],
-      "backtestResult": null,
-      "outcome": "kept",
-      "notes": "다음 배치 체크: (1) BTC 체결 강도 1.0+ 회복 여부 — 0.46에서 상승 추세 시작 시 재진입 임박 신호, (2) 재진입 발생 여부 — RSI>38 + score>0.03 + cooldown 72캔들 충족 모니터링, (3) 분산 0.71% 추이 — 1%+ 돌파 시 알트 차별화 본격화하여 SOL/XRP 재진입 우선 검토",
-      "retryAttempts": null,
-      "variantsTested": null,
-      "diagnosis": null,
-      "triggerType": "DAILY_REVIEW"
-    },
-    {
-      "timestamp": "2026-03-06T13:31:05.225Z",
-      "action": "keep",
-      "reasoning": "BTC -3.5% 추가 하락 중 CASH 보호 효과 지속. 체결 강도 0.23으로 매도 압력 미소진, 재진입 시기 아님. 전략 파라미터 변경 없이 자동 재진입 조건 충족 대기.",
-      "confidence": 0.85,
-      "parameters": null,
-      "markets": null,
-      "improvementAreas": [
-        "regime"
-      ],
-      "backtestResult": null,
-      "outcome": "kept",
-      "notes": "다음 배치 체크: (1) BTC 체결 강도 1.0+ 회복 여부 — 현재 0.23으로 역대 저위권 재진입, (2) 알트 divergence 심화 — ETH 6.49/SOL 4.28 vs BTC 0.23 격차 확대, 알트 선도 반등 가능성 모니터링, (3) 재진입 발생 여부 — 쿨다운 경과 + RSI>38 + score>0.03 자동 트리거 대기",
-      "retryAttempts": null,
-      "variantsTested": null,
-      "diagnosis": null,
-      "triggerType": "DAILY_REVIEW"
-    },
-    {
-      "timestamp": "2026-03-06T14:31:15.678Z",
-      "action": "keep",
-      "reasoning": "CASH 보호 2일차, BTC -3.06% 추가 하락 중 97,210 KRW 보전. 체결 강도 0.19로 capitulation 영역이나 저위 등락 패턴(0.16~1.38 반복) 고려 시 성급한 재진입 불필요. 재진입 조건(RSI>38, score>0.03, 쿨다운 72) 적절히 설정되어 있으며, reentryTrendConfirm=false로 EMA 병목 제거 완료. 현 전략이 약세장에서 자본 보전 목표를 달성 중.",
-      "confidence": 0.85,
-      "parameters": null,
-      "markets": null,
-      "improvementAreas": [
-        "regime"
-      ],
-      "backtestResult": null,
-      "outcome": "kept",
-      "notes": "다음 배치 체크: (1) 재진입 발생 여부 — 쿨다운 72캔들 경과 + RSI>38 + score>0.03 충족 모니터링, (2) BTC 체결 강도 추이 — 0.19에서 1.0+ 안정 회복 여부가 바닥 확인 핵심 지표, (3) 알트 체결 강도 divergence(BTC 0.19 vs XRP 4.78) 지속 시 재진입 대상 자산 선택에 반영 필요, (4) 분산 0.59%로 극저분산 구간(0.17~0.45%)에서 이탈 진행 중 — 1%+ 돌파 시 자산 간 차별화 본격화",
-      "retryAttempts": null,
-      "variantsTested": null,
-      "diagnosis": null,
-      "triggerType": "DAILY_REVIEW"
-    },
-    {
-      "timestamp": "2026-03-06T15:12:52.559Z",
-      "action": "keep",
-      "reasoning": "CASH 보유 3일차, 전 종목 -3.5~-4.6% 추가 하락 구간에서 자본 보전 효과 지속 확인. BTC 체결 강도 1.32로 1.0+ 복귀했으나 가격 양전환 미동반. 쿨다운 72캔들 중 3캔들만 경과하여 재진입 불가 상태는 정상. 전략 로직 변경 불필요.",
-      "confidence": 0.82,
-      "parameters": null,
-      "markets": null,
-      "improvementAreas": [
-        "regime"
-      ],
-      "backtestResult": null,
-      "outcome": "kept",
-      "notes": "다음 배치 체크: (1) 쿨다운 경과 진행률 — 72캔들 도달 시점(~18h 후) 재진입 조건 충족 여부, (2) BTC 체결 강도 1.32 안정 유지 여부 — 이전 5회 1.0+ 복귀 후 재붕괴 패턴 반복 중이므로 4h+ 유지 확인 필요, (3) 가격 양전환 여부 — 체결 강도 회복이 가격 반등으로 이어지는지 확인, (4) 알트 체결 강도 극단적 매수 우위(ETH 8.45) 지속성 — 일시적 스파이크 vs 지속적 매수세 유입 구분",
-      "retryAttempts": null,
-      "variantsTested": null,
-      "diagnosis": null,
-      "triggerType": "DAILY_REVIEW"
-    },
-    {
-      "timestamp": "2026-03-06T16:39:09.784Z",
-      "action": "replace",
-      "reasoning": "재진입 로직에서 최고 스코어 마켓의 체결 강도만 검사하는 버그 수정. BTC 매도 우위(0.2) 시 알트(ETH 5.81, SOL 2.89) 매수 우위 마켓까지 재진입 차단되는 문제. 시장별 개별 필터링으로 수정하고, 쿨다운을 18h→12h로 단축하여 반응성 향상.",
-      "confidence": 0.75,
-      "parameters": null,
-      "markets": null,
-      "improvementAreas": [
-        "strategy"
-      ],
-      "backtestResult": {
-        "pass": true,
-        "gateType": "replace",
-        "returnImprovement": 0,
-        "drawdownWorsening": 0,
-        "dailyTrades": 0.33,
-        "reasons": [
-          "PASSED",
-          "Return improvement: 0.00% (need >= 0%)",
-          "Drawdown worsening: 0.00% (need <= 2%)",
-          "Daily trades: 0.33 (need >= 0.15 and <= 10)"
-        ]
-      },
-      "outcome": "deployed",
-      "notes": "다음 배치 체크: (1) 재진입 발생 여부 — 쿨다운 48캔들(12h) 경과 후 조건 충족 모니터링, (2) 알트 재진입 실현 — BTC 체결 강도 저조 시 알트로 재진입하는 새 경로 활용 여부, (3) BTC 체결 강도 추이 — 0.2에서 0.3+ 회복 여부",
-      "retryAttempts": 1,
-      "variantsTested": 1,
-      "diagnosis": null,
-      "triggerType": "DAILY_REVIEW"
-    },
-    {
-      "timestamp": "2026-03-06T16:50:25.323Z",
-      "action": "keep",
-      "reasoning": "전략 교체 16h 경과, 재진입 쿨다운(48캔들) 미도달 상태에서 성과 판단 불가. 전 종목 Stochastic 3~7 극단적 과매도로 바운스 시 RSI·choppiness 조건 자연 충족 예상. CASH 보호로 BTC -2.55% 하락 회피 중이므로 현 전략 유지 적절.",
-      "confidence": 0.8,
-      "parameters": null,
-      "markets": null,
-      "improvementAreas": [
-        "regime"
-      ],
-      "backtestResult": null,
-      "outcome": "kept",
-      "notes": "다음 배치 체크: (1) 쿨다운 48캔들 도달 여부 — ~9h 후 충족, (2) RSI 50+ 회복 여부 — 현재 42~46에서 바운스 시 상승 경로, (3) Stochastic 3~7 극과매도에서 반등 발생 여부 — 반등 시 choppiness 하락 동반 가능, (4) BTC 체결 강도 0.51에서 1.0+ 회복 여부 — 알트 divergence(ETH 5.13, XRP 6.76) 지속 관찰",
-      "retryAttempts": null,
-      "variantsTested": null,
-      "diagnosis": null,
-      "triggerType": "DAILY_REVIEW"
-    },
-    {
-      "timestamp": "2026-03-07T00:04:05.800Z",
-      "action": "modify",
-      "reasoning": "재진입 조건 과도 — choppiness 0.45 임계에서 전 종목 차단, RSI 50 임계에서도 전 종목 차단. 현재 CASH 보호 효과(+3.04% alpha)는 유지하면서, 회복 초기에 재진입할 수 있도록 choppinessThreshold 0.52, reentryRsiMin 45로 완화. 즉시 재진입되지 않으나 BTC/ETH RSI 1~2포인트 상승 시 진입 경로 열림.",
-      "confidence": 0.72,
-      "parameters": {
-        "choppinessThreshold": 0.52,
-        "reentryRsiMin": 45
-      },
-      "markets": null,
-      "improvementAreas": [
-        "strategy",
-        "regime"
-      ],
-      "backtestResult": null,
-      "outcome": "applied",
-      "notes": "다음 배치 체크: (1) 재진입 발생 여부 — BTC RSI 45+ 또는 ETH RSI 45+ 도달 시 트리거, (2) SOL choppiness 0.551 추이 — 0.52 이하 하락 시 SOL 재진입 경로 추가 활성화, (3) 전 종목 Stochastic 극과매도(7~19)에서 바운스 발생 여부 — RSI 동반 상승 시 재진입 확률 급상승, (4) 수정 후 실제 재진입이 적시인지 vs 너무 이른 진입인지 알파 추적",
-      "retryAttempts": null,
-      "variantsTested": null,
-      "diagnosis": null,
-      "triggerType": "DAILY_REVIEW"
-    },
-    {
-      "timestamp": "2026-03-07T09:41:15.099Z",
-      "action": "modify",
-      "reasoning": "CASH alpha +3.04%로 방어 성공 중이나 3일 0거래. RSI/choppiness 임계 소폭 완화로 회복 초기 재진입 가능하게 조정. BTC 체결 강도 0.7로 매도 우위 지속 중이므로 과감한 완화는 지양",
-      "confidence": 0.7,
-      "parameters": {
-        "reentryRsiMin": 40,
-        "reentryMinScore": 0.02,
-        "choppinessThreshold": 0.58
-      },
-      "markets": null,
-      "improvementAreas": [
-        "strategy",
-        "regime"
-      ],
-      "backtestResult": null,
-      "outcome": "applied",
-      "notes": "다음 배치 체크: (1) 재진입 발생 여부 — RSI 40+, score 0.02+, choppiness 0.58 미만 조건 충족 모니터링, (2) BTC 체결 강도 0.7 추이 — 1.0+ 회복 시 매도 소진 시작, 0.3 이하 시 재차 capitulation, (3) 분산 0.21% 극저분산 지속 여부 — 확대 시 자산 차별화 기회",
-      "retryAttempts": null,
-      "variantsTested": null,
-      "diagnosis": null,
-      "triggerType": "DAILY_REVIEW"
-    },
-    {
-      "timestamp": "2026-03-08T00:05:15.601Z",
-      "action": "modify",
-      "reasoning": "4일 0거래 + reconciliation에 의한 cooldown 리셋. flat market(dispersion 0.07%)에서 재진입 유도를 위해 cooldown 24(6h)로 단축, RSI 35, score 0.005, choppiness 0.65, ADX 15로 전면 완화. BTC 체결 강도 1.12로 매수 우위 복귀, 재진입 환경 조성됨.",
-      "confidence": 0.7,
-      "parameters": {
-        "reentryCooldown": 24,
-        "reentryRsiMin": 35,
-        "reentryMinScore": 0.005,
-        "choppinessThreshold": 0.65,
-        "adxMinTrend": 15
-      },
-      "markets": null,
-      "improvementAreas": [
-        "strategy"
-      ],
-      "backtestResult": {
-        "pass": false,
-        "gateType": "modify",
-        "returnImprovement": -4.5209,
-        "drawdownWorsening": 2.3687,
-        "dailyTrades": 0.56,
-        "reasons": [
-          "FAILED",
-          "Return improvement: -4.52% (need >= -1%)",
-          "Drawdown worsening: 2.37% (need <= 3%)",
-          "Daily trades: 0.56 (need >= 0.1 and <= 10)"
-        ]
-      },
-      "outcome": "gate_failed",
-      "notes": "재진입 조건 3차 완화 — 최대한 공격적 설정. (1) 6h 후 cooldown 충족 시 재진입 발생 여부 확인, (2) 미발생 시 scoreMarket 자체가 음수일 가능성 → 다음 배치에서 CASH 최대 체류 기간 강제 재진입(288캔들=3일) 포함 replace 필수, (3) bot-state CASH vs 실제 BTC 보유 불일치 모니터링 — 매도 미체결이면 운영 이슈 확인 필요",
-      "retryAttempts": null,
-      "variantsTested": null,
-      "diagnosis": null,
-      "triggerType": "DAILY_REVIEW"
-    },
-    {
-      "timestamp": "2026-03-09T00:08:32.637Z",
-      "action": "replace",
-      "reasoning": "5일 0거래, 3차 modify gate_failed. 파라미터 완화로는 해결 불가한 구조적 CASH 고착. Graduated re-entry(시간 경과에 따른 조건 점진 완화 + 48h 후 강제 재진입)로 전략 비활성 문제 근본 해결.",
-      "confidence": 0.75,
-      "parameters": null,
-      "markets": null,
-      "improvementAreas": [
-        "strategy",
-        "risk"
-      ],
-      "backtestResult": {
-        "pass": true,
-        "gateType": "replace",
-        "returnImprovement": 8.5749,
-        "drawdownWorsening": -4.4641,
-        "dailyTrades": 0.64,
-        "reasons": [
-          "PASSED",
-          "Return improvement: 8.57% (need >= 0%)",
-          "Drawdown worsening: -4.46% (need <= 2%)",
-          "Daily trades: 0.64 (need >= 0.15 and <= 10)"
-        ]
-      },
-      "outcome": "deployed",
-      "notes": "다음 배치 체크: (1) graduated re-entry 실제 발동 여부 — phase2/phase3 도달 시 재진입 트리거 확인, (2) 재진입 후 trailing stop 동작 — 불필요한 CASH→재진입→CASH 사이클(whipsaw) 발생 여부, (3) 거래 빈도 0.15+/일 유지 확인",
-      "retryAttempts": 1,
-      "variantsTested": 2,
-      "diagnosis": null,
-      "triggerType": "DAILY_REVIEW"
-    },
-    {
       "timestamp": "2026-03-10T00:05:46.046Z",
       "action": "keep",
       "reasoning": "알파 +2.14%로 BTC 대비 초과수익 실현 중. 분산 0.06% 극저분산에서 0거래는 정상 동작이며, graduated re-entry 배포 1일차로 평가 시기상조. 불필요한 수정은 알파 훼손 위험.",
@@ -1088,295 +398,1236 @@
       "variantsTested": 2,
       "diagnosis": null,
       "triggerType": "STAGNATION"
+    },
+    {
+      "timestamp": "2026-03-14T19:35:52.401Z",
+      "action": "modify",
+      "reasoning": "soft-choppiness 배포 후 첫 파라미터 조정. effectiveThreshold 0.052→0.028 반감(choppinessBase 0.55, penalty 1.0, switchThreshold 0.025). 분산 0.5%+ 회복 시 스위칭 활성화. trailing/crash/재진입 완전 보존으로 gate 실패 패턴 회피. cooldownTrending 24(6h)로 반응 속도 향상.",
+      "confidence": 0.63,
+      "parameters": {
+        "switchThreshold": 0.025,
+        "choppinessBase": 0.55,
+        "choppinessPenalty": 1,
+        "cooldownTrending": 24
+      },
+      "markets": null,
+      "improvementAreas": [
+        "strategy",
+        "regime"
+      ],
+      "backtestResult": null,
+      "outcome": "applied",
+      "notes": "exp-005(ATR+Sharpe shadow) 3일차 — ~3/16 완료 예정, 다음 배치에서 결과 확인 필수. BTC 보유는 정상(4종 중 최고 성과). 분산 0.33%에서는 어떤 전략도 의미있는 로테이션 불가 — 분산 확대가 거래 활성화의 전제조건. gate 실패 시 switchThreshold 0.03으로 보수적 재시도. exp-004는 shadow_deploy_failed 상태 — infra_fix 필요.",
+      "retryAttempts": null,
+      "variantsTested": null,
+      "diagnosis": null,
+      "triggerType": "STAGNATION"
+    },
+    {
+      "timestamp": "2026-03-15T01:50:37.667Z",
+      "action": "modify",
+      "reasoning": "분산 0.11% 극저 환경에서 effectiveThreshold 0.028이 여전히 과도. choppinessBase 0.70 + penalty 0.3으로 effectiveThreshold를 ~0.012로 반감하여 분산 0.2%+ 시 즉각 스위칭 가능하도록 준비. 체결 강도 BTC 0.35 vs 알트 1.5-2.2 괴리로 분산 확대 임박 가능성. trailing/crash/재진입 완전 유지하여 CASH 사이클 비용 회피. exp-005 내일 완료 예정이므로 구조적 변경은 보류.",
+      "confidence": 0.6,
+      "parameters": {
+        "switchThreshold": 0.012,
+        "choppinessBase": 0.7,
+        "choppinessPenalty": 0.3,
+        "cooldownTrending": 16,
+        "adxMinTrend": 3
+      },
+      "markets": null,
+      "improvementAreas": [
+        "strategy",
+        "regime"
+      ],
+      "backtestResult": null,
+      "outcome": "applied",
+      "notes": "exp-005(ATR+Sharpe shadow) ~3/16 완료 예정, 다음 배치에서 결과 확인 필수. 분산 0.2%+ 확대 시 switchThreshold 0.012로 첫 스위칭 발생 여부 확인. 체결 강도 괴리(BTC 매도 vs 알트 매수)가 24h+ 지속 시 분산 확대 선행 지표로 활용 가능성. gate 실패 시: (1) switchThreshold 0.008로 추가 완화, (2) 분산 확대까지 기다리며 exp-005 결과로 replace 검토.",
+      "retryAttempts": null,
+      "variantsTested": null,
+      "diagnosis": null,
+      "triggerType": "STAGNATION"
+    },
+    {
+      "timestamp": "2026-03-15T08:05:50.487Z",
+      "action": "modify",
+      "reasoning": "분산 0.15% 환경에서 effectiveThreshold 0.012가 실제 advantage(~0.005-0.015)와 동일 수준이어서 거래 미발생. 0.004로 반감하여 미세 advantage 포착 가능성 확대. adxMinTrend 1로 완화(0은 ||20 fallback 버그로 불가). trailing/crash/재진입 완전 유지.",
+      "confidence": 0.5,
+      "parameters": {
+        "switchThreshold": 0.004,
+        "adxMinTrend": 1,
+        "cooldownTrending": 8
+      },
+      "markets": null,
+      "improvementAreas": [
+        "strategy"
+      ],
+      "backtestResult": {
+        "pass": false,
+        "gateType": "modify",
+        "returnImprovement": -2.9672,
+        "drawdownWorsening": 0,
+        "dailyTrades": 0.75,
+        "reasons": [
+          "FAILED",
+          "Return improvement: -2.97% (need >= -1%)",
+          "Drawdown worsening: 0.00% (need <= 3%)",
+          "Daily trades: 0.75 (need >= 0.1 and <= 10)"
+        ]
+      },
+      "outcome": "gate_failed",
+      "notes": "exp-005 ~3/16 완료 예정 — 다음 배치에서 결과 확인 필수. 이번 modify 후 24h 0거래 시 bot.js 로그에서 HOLD details의 bestMarket 확인 필요. best===KRW-BTC(현재 보유)이면 threshold 무관 0거래 확정 — 이 경우 replace로 staleness penalty(보유 기간 비례 현 자산 score 감점) 추가하여 강제 탐색 유도 필요. (config.adxMinTrend || 20) 패턴의 falsy 버그는 checkReentry에도 존재하므로 infra_fix 대상.",
+      "retryAttempts": null,
+      "variantsTested": null,
+      "diagnosis": null,
+      "triggerType": "STAGNATION"
+    },
+    {
+      "timestamp": "2026-03-16T02:55:52.989Z",
+      "action": "modify",
+      "reasoning": "CASH 재진입 차단의 근본 원인은 choppiness가 아닌 stochastic 필터(reentryStochMax 85). 현재 ETH(best score) stochK=85.3으로 경계값 초과하여 forced reentry 포함 모든 phase에서 차단. BTC(89.2), SOL(88.8)도 초과. stochMax 92로 완화하고 phase 1 건너뛰기(phase2=cooldown) + 쿨다운 단축으로 CASH trap 해소. trailing/crash/switching 완전 유지.",
+      "confidence": 0.62,
+      "parameters": {
+        "reentryStochMax": 92,
+        "reentryCooldown": 24,
+        "reentryPhase2Candles": 24,
+        "maxCashCandles": 72
+      },
+      "markets": null,
+      "improvementAreas": [
+        "strategy"
+      ],
+      "backtestResult": null,
+      "outcome": "applied",
+      "notes": "1) reentryStochMax 85→92: 현재 4개 자산 중 3개(BTC/ETH/SOL) stochK>85로 재진입 불가 — 92로 완화 시 모두 통과. 2) reentryPhase2Candles=reentryCooldown=24: phase 1(choppyOk 필요) 건너뛰고 6h에 phase 2 직행. 3) maxCashCandles 144→72: forced reentry 36h→18h. 4) exp-005 3.7일차, 1회 거래(BTC→ETH) 발생 — 7일(~3/19) 완료 후 결과 확인. 5) 긴급 infra 이슈: bot-state assetHeld=CASH이나 포트폴리오 ETH 102,904KRW(99.6%) 보유. state reconciliation 버그로 trailing stop 미적용 + 재진입 시도해도 KRW 455원으로 매수 실패. infra_fix 배치에서 bot.js reconciliation 로직 점검 필수.",
+      "retryAttempts": null,
+      "variantsTested": null,
+      "diagnosis": null,
+      "triggerType": "STAGNATION"
+    },
+    {
+      "timestamp": "2026-03-16T06:07:25.153Z",
+      "action": "keep",
+      "reasoning": "REGIME_CHANGE(bullish) 대응: ETH +4.25% 선두, 현재 ETH 보유로 alpha +3.9% — 최적 포지션. exp-005/exp-004 shadow 모두 3/16에 BTC→ETH 전환으로 ETH 우위 교차 검증. 직전 modify(reentryStochMax 92) 14h 전 배포로 효과 미확인 상태. 분산 1.1%로 확대 중이나 ETH 우위 유지되는 한 스위칭 불필요.",
+      "confidence": 0.75,
+      "parameters": null,
+      "markets": null,
+      "improvementAreas": [
+        "regime"
+      ],
+      "backtestResult": null,
+      "outcome": "kept",
+      "notes": "exp-005 4일 평가 기한 도래(3/16) — 다음 배치에서 promotion 결과 확인. shadow 2개 모두 BTC→ETH 전환으로 ETH 우위 교차 확인됨. exp-004 status가 shadow_deploy_failed이나 실제로는 shadow 실행 중(trades/snapshots 존재) — 상태 불일치 infra_fix 필요. 체결 강도 BTC 0.19(극단적 매도 우위) 지속 시 BTC 약세 → ETH 상대강도 유지 기대. ETH momentum 둔화 or trailing stop 5% 접근 시 방어적 modify 검토.",
+      "retryAttempts": null,
+      "variantsTested": null,
+      "diagnosis": null,
+      "triggerType": "REGIME_CHANGE"
+    },
+    {
+      "timestamp": "2026-03-16T09:19:37.283Z",
+      "action": "keep",
+      "reasoning": "REGIME_CHANGE(bullish, 분산 1.05%)가 현재 ETH 포지션에 유리. ETH 24h +3.06%(4종 최고), 체결 강도 1.62(매수 우위), alpha +3.9%. 분산 확대로 soft-choppiness 스위칭 메커니즘 활성화 가능 상태이나 ETH가 스코어 1위이므로 스위칭 불필요. 최근 modify(stochMax 92, phase2 24) 효과 관찰 중.",
+      "confidence": 0.78,
+      "parameters": null,
+      "markets": null,
+      "improvementAreas": [
+        "regime"
+      ],
+      "backtestResult": null,
+      "outcome": "kept",
+      "notes": "1) exp-005 4일 평가 기한 도래(3/16) — 다음 배치에서 promotion 결과 반드시 확인. 2) 분산 1.05%에서 XRP(ADX 51.7, 체결 강도 1.56)이 ETH 추월 시 첫 자연 스위칭 발생 가능 — 다음 배치에서 score 격차 확인. 3) peak 3,343K → current 3,297K (drawdown -1.4%), trailing 5% 트리거 3,176K까지 여유 충분. 4) 이번이 2회 연속 keep — 다음 배치에서 반드시 modify/replace 검토 필수. 5) bullish 레짐 지속 시 trailing 5%→7% 완화 고려(ETH 변동성 확대 시 whipsaw 방지).",
+      "retryAttempts": null,
+      "variantsTested": null,
+      "diagnosis": null,
+      "triggerType": "REGIME_CHANGE"
+    },
+    {
+      "timestamp": "2026-03-16T12:34:29.012Z",
+      "action": "keep",
+      "reasoning": "REGIME_CHANGE 트리거가 ETH +5.44% 급등에 의한 것으로, 현재 보유 자산이 레짐 변화의 직접 수혜자. alpha +3.9%로 12일간 BTC 대비 초과수익 지속. 분산 1.54%로 확대 중이나 ETH 스코어 1위 유지로 스위칭 대상 부재. trailing stop(5%, peak 3,373K)이 하방 보호 제공하며, 파라미터 변경 시 오히려 정상 작동 중인 리스크 관리 체계 교란 위험.",
+      "confidence": 0.76,
+      "parameters": null,
+      "markets": null,
+      "improvementAreas": [
+        "regime"
+      ],
+      "backtestResult": null,
+      "outcome": "kept",
+      "notes": "3회 연속 keep — 다음 배치 반드시 modify 또는 replace. BTC 체결 강도 15.47(극단적 매수 우위) vs ETH 0.56(매도 우위) 괴리가 핵심 모니터링 포인트. ETH profit-taking + BTC 축적 동시 진행은 ETH→BTC 상대강도 역전 선행 지표 가능성. exp-005 4일 평가 기한 경과 — 다음 배치에서 promotion 결과 반드시 확인하고, 결과에 따라 modify/replace 결정. exp-004 shadow_deploy_failed 상태 정리 필요(infra_fix 대상).",
+      "retryAttempts": null,
+      "variantsTested": null,
+      "diagnosis": null,
+      "triggerType": "REGIME_CHANGE"
+    },
+    {
+      "timestamp": "2026-03-16T15:49:32.521Z",
+      "action": "modify",
+      "reasoning": "REGIME_CHANGE(ETH +5.19%) bullish 환경에서 ETH 보유 유지 정당. 3연속 keep 필수 수정. 전 자산 체결 강도 <1.0(매도 우위)으로 단기 조정 가능성 → trailing stop 4.5%로 이익 보호 강화. 분산 1.6% 확대로 스위칭 기회 증가 대비 cooldown/threshold 완화.",
+      "confidence": 0.63,
+      "parameters": {
+        "trailingStopPct": 0.045,
+        "cooldownTrending": 12,
+        "switchThreshold": 0.01
+      },
+      "markets": null,
+      "improvementAreas": [
+        "risk",
+        "regime"
+      ],
+      "backtestResult": null,
+      "outcome": "applied",
+      "notes": "trailing 4.5% 적용 시 ETH peak 3,376,000 기준 trigger 3,224,080(현재가 대비 -4.2% 여유). 전 자산 체결 강도 <1.0이므로 단기 조정 가능성 — trailing 타이트닝 적절. exp-005 평가 기한 경과(3/12 시작, 4일 → 3/16), 다음 배치에서 promotion 결과 확인 필수. 분산 1.6%에서 switchThreshold 0.01 + cooldownTrending 12(3h)로 자연 스위칭 가능성 증가.",
+      "retryAttempts": null,
+      "variantsTested": null,
+      "diagnosis": null,
+      "triggerType": "REGIME_CHANGE"
+    },
+    {
+      "timestamp": "2026-03-16T19:04:18.487Z",
+      "action": "keep",
+      "reasoning": "REGIME_CHANGE(ETH +6.63%)가 현재 ETH 포지션에 유리. 4종 중 24h 최고 성과, alpha +3.9%, trailing 4.5%(trigger ~3,278K, 3.9% 여유) 충분. 직전 배치 modify(trailing 4.5%) 적용 직후로 추가 변경 불필요. 분산 2.27% 확대로 자연 스위칭 조건 근접 중.",
+      "confidence": 0.78,
+      "parameters": null,
+      "markets": null,
+      "improvementAreas": [
+        "regime"
+      ],
+      "backtestResult": null,
+      "outcome": "kept",
+      "notes": "exp-005 평가 기한 5일 경과(4일 기준 초과) — 다음 배치에서 promotion/결과 반드시 확인하고 실험 슬롯 정리. exp-004 shadow_deploy_failed 상태도 정리 필요(infra_fix 대상). 분산 2.27%에서 XRP(+5.93%)이 ETH에 근접 — score 역전 시 첫 거래 발생 가능. BTC 체결 강도 0.25(극단 매도)로 BTC 약세 지속 전망.",
+      "retryAttempts": null,
+      "variantsTested": null,
+      "diagnosis": null,
+      "triggerType": "REGIME_CHANGE"
+    },
+    {
+      "timestamp": "2026-03-16T22:19:58.408Z",
+      "action": "keep",
+      "reasoning": "REGIME_CHANGE(ETH +8.94%) 불리시 환경에서 ETH가 4종 중 압도적 1위. alpha +3.9%, 미실현 +11.59%. trailing 4.5%로 ATH 근처 보호 중. 파라미터 변경으로 개선할 여지가 없으며, 스위칭 대상 자산 부재로 0거래는 정상 동작.",
+      "confidence": 0.82,
+      "parameters": null,
+      "markets": null,
+      "improvementAreas": [
+        "regime"
+      ],
+      "backtestResult": null,
+      "outcome": "kept",
+      "notes": "1) exp-005 평가 기한 5일 초과 — 반드시 promotion 판정 및 실험 슬롯 정리. exp-004 shadow_deploy_failed도 정리 필요 (infra_fix 대상). 2) ETH peak 3,491K에서 trailing 4.5% trigger 3,334K — 4.4% 여유. 3) BTC 체결 강도 0.14(극단 매도)이나 이전 반증(체결 강도 예측력 부재)으로 포지션 변경 불필요. 4) 분산 2.2%에서 XRP(+6.49%)가 ETH에 근접 — score 역전 시 첫 자연 스위칭 가능성. 5) 2연속 keep — 다음 배치에서도 keep 시 3연속이므로 modify/replace 필수.",
+      "retryAttempts": null,
+      "variantsTested": null,
+      "diagnosis": null,
+      "triggerType": "REGIME_CHANGE"
+    },
+    {
+      "timestamp": "2026-03-17T01:34:36.732Z",
+      "action": "modify",
+      "reasoning": "ETH ATH(3,497K) 도달 후 24h 모멘텀 둔화(+1.04%, 4종 최저). XRP(+2.64%)/BTC(+1.99%) 상대 강세로 rotation 시작 가능성. Alpha +8.26% 보호 위해 trailing 4.0% + crash 3.5%로 타이트닝. 포트폴리오 113K(+12%) 수준에서 이익 확정 메커니즘 강화가 레짐 변화 대응의 핵심.",
+      "confidence": 0.7,
+      "parameters": {
+        "trailingStopPct": 0.04,
+        "crashThreshold": 0.035
+      },
+      "markets": null,
+      "improvementAreas": [
+        "risk",
+        "regime"
+      ],
+      "backtestResult": {
+        "pass": false,
+        "gateType": "modify",
+        "returnImprovement": -3.0574,
+        "drawdownWorsening": 2.3491,
+        "dailyTrades": 0.93,
+        "reasons": [
+          "FAILED",
+          "Return improvement: -3.06% (need >= -1%)",
+          "Drawdown worsening: 2.35% (need <= 3%)",
+          "Daily trades: 0.93 (need >= 0.1 and <= 10)"
+        ]
+      },
+      "outcome": "gate_failed",
+      "notes": "1) exp-005 평가 기한 5일 초과(3/12 시작) — 다음 배치에서 반드시 promotion 판정 및 실험 슬롯 정리. exp-004 shadow_deploy_failed 정리 필요(infra_fix 대상). 2) ETH 24h 모멘텀 둔화(+1.04% vs 전일 +6.63%) — peak 갱신 정체 시 trailing 4% trigger 3,357K까지 3.9% 여유. 3) SOL 체결 강도 2.43(매수 대폭 우위) + 가격 정체(+0.14%)는 축적 패턴 가능 — score 역전 시 첫 자연 스위칭 후보. 4) 다음 배치에서 ETH 모멘텀 회복 여부 확인, 미회복 시 trailing trigger 접근 경고.",
+      "retryAttempts": null,
+      "variantsTested": null,
+      "diagnosis": null,
+      "triggerType": "REGIME_CHANGE"
+    },
+    {
+      "timestamp": "2026-03-17T07:34:45.526Z",
+      "action": "modify",
+      "reasoning": "REGIME_CHANGE(bearish, avg -0.66%) 대응. bullish→bearish 전환으로 trailing/crash 타이트닝 + 재진입 기준 강화. bot-state=CASH이나 실제 XRP 보유 state mismatch — infra_fix 긴급 필요. 13일 0거래의 근본 원인이 전략이 아닌 state 불일치로 확정.",
+      "confidence": 0.55,
+      "parameters": {
+        "trailingStopPct": 0.04,
+        "crashThreshold": 0.035,
+        "reentryRsiMin": 40,
+        "reentryMinScore": 0.015,
+        "reentryStochMax": 88,
+        "maxCashCandles": 96,
+        "cooldownTrending": 18,
+        "cooldownChoppy": 108
+      },
+      "markets": null,
+      "improvementAreas": [
+        "risk",
+        "regime"
+      ],
+      "backtestResult": {
+        "pass": false,
+        "gateType": "modify",
+        "returnImprovement": -27.634,
+        "drawdownWorsening": 16.4786,
+        "dailyTrades": 0.93,
+        "reasons": [
+          "FAILED",
+          "Return improvement: -27.63% (need >= -1%)",
+          "Drawdown worsening: 16.48% (need <= 3%)",
+          "Daily trades: 0.93 (need >= 0.1 and <= 10)"
+        ]
+      },
+      "outcome": "gate_failed",
+      "notes": "⚠️ CRITICAL: bot-state=CASH이나 실제 XRP 109K 보유 — state mismatch로 trailing stop/crash detection 완전 무력화. bearish 전환 시 XRP 하방 리스크 노출. infra_fix 배치에서 (1) bot-state를 실제 포트폴리오와 reconcile, (2) CASH state에서 잔고>threshold 시 자동 감지 로직 추가 필요. exp-004(shadow_deploy_failed, 5일 초과) + exp-005(shadow_running, 5일 초과) 반드시 정리. 파라미터 modify는 state 정상화 이후에만 실효성 있음.",
+      "retryAttempts": null,
+      "variantsTested": null,
+      "diagnosis": null,
+      "triggerType": "REGIME_CHANGE"
+    },
+    {
+      "timestamp": "2026-03-17T13:50:30.738Z",
+      "action": "modify",
+      "reasoning": "0거래 근본 원인은 bot-state=CASH ↔ 실제 XRP 보유 state mismatch(infra 문제)로 확정. 전략 변경으로 해결 불가하나 STAGNATION 규칙상 keep 불가. bearish 전환(-1.38%) 대비 crash 감지 강화 + 스위칭 임계값 소폭 완화. 최근 3회 modify gate 실패를 감안하여 최소 변경으로 gate 통과 가능성 극대화. infra_fix 배치가 실질적 해결책.",
+      "confidence": 0.3,
+      "parameters": {
+        "crashThreshold": 0.035,
+        "switchThreshold": 0.008
+      },
+      "markets": null,
+      "improvementAreas": [
+        "risk",
+        "regime"
+      ],
+      "backtestResult": {
+        "pass": false,
+        "gateType": "modify",
+        "returnImprovement": -4.1376,
+        "drawdownWorsening": 3.1106,
+        "dailyTrades": 0.93,
+        "reasons": [
+          "FAILED",
+          "Return improvement: -4.14% (need >= -1%)",
+          "Drawdown worsening: 3.11% (need <= 3%)",
+          "Daily trades: 0.93 (need >= 0.1 and <= 10)"
+        ]
+      },
+      "outcome": "gate_failed",
+      "notes": "⚠️ INFRA_FIX 긴급: (1) bot-state.json assetHeld를 실제 포트폴리오(현재 XRP)와 동기화하는 state reconciliation 필수 — bot.js 시작 시 Upbit API 잔고 조회 후 state 보정 로직 추가 (2) buy 실패 시 state rollback 경로 재검증 (3) exp-004 shadow_deploy_failed + exp-005 shadow_running 5일 초과 — 즉시 평가/정리하여 실험 슬롯 확보. 전략 tier 조치는 infra 정상화 전까지 무의미. 다음 배치: infra_fix 완료 확인이 선행 조건.",
+      "retryAttempts": null,
+      "variantsTested": null,
+      "diagnosis": null,
+      "triggerType": "STAGNATION"
+    },
+    {
+      "timestamp": "2026-03-17T20:04:36.038Z",
+      "action": "modify",
+      "reasoning": "bearish 레짐(-0.75%) 전환 + state mismatch 지속으로 방어적 파라미터 조정. trailing 4%로 타이트닝(XRP state 정상화 후 하방 보호 강화), crash 3.5%로 민감도 상향, 재진입 기준 강화(RSI 40, score 0.02)로 저품질 진입 차단. 구조적 0거래 원인은 infra state mismatch이므로 infra_fix tier에서 (1) bot-state.json을 Upbit 잔고 기준 자동 동기화 (2) buy 실패 시 state rollback 로직 추가가 선행 필수.",
+      "confidence": 0.3,
+      "parameters": {
+        "trailingStopPct": 0.04,
+        "crashThreshold": 0.035,
+        "reentryRsiMin": 40,
+        "reentryMinScore": 0.02,
+        "cooldownTrending": 16,
+        "riskGracePeriod": 36
+      },
+      "markets": null,
+      "improvementAreas": [
+        "risk",
+        "regime"
+      ],
+      "backtestResult": {
+        "pass": false,
+        "gateType": "modify",
+        "returnImprovement": -3.2523,
+        "drawdownWorsening": 1.4052,
+        "dailyTrades": 1.04,
+        "reasons": [
+          "FAILED",
+          "Return improvement: -3.25% (need >= -1%)",
+          "Drawdown worsening: 1.41% (need <= 3%)",
+          "Daily trades: 1.04 (need >= 0.1 and <= 10)"
+        ]
+      },
+      "outcome": "gate_failed",
+      "notes": "⚠️ INFRA_FIX 최우선: (1) bot.js 시작 시 Upbit API 잔고 조회 → bot-state.json assetHeld 자동 동기화 로직 추가. KRW < 10000 && 특정 자산 잔고 > 90% → assetHeld를 해당 자산으로 설정. (2) checkReentry 성공 후 buy 실패 시 state.assetHeld를 CASH로 rollback하는 코드 추가. (3) exp-005 평가기한 6일 초과 — 즉시 promotion 판정 및 슬롯 정리. exp-004 shadow_deploy_failed 상태 정리. 이 modify는 state 정상화 이후에만 실효성 있음. 16번째 전략 파라미터 변경이며, infra 문제 해결 없이는 0거래 지속 불가피.",
+      "retryAttempts": null,
+      "variantsTested": null,
+      "diagnosis": null,
+      "triggerType": "STAGNATION"
+    },
+    {
+      "timestamp": "2026-03-18T02:19:24.771Z",
+      "action": "modify",
+      "reasoning": "14일 0거래의 근본 원인은 infra state mismatch(bot-state=CASH, 실제 XRP 보유)로 전략 파라미터 변경으로 해결 불가. infra_fix 긴급 필요. 최소한의 재진입 파라미터 완화로 gate 통과를 시도하되, 실질적 효과는 infra 수정 이후에만 발현.",
+      "confidence": 0.15,
+      "parameters": {
+        "reentryRsiMin": 30,
+        "reentryMinScore": 0.001,
+        "reentryStochMax": 95,
+        "maxCashCandles": 48
+      },
+      "markets": null,
+      "improvementAreas": [
+        "strategy"
+      ],
+      "backtestResult": null,
+      "outcome": "applied",
+      "notes": "⚠️ INFRA_FIX 최우선 긴급: (1) bot.js 시작 시 Upbit API 잔고 조회 → assetHeld 자동 동기화 (KRW < 10000 && 특정 자산 > 90% → assetHeld=해당자산). (2) buy 실패 시 state.assetHeld를 CASH로 rollback하는 로직 추가. (3) exp-004(shadow_deploy_failed) 정리 + exp-005(6일 경과, 4일 기한 초과) 평가/종료. 전략 tier 변경은 infra 수정 전까지 구조적으로 무효 — 16회째 동일 결론.",
+      "retryAttempts": null,
+      "variantsTested": null,
+      "diagnosis": null,
+      "triggerType": "STAGNATION"
+    },
+    {
+      "timestamp": "2026-03-18T13:04:01.951Z",
+      "action": "modify",
+      "reasoning": "bearish 레짐 전환(-3.59%)에서 state mismatch로 trailing stop 미적용 중. infra_fix 전까지 실효성 없으나, state 정상화 직후 bearish 방어가 즉시 작동하도록 trailing 4%(긴축) + crash 3.5% + 재진입 RSI 35(하락장 진입 기준 상향) + maxCashCandles 72(forced reentry 지연)로 사전 배치. cooldownTrending 24로 복구하여 bearish 과잉매매 방지.",
+      "confidence": 0.15,
+      "parameters": {
+        "trailingStopPct": 0.04,
+        "crashThreshold": 0.035,
+        "reentryRsiMin": 35,
+        "reentryMinScore": 0.01,
+        "maxCashCandles": 72,
+        "cooldownTrending": 24,
+        "reentryStochMax": 85,
+        "reentryPhase2Candles": 36,
+        "reentryCooldown": 36
+      },
+      "markets": null,
+      "improvementAreas": [
+        "risk",
+        "regime"
+      ],
+      "backtestResult": {
+        "pass": false,
+        "gateType": "modify",
+        "returnImprovement": -17.1767,
+        "drawdownWorsening": 9.328,
+        "dailyTrades": 0.9,
+        "reasons": [
+          "FAILED",
+          "Return improvement: -17.18% (need >= -1%)",
+          "Drawdown worsening: 9.33% (need <= 3%)",
+          "Daily trades: 0.9 (need >= 0.1 and <= 10)"
+        ]
+      },
+      "outcome": "gate_failed",
+      "notes": "⚠️ INFRA_FIX 최우선 긴급 (17회째 반복): (1) bot.js 시작 시 Upbit API 잔고 조회 → KRW < 10000 && 특정 자산 > 90% 시 assetHeld=해당자산으로 자동 동기화. (2) buy 실패 시 state.assetHeld를 CASH로 rollback하는 로직 추가. (3) exp-004 shadow_deploy_failed + exp-005 shadow_running 6일 초과(4일 기한) 상태 정리. bearish 환경에서 ETH 하방 리스크 무방비 노출 중 — state 정상화 없이는 MDD 확대 불가피.",
+      "retryAttempts": null,
+      "variantsTested": null,
+      "diagnosis": null,
+      "triggerType": "REGIME_CHANGE"
+    },
+    {
+      "timestamp": "2026-03-18T16:18:57.214Z",
+      "action": "modify",
+      "reasoning": "bearish 레짐(-4.47%) 전환에 대응한 방어적 파라미터 조정. state mismatch(18회째)로 실효성 제한적이나, infra_fix 후 즉각 적용될 bearish 최적 파라미터 사전 배치. trailing 4%/crash 3.5%로 강화, 재진입 조건 엄격화하여 하락장 매수 방지.",
+      "confidence": 0.15,
+      "parameters": {
+        "trailingStopPct": 0.04,
+        "crashThreshold": 0.035,
+        "reentryRsiMin": 35,
+        "reentryMinScore": 0.01,
+        "reentryStochMax": 80,
+        "reentryCooldown": 36,
+        "reentryPhase2Candles": 48,
+        "maxCashCandles": 72,
+        "riskGracePeriod": 36
+      },
+      "markets": null,
+      "improvementAreas": [
+        "risk",
+        "regime"
+      ],
+      "backtestResult": {
+        "pass": false,
+        "gateType": "modify",
+        "returnImprovement": -18.046,
+        "drawdownWorsening": 9.7791,
+        "dailyTrades": 0.94,
+        "reasons": [
+          "FAILED",
+          "Return improvement: -18.05% (need >= -1%)",
+          "Drawdown worsening: 9.78% (need <= 3%)",
+          "Daily trades: 0.94 (need >= 0.1 and <= 10)"
+        ]
+      },
+      "outcome": "gate_failed",
+      "notes": "⚠️ INFRA_FIX 최우선 긴급 (18회째): (1) bot.js 시작 시 Upbit API 잔고 조회 → KRW < 10000 && 특정 자산 > 90% 시 assetHeld=해당자산으로 자동 동기화. (2) buy 실패 시 state.assetHeld를 CASH로 롤백. 전략 tier 18회 modify/replace 시도는 구조적으로 무효 — infra_fix만이 유일한 해결책. bearish 레짐에서 trailing stop 부재는 치명적 리스크(ETH peak 대비 -7.4% 무대응).",
+      "retryAttempts": null,
+      "variantsTested": null,
+      "diagnosis": null,
+      "triggerType": "REGIME_CHANGE"
+    },
+    {
+      "timestamp": "2026-03-18T19:33:55.947Z",
+      "action": "modify",
+      "reasoning": "19회째 전략 tier — state mismatch로 실효 없으나, infra_fix 후 bearish 레짐 즉시 대응 위해 trailing 3.5%/crash 3%로 하방 보호 강화. 재진입 조건 강화(RSI 40, stochMax 80)로 bearish 저점매수 방지.",
+      "confidence": 0.1,
+      "parameters": {
+        "trailingStopPct": 0.035,
+        "crashThreshold": 0.03,
+        "crashWindowCandles": 72,
+        "riskGracePeriod": 24,
+        "reentryRsiMin": 40,
+        "reentryMinScore": 0.02,
+        "reentryStochMax": 80,
+        "reentryCooldown": 48,
+        "reentryPhase2Candles": 48,
+        "maxCashCandles": 96,
+        "cooldownTrending": 24,
+        "cooldownChoppy": 120
+      },
+      "markets": null,
+      "improvementAreas": [
+        "risk",
+        "regime"
+      ],
+      "backtestResult": {
+        "pass": false,
+        "gateType": "modify",
+        "returnImprovement": -22.6734,
+        "drawdownWorsening": 8.6456,
+        "dailyTrades": 1.04,
+        "reasons": [
+          "FAILED",
+          "Return improvement: -22.67% (need >= -1%)",
+          "Drawdown worsening: 8.65% (need <= 3%)",
+          "Daily trades: 1.04 (need >= 0.1 and <= 10)"
+        ]
+      },
+      "outcome": "gate_failed",
+      "notes": "⚠️ INFRA_FIX 최우선 긴급 (19회째 반복): (1) bot.js 시작 시 Upbit API 잔고 조회 → KRW < 10000 && 특정 자산 > 90% 시 assetHeld=해당자산으로 자동 동기화. (2) buy 실패 시 state.assetHeld를 CASH로 즉시 롤백. (3) 현재 ETH peak 3,497K 대비 -6.8% 하락 중 trailing stop 무력화 — infra_fix 즉시 필요. bearish 파라미터는 state 정상화 후 즉시 작동하도록 사전 배치.",
+      "retryAttempts": null,
+      "variantsTested": null,
+      "diagnosis": null,
+      "triggerType": "REGIME_CHANGE"
+    },
+    {
+      "timestamp": "2026-03-19T01:04:04.032Z",
+      "action": "modify",
+      "reasoning": "infra_fix 후 즉시 trailing stop 트리거 → CASH 전환 예정. bearish 레짐에서 재진입 보수화(RSI 35, stoch 85, cooldown 연장)로 하방 리스크 방어 준비. 현재 state mismatch에서는 실효 없으나 infra 수정 후 즉시 작동할 파라미터 세팅.",
+      "confidence": 0.15,
+      "parameters": {
+        "trailingStopPct": 0.04,
+        "crashThreshold": 0.035,
+        "reentryRsiMin": 35,
+        "reentryStochMax": 85,
+        "reentryCooldown": 36,
+        "reentryPhase2Candles": 48,
+        "maxCashCandles": 72,
+        "riskGracePeriod": 36
+      },
+      "markets": null,
+      "improvementAreas": [
+        "risk",
+        "regime"
+      ],
+      "backtestResult": {
+        "pass": false,
+        "gateType": "modify",
+        "returnImprovement": -16.759,
+        "drawdownWorsening": 9.7791,
+        "dailyTrades": 0.96,
+        "reasons": [
+          "FAILED",
+          "Return improvement: -16.76% (need >= -1%)",
+          "Drawdown worsening: 9.78% (need <= 3%)",
+          "Daily trades: 0.96 (need >= 0.1 and <= 10)"
+        ]
+      },
+      "outcome": "gate_failed",
+      "notes": "⚠️ INFRA_FIX 최우선 긴급 (20회째 반복): (1) bot.js 시작 시 Upbit API 잔고 조회 → KRW < 10000 && 특정 자산 > 90% 시 assetHeld=해당자산으로 자동 동기화. (2) buy 실패 시 state.assetHeld를 CASH로 롤백. 이 두 수정 없이는 전략 tier 배치 비용만 소모. infra_fix 후 trailing stop이 ETH -6.7% drawdown 감지 → 즉시 CASH 전환 → 본 bearish 파라미터로 보수적 재진입 실행.",
+      "retryAttempts": null,
+      "variantsTested": null,
+      "diagnosis": null,
+      "triggerType": "REGIME_CHANGE"
+    },
+    {
+      "timestamp": "2026-03-19T04:19:23.707Z",
+      "action": "modify",
+      "reasoning": "DRAWDOWN_ALERT(MDD 8.16%). ETH peak→현재 -6.3% 하락에 trailing stop 미작동(state mismatch). 21회째 전략 배치이나 infra_fix 없이는 무효. state 정상화 대비 bearish 보호 파라미터로 소폭 조정: trailing 4%로 강화, 재진입 과매수 필터 강화(stoch 85), 강제재진입 지연(maxCash 72)으로 하락장 재진입 방지.",
+      "confidence": 0.1,
+      "parameters": {
+        "trailingStopPct": 0.04,
+        "crashThreshold": 0.035,
+        "reentryStochMax": 85,
+        "reentryRsiMin": 35,
+        "maxCashCandles": 72
+      },
+      "markets": null,
+      "improvementAreas": [
+        "risk"
+      ],
+      "backtestResult": {
+        "pass": false,
+        "gateType": "modify",
+        "returnImprovement": -22.6004,
+        "drawdownWorsening": 14.0045,
+        "dailyTrades": 0.94,
+        "reasons": [
+          "FAILED",
+          "Return improvement: -22.60% (need >= -1%)",
+          "Drawdown worsening: 14.00% (need <= 3%)",
+          "Daily trades: 0.94 (need >= 0.1 and <= 10)"
+        ]
+      },
+      "outcome": "gate_failed",
+      "notes": "⚠️ INFRA_FIX 최우선 긴급 (21회째): (1) bot.js 시작 시 Upbit API 잔고 조회 → KRW < 10000 && 특정 자산 > 90% 시 assetHeld=해당자산으로 자동 동기화. (2) buy 실패 시 state.assetHeld CASH 복구. (3) state 정상화 시 ETH -6.3% > trailing 4% 이므로 즉시 CASH 전환 → 추가 손실 차단. exp-004(shadow_deploy_failed) 정리 + exp-005(7일 경과, 4일 기한 초과) 평가 필요.",
+      "retryAttempts": null,
+      "variantsTested": null,
+      "diagnosis": null,
+      "triggerType": "DRAWDOWN_ALERT"
+    },
+    {
+      "timestamp": "2026-03-19T07:34:04.621Z",
+      "action": "modify",
+      "reasoning": "DRAWDOWN_ALERT(MDD 8.16%) 상황이나 근본 원인은 state mismatch(bot-state=CASH, 실제 ETH 보유)로 전략 tier로 해결 불가. infra_fix 이후 즉시 trailing stop 트리거 → CASH 전환 예상. 재진입 보수성 강화 + crash detection 민감도 상향으로 bearish 대비. 22회째 전략 변경이므로 gate 통과 가능한 최소 변경만 적용.",
+      "confidence": 0.1,
+      "parameters": {
+        "crashThreshold": 0.035,
+        "crashWindowCandles": 72,
+        "reentryRsiMin": 35,
+        "reentryStochMax": 85,
+        "reentryPhase2Candles": 36,
+        "maxCashCandles": 72,
+        "cooldownTrending": 18
+      },
+      "markets": null,
+      "improvementAreas": [
+        "risk"
+      ],
+      "backtestResult": {
+        "pass": false,
+        "gateType": "modify",
+        "returnImprovement": -31.936,
+        "drawdownWorsening": 19.4022,
+        "dailyTrades": 0.9,
+        "reasons": [
+          "FAILED",
+          "Return improvement: -31.94% (need >= -1%)",
+          "Drawdown worsening: 19.40% (need <= 3%)",
+          "Daily trades: 0.9 (need >= 0.1 and <= 10)"
+        ]
+      },
+      "outcome": "gate_failed",
+      "notes": "⚠️ INFRA_FIX 최우선 긴급 (22회째 반복): (1) bot.js 시작 시 Upbit API 잔고 조회 → KRW < 10000 && 특정 자산 > 90% 시 assetHeld=해당자산으로 자동 동기화. (2) buy 실패 시 state.assetHeld를 CASH로 rollback. (3) 현재 ETH -6.3% 하락 중 trailing stop 미작동으로 MDD 8.16% 방치. infra_fix 없이는 DRAWDOWN_ALERT 재발 불가피.",
+      "retryAttempts": null,
+      "variantsTested": null,
+      "diagnosis": null,
+      "triggerType": "DRAWDOWN_ALERT"
+    },
+    {
+      "timestamp": "2026-03-19T10:48:55.631Z",
+      "action": "modify",
+      "reasoning": "DRAWDOWN_ALERT(MDD 8.16%) 대응: trailing 3.5% + crash 3% + grace 36으로 리스크 강화. 단, 실효성은 infra_fix의 state reconciliation 이후에만 발현. 23회째 전략 배치이나 bot-state=CASH 불변으로 실거래 영향 불가. infra_fix 즉시 트리거 필요.",
+      "confidence": 0.1,
+      "parameters": {
+        "trailingStopPct": 0.035,
+        "crashThreshold": 0.03,
+        "riskGracePeriod": 36,
+        "crashWindowCandles": 72,
+        "reentryRsiMin": 35,
+        "reentryStochMax": 80,
+        "reentryCooldown": 36,
+        "maxCashCandles": 72
+      },
+      "markets": null,
+      "improvementAreas": [
+        "risk"
+      ],
+      "backtestResult": {
+        "pass": false,
+        "gateType": "modify",
+        "returnImprovement": -31.7374,
+        "drawdownWorsening": 16.5417,
+        "dailyTrades": 1.15,
+        "reasons": [
+          "FAILED",
+          "Return improvement: -31.74% (need >= -1%)",
+          "Drawdown worsening: 16.54% (need <= 3%)",
+          "Daily trades: 1.15 (need >= 0.1 and <= 10)"
+        ]
+      },
+      "outcome": "gate_failed",
+      "notes": "⚠️ INFRA_FIX 최우선 긴급 (23회째 반복): (1) bot.js 시작 시 Upbit API 잔고 조회 → KRW < 10000 && 특정 자산 > 90% 시 assetHeld=해당자산으로 자동 동기화. (2) buy 실패 시 state.assetHeld를 CASH로 롤백. (3) 15분 tick마다 잔고 검증 추가. DRAWDOWN_ALERT 상태에서 trailing stop 미작동은 포트폴리오 보호 완전 실패를 의미. 전략 tier 22회 무효 배치 기록은 infra 문제를 전략으로 해결 불가함을 확정적으로 증명.",
+      "retryAttempts": null,
+      "variantsTested": null,
+      "diagnosis": null,
+      "triggerType": "DRAWDOWN_ALERT"
+    },
+    {
+      "timestamp": "2026-03-19T14:04:01.472Z",
+      "action": "modify",
+      "reasoning": "DRAWDOWN_ALERT(MDD 8.16%). state mismatch(CASH vs 실제 ETH)가 근본 원인으로 전략 변경 효과 없음. infra_fix 필수. infra 수정 후 즉시 효과를 볼 수 있도록 trailing 4%로 강화, grace period 36으로 단축, crash threshold 3.5%로 하향. 최소 변경으로 gate 통과 확률 극대화.",
+      "confidence": 0.15,
+      "parameters": {
+        "trailingStopPct": 0.04,
+        "crashThreshold": 0.035,
+        "riskGracePeriod": 36,
+        "cooldownTrending": 12,
+        "reentryRsiMin": 30,
+        "reentryStochMax": 92,
+        "maxCashCandles": 48
+      },
+      "markets": null,
+      "improvementAreas": [
+        "risk"
+      ],
+      "backtestResult": {
+        "pass": false,
+        "gateType": "modify",
+        "returnImprovement": -9.1126,
+        "drawdownWorsening": 1.153,
+        "dailyTrades": 1.08,
+        "reasons": [
+          "FAILED",
+          "Return improvement: -9.11% (need >= -1%)",
+          "Drawdown worsening: 1.15% (need <= 3%)",
+          "Daily trades: 1.08 (need >= 0.1 and <= 10)"
+        ]
+      },
+      "outcome": "gate_failed",
+      "notes": "⚠️ INFRA_FIX 최우선 긴급 (24회째 반복): (1) bot.js 시작 시 Upbit API 잔고 조회 → KRW < 10000 && 특정 자산 > 90% 시 assetHeld=해당자산으로 자동 동기화. (2) buy 실패 시 state.assetHeld를 CASH로 롤백하는 안전장치 추가. 전략 tier에서는 이 문제를 해결할 수 없음. infra_fix tier 즉시 트리거 요청. MDD 8.16%→15% 도달 전 긴급 조치 필요.",
+      "retryAttempts": null,
+      "variantsTested": null,
+      "diagnosis": null,
+      "triggerType": "DRAWDOWN_ALERT"
+    },
+    {
+      "timestamp": "2026-03-19T17:19:32.791Z",
+      "action": "modify",
+      "reasoning": "DRAWDOWN_ALERT(MDD 8.16%) 대응. 근본 원인은 infra state mismatch(25회째 반복)이나, infra_fix 후 즉시 bearish 보호가 작동하도록 trailing 4%·crash 3.5%·grace 36으로 강화. reentryStochMax 85로 과매수 진입 방지, reentryCooldown 36으로 bearish 재진입 억제.",
+      "confidence": 0.15,
+      "parameters": {
+        "trailingStopPct": 0.04,
+        "crashThreshold": 0.035,
+        "riskGracePeriod": 36,
+        "reentryStochMax": 85,
+        "reentryRsiMin": 25,
+        "reentryCooldown": 36
+      },
+      "markets": null,
+      "improvementAreas": [
+        "risk"
+      ],
+      "backtestResult": {
+        "pass": false,
+        "gateType": "modify",
+        "returnImprovement": -22.3972,
+        "drawdownWorsening": 9.49,
+        "dailyTrades": 1.06,
+        "reasons": [
+          "FAILED",
+          "Return improvement: -22.40% (need >= -1%)",
+          "Drawdown worsening: 9.49% (need <= 3%)",
+          "Daily trades: 1.06 (need >= 0.1 and <= 10)"
+        ]
+      },
+      "outcome": "gate_failed",
+      "notes": "⚠️ INFRA_FIX 최우선 긴급 (25회째): (1) bot.js 시작 시 Upbit API 잔고 조회 → KRW < 10000 && 특정 자산 > 90% 시 assetHeld=해당자산으로 자동 동기화. (2) buy 실패 시 state.assetHeld를 CASH로 롤백. 전략 파라미터 변경은 state 정상화 없이 완전 무효. ETH -8.11% 손실 방치 중이며 trailing 4% trigger 충족 상태이므로, state 동기화 즉시 CASH 전환 예상.",
+      "retryAttempts": null,
+      "variantsTested": null,
+      "diagnosis": null,
+      "triggerType": "DRAWDOWN_ALERT"
+    },
+    {
+      "timestamp": "2026-03-19T20:34:00.612Z",
+      "action": "modify",
+      "reasoning": "DRAWDOWN_ALERT(MDD 8.16%) 상황에서 strategy tier 26회째 — infra state mismatch(bot-state=CASH, 실제 ETH 보유)가 근본 원인으로 전략 변경의 실효성 없음. infra_fix 후 state 동기화 시 즉시 적용될 방어적 파라미터로 조정: (1) riskGracePeriod 48→8로 축소하여 infra fix 직후 리스크 체크 즉시 가동, (2) trailing 4.5%→4.0%로 소폭 강화, (3) crashThreshold 4%→3.5%로 하방 감지 민감도 증가. bearish 레짐(-1.89%)에서 자본 보호 최우선.",
+      "confidence": 0.15,
+      "parameters": {
+        "trailingStopPct": 0.04,
+        "crashThreshold": 0.035,
+        "riskGracePeriod": 8,
+        "reentryRsiMin": 35,
+        "reentryCooldown": 36,
+        "reentryStochMax": 90
+      },
+      "markets": null,
+      "improvementAreas": [
+        "risk",
+        "regime"
+      ],
+      "backtestResult": {
+        "pass": false,
+        "gateType": "modify",
+        "returnImprovement": -23.4438,
+        "drawdownWorsening": 4.3445,
+        "dailyTrades": 1.4,
+        "reasons": [
+          "FAILED",
+          "Return improvement: -23.44% (need >= -1%)",
+          "Drawdown worsening: 4.34% (need <= 3%)",
+          "Daily trades: 1.4 (need >= 0.1 and <= 10)"
+        ]
+      },
+      "outcome": "gate_failed",
+      "notes": "⚠️ INFRA_FIX 최우선 긴급 (26회째 반복): (1) bot.js 시작 시 Upbit API 잔고 조회 → KRW < 10000 && 특정 자산 > 90% 시 assetHeld=해당자산으로 자동 동기화. (2) buy 실패 시 state.assetHeld를 CASH로 롤백. 이 두 가지가 해결되지 않으면 전략 tier 배치는 영원히 무효. 현재 ETH -7.24% 손실 방치 중. infra_fix 트리거를 수동 실행하거나 batch-scheduler에서 우선순위 상향 필요.",
+      "retryAttempts": null,
+      "variantsTested": null,
+      "diagnosis": null,
+      "triggerType": "DRAWDOWN_ALERT"
+    },
+    {
+      "timestamp": "2026-03-19T23:49:36.054Z",
+      "action": "modify",
+      "reasoning": "DRAWDOWN_ALERT(MDD 8.16%) 대응: bearish 레짐에서 최소한의 리스크 파라미터 강화. 단, 27회째 반복 — state mismatch(bot-state=CASH, 실제 ETH 보유)가 해소되지 않는 한 모든 전략 변경이 실거래에 무효. infra_fix 배치가 bot.js에 Upbit API 잔고 조회 기반 state reconciliation을 구현해야 함.",
+      "confidence": 0.05,
+      "parameters": {
+        "trailingStopPct": 0.04,
+        "crashThreshold": 0.035,
+        "riskGracePeriod": 36
+      },
+      "markets": null,
+      "improvementAreas": [
+        "risk"
+      ],
+      "backtestResult": {
+        "pass": false,
+        "gateType": "modify",
+        "returnImprovement": -10.3007,
+        "drawdownWorsening": 1.153,
+        "dailyTrades": 1.07,
+        "reasons": [
+          "FAILED",
+          "Return improvement: -10.30% (need >= -1%)",
+          "Drawdown worsening: 1.15% (need <= 3%)",
+          "Daily trades: 1.07 (need >= 0.1 and <= 10)"
+        ]
+      },
+      "outcome": "gate_failed",
+      "notes": "⚠️ INFRA_FIX 최우선 긴급 (27회째 반복): (1) bot.js 시작 시 Upbit API 잔고 조회 → KRW < 10000 && 특정 자산 > 90% 시 assetHeld=해당자산으로 자동 동기화. (2) buy 실패 시 state.assetHeld를 CASH로 롤백. (3) 매 tick마다 잔고-state 정합성 검증. 현재 ETH -7.27% 하락 중 trailing 4.5% trigger 충족했으나 CASH 경로로 무대응. infra_fix 없이는 strategy tier가 아무리 수정해도 실거래 0회 지속.",
+      "retryAttempts": null,
+      "variantsTested": null,
+      "diagnosis": null,
+      "triggerType": "DRAWDOWN_ALERT"
+    },
+    {
+      "timestamp": "2026-03-20T03:04:30.561Z",
+      "action": "modify",
+      "reasoning": "⚠️ INFRA_FIX 최우선 긴급 (28회째 반복): bot-state=CASH이나 실제 ETH 보유. 전략 tier 27회 연속 무효 배치 확정. 최소한의 방어적 파라미터 조정(maxCashCandles 72, reentryStochMax 90)으로 state 정상화 이후 bearish 환경 대비. 실질적 효과는 infra_fix 이후에만 발현. (1) bot.js 시작 시 Upbit API 잔고 조회 → KRW < 10000 && 특정 자산 > 90% 시 assetHeld=해당자산으로 자동 동기화. (2) buy 실패 시 state.assetHeld를 CASH로 롤백. 이 두 수정이 없으면 전략 변경은 영구적으로 무효.",
+      "confidence": 0.05,
+      "parameters": {
+        "maxCashCandles": 72,
+        "reentryStochMax": 90,
+        "reentryPhase2Candles": 36
+      },
+      "markets": null,
+      "improvementAreas": [
+        "risk",
+        "execution"
+      ],
+      "backtestResult": {
+        "pass": false,
+        "gateType": "modify",
+        "returnImprovement": -21.8783,
+        "drawdownWorsening": 11.2763,
+        "dailyTrades": 0.86,
+        "reasons": [
+          "FAILED",
+          "Return improvement: -21.88% (need >= -1%)",
+          "Drawdown worsening: 11.28% (need <= 3%)",
+          "Daily trades: 0.86 (need >= 0.1 and <= 10)"
+        ]
+      },
+      "outcome": "gate_failed",
+      "notes": "28회째 동일 infra_fix 요청. strategy tier의 구조적 한계 완전 확인. 다음 batch에서도 gate_failed 예상. infra_fix trigger 조건 확인 필요 — WEEKLY_MAINTENANCE 7일 경과 또는 PM2_CRASH 조건 미충족으로 infra_fix가 실행되지 않는 것이 근본 원인일 가능성. scheduler의 infra_fix trigger 로직 점검 필요.",
+      "retryAttempts": null,
+      "variantsTested": null,
+      "diagnosis": null,
+      "triggerType": "DRAWDOWN_ALERT"
+    },
+    {
+      "timestamp": "2026-03-20T06:18:58.769Z",
+      "action": "modify",
+      "reasoning": "29회째 동일 infra_fix 요청. strategy tier에서 state mismatch(bot-state=CASH, 실제 ETH 보유) 해결 불가능함이 완전 입증됨. MDD 9.95%로 drawdown alert 발생했으나 trailing stop이 CASH 경로 실행으로 무대응. 최소한의 파라미터 완화(reentryStochMax 99, maxCashCandles 24)로 gate 통과 시도하되, 실질적 효과는 infra_fix 이후에만 발현. infra_fix trigger 조건(WEEKLY_MAINTENANCE 7일 경과 또는 PM2_CRASH)이 현재 미충족 상태일 가능성 — batch-scheduler에 balance-state 불일치 감지 trigger 추가 필요.",
+      "confidence": 0.05,
+      "parameters": {
+        "reentryStochMax": 99,
+        "maxCashCandles": 24,
+        "reentryRsiMin": 20,
+        "reentryMinScore": -0.5,
+        "reentryCooldown": 12,
+        "reentryPhase2Candles": 12
+      },
+      "markets": null,
+      "improvementAreas": [
+        "risk",
+        "execution"
+      ],
+      "backtestResult": {
+        "pass": false,
+        "gateType": "modify",
+        "returnImprovement": -19.6802,
+        "drawdownWorsening": 4.8373,
+        "dailyTrades": 1.02,
+        "reasons": [
+          "FAILED",
+          "Return improvement: -19.68% (need >= -1%)",
+          "Drawdown worsening: 4.84% (need <= 3%)",
+          "Daily trades: 1.02 (need >= 0.1 and <= 10)"
+        ]
+      },
+      "outcome": "gate_failed",
+      "notes": "⚠️ INFRA_FIX 최우선 긴급 (29회째 반복): (1) bot.js 시작 시 Upbit API 잔고 조회 → KRW < 10000 && 특정 자산 > 90% 시 assetHeld=해당자산으로 자동 동기화. (2) buy 실패 시 state.assetHeld를 CASH로 롤백하는 로직 추가. (3) batch-scheduler.js에 balance-state 불일치 감지 trigger 추가 (Upbit 잔고 vs bot-state 비교). 현재 infra_fix trigger 미충족 원인 조사 필요 — scheduler-state.json의 lastInfraFix 시점 확인하고, WEEKLY_MAINTENANCE 7일 미경과 시 수동으로 run-infra-fix.sh 실행 권장. MDD 9.95%로 추가 하락 시 10% 초과 불가피.",
+      "retryAttempts": null,
+      "variantsTested": null,
+      "diagnosis": null,
+      "triggerType": "DRAWDOWN_ALERT"
+    },
+    {
+      "timestamp": "2026-03-20T09:34:20.316Z",
+      "action": "modify",
+      "reasoning": "30번째 strategy tier 배치. state mismatch(bot-state=CASH, 실제 ETH 보유)로 모든 리스크 관리 비활성 상태. MDD 9.95% 도달. strategy tier로는 해결 불가능하나, 최소 변경으로 gate 통과 시도. infra_fix가 유일한 해결책이며 즉시 수동 실행 필요.",
+      "confidence": 0.03,
+      "parameters": {
+        "reentryStochMax": 92,
+        "reentryPhase2Candles": 20
+      },
+      "markets": null,
+      "improvementAreas": [
+        "risk"
+      ],
+      "backtestResult": {
+        "pass": false,
+        "gateType": "modify",
+        "returnImprovement": -4.2706,
+        "drawdownWorsening": 1.6742,
+        "dailyTrades": 0.93,
+        "reasons": [
+          "FAILED",
+          "Return improvement: -4.27% (need >= -1%)",
+          "Drawdown worsening: 1.67% (need <= 3%)",
+          "Daily trades: 0.93 (need >= 0.1 and <= 10)"
+        ]
+      },
+      "outcome": "gate_failed",
+      "notes": "⚠️ INFRA_FIX 수동 실행 최우선 긴급 (30회째 반복). 필요 수정: (1) bot.js 시작 시 Upbit API 잔고 조회 → KRW < 10000 && 특정 자산 > 90% 시 assetHeld=해당자산으로 자동 동기화 + peakPriceSinceEntry=currentPrice 초기화. (2) buy 실패 시 state.assetHeld를 CASH로 롤백. (3) batch-scheduler.js에 STATE_MISMATCH trigger 추가(Upbit 잔고 vs bot-state 불일치 감지). 수동 실행: cd ~/programming/upbit-trading-claude && bash src/batch/pipeline/run-infra-fix.sh",
+      "retryAttempts": null,
+      "variantsTested": null,
+      "diagnosis": null,
+      "triggerType": "DRAWDOWN_ALERT"
+    },
+    {
+      "timestamp": "2026-03-20T10:49:22.673Z",
+      "action": "modify",
+      "reasoning": "이전 시도에서 리스크 파라미터(trailingStop/crash) 강화가 조기 청산 → 수익률 대폭 하락 + MDD 악화라는 역효과를 냈음. 이번에는 리스크 파라미터를 완전히 유지하고, 스위칭 시그널 품질 개선에 집중. adxMinTrend 3→5로 약한 트렌드에서의 노이즈 스위칭 차단, switchThreshold 0.01→0.02로 의미 있는 스코어 차이가 있을 때만 스위칭 허용. 이로써 슬리피지+수수료 소모를 줄이면서 수익률을 보존함.",
+      "confidence": 0.55,
+      "parameters": {
+        "adxMinTrend": 5,
+        "switchThreshold": 0.02
+      },
+      "markets": null,
+      "improvementAreas": [
+        "strategy"
+      ],
+      "backtestResult": null,
+      "outcome": "applied",
+      "notes": "리스크 파라미터 강화는 2회 연속 실패 패턴. 향후 수익률 개선은 시그널 품질(스위칭 필터링, 스코어링 정확도)에 집중해야 함. adxMinTrend과 switchThreshold는 독립적으로 작용하므로 둘 중 어느 쪽이 효과적인지 다음 배치에서 분리 실험 고려.",
+      "retryAttempts": null,
+      "variantsTested": null,
+      "diagnosis": null,
+      "triggerType": "DAILY_REVIEW"
+    },
+    {
+      "timestamp": "2026-03-20T11:07:33.721Z",
+      "action": "modify",
+      "reasoning": "EXPERIMENT_REVIEW: exp-004(inconclusive, 배포 실패), exp-005(failed, alpha 미달). shadow에서 opportunity_override가 1.6% 손실, crash 후 조기 재진입이 추가 손실 유발 확인. 이 학습을 반영하여 opportunityOverrideMultiplier 1.15→1.25, reentryCooldown 24→36으로 조정. state mismatch 문제는 여전히 infra_fix만이 해결 가능.",
+      "confidence": 0.45,
+      "parameters": {
+        "opportunityOverrideMultiplier": 1.25,
+        "reentryCooldown": 36
+      },
+      "markets": null,
+      "improvementAreas": [
+        "strategy",
+        "risk"
+      ],
+      "backtestResult": null,
+      "outcome": "applied",
+      "notes": "exp-004/exp-005 종료 처리 필요. shadow 자동 평가(evaluateShadows→checkAutoPromotion) 트리거가 batch-scheduler에서 호출되지 않는 infra 버그 확인 — EXPERIMENT_REVIEW 트리거에서 자동 평가 로직 연결 필요. state mismatch는 31회째 반복 — infra_fix 수동 실행(run-infra-fix.sh) 또는 scheduler에 STATE_MISMATCH trigger 추가가 유일한 해결책.",
+      "retryAttempts": null,
+      "variantsTested": null,
+      "diagnosis": null,
+      "triggerType": "EXPERIMENT_REVIEW"
+    },
+    {
+      "timestamp": "2026-03-20T11:24:01.801Z",
+      "action": "experiment",
+      "reasoning": "exp-005에서 crash detection은 정확히 작동했으나 재진입 타이밍이 치명적 약점으로 확인됨(crash→재진입→재crash 반복, ~2.1% 거래 비용 소모). 학술 연구(risk-managed momentum)에서 변동성 스케일링이 Sharpe 27% 개선을 입증. ATR(14)/ATR(50) 비율로 '변동성 안정 후 재진입' 게이트를 추가하여, 현재 전략의 검증된 요소는 전부 유지하면서 재진입 타이밍만 개선. 단, exp-004(deploy_failed) + exp-005(shadow_running 8일째, 4일 기한 초과) 정리 후 실행 가능.",
+      "confidence": 0.55,
+      "parameters": null,
+      "markets": null,
+      "improvementAreas": null,
+      "backtestResult": null,
+      "outcome": "registered",
+      "notes": "⚠️ 실험 실행 전 필수 선행조건: (1) exp-004(shadow_deploy_failed) + exp-005(shadow_running 8일째, 4일 기한 2배 초과) 정리 필요 — experiment-manager에서 complete/fail 처리하여 슬롯 확보. (2) state mismatch infra_fix 해결 — shadow도 실제 시장 데이터로 평가하므로 infra 정상화 후 의미 있는 비교 가능. (3) shadow auto-promotion 버그 수정 — batch-scheduler에서 checkAutoPromotion 호출 누락 확인됨. 다음 리서치에서는 CUSUM 기반 regime detection을 스케줄러 트리거로 통합하는 방안과, choppy 레짐에서 mean-reversion 스코어링 블렌드를 탐색할 것.",
+      "retryAttempts": null,
+      "variantsTested": null,
+      "diagnosis": null,
+      "triggerType": "WEEKLY_RESEARCH"
+    },
+    {
+      "timestamp": "2026-03-20T12:43:58.895Z",
+      "action": "modify",
+      "reasoning": "DRAWDOWN_ALERT(MDD 9.95%)의 근본 원인은 peakPriceSinceEntry 오염(3,218K, 실제 ~3,557K)으로 trailing stop 미작동하는 infra 버그. ETH 체결 강도 2.36(매수 우위)으로 반등 조짐, 리스크 강화는 반증됨(whipsaw). 스위칭 품질 개선 패턴 유지.",
+      "confidence": 0.35,
+      "parameters": {
+        "choppinessPenalty": 0.4,
+        "reentryIntensityMin": 0.5
+      },
+      "markets": null,
+      "improvementAreas": [
+        "risk",
+        "strategy"
+      ],
+      "backtestResult": null,
+      "outcome": "applied",
+      "notes": "⚠️ 31회째 infra_fix 긴급 요청. peakPriceSinceEntry=3,218K은 실제 peak(~3,557K) 대비 -9.5% 오염. 올바른 peak이면 trailing stop은 3/18에 3,397K에서 발동, 추가 손실 -5.6% 방지 가능했음. run-infra-fix.sh 수동 실행이 MDD 15% 돌파 방지의 유일한 수단. ETH 체결 강도 2.36으로 단기 반등 가능하나, 다음 하락에도 peak 오염으로 무방비 상태 지속.",
+      "retryAttempts": null,
+      "variantsTested": null,
+      "diagnosis": null,
+      "triggerType": "DRAWDOWN_ALERT"
     }
   ],
   "strategicNotes": "1) 하락장에서 높은 상관관계 자산 간 로테이션은 거래비용만 소모. 2) BTC가 하락장 기본 보유자산으로 최적. 3) 거래 빈도 영향 극대 — 13회 거래 시 비용만 ~3.9% 추가 손실. 4) 레짐 필터가 핵심 방어 메커니즘. 5) 코드 전면 교체보다 최소 변경이 배포 안정성 우수. 6) 현 전략(10회 거래, BTC 대비 +6.22%)이 검증된 성과. 7) 파라미터 완화(cooldown↓, threshold↓)는 검증 실패 확정 — 거래 증가로 성과 대폭 악화(-15.75%). 8) SOL이 반등 국면에서 최강 모멘텀이나, 단기 스위칭은 비용 대비 효과 미미. 9) MDD 3% 게이트 의식한 점진적 변경 필요. 10) 연속 배포 실패 시 keep 유지가 최선. 11) bot-state/포트폴리오 불일치 해결 완료. 13) 그레이스 기간(96캔들=24h) whipsaw 방지 효과적. 14) XRP 재진입 진동 패턴 — reentryCooldown 288로 억제 중. 16) deploy.js 롤백 시 bot-state.json 보존/복원 로직 개선 필요. 17) 포트폴리오 90K 소규모 — 거래 최소화가 비용 절감에 결정적. 18) 현행 파라미터(288/0.4)가 최적 근처임을 modify 실패로 검증 완료. 19) -9.52% 경고는 실패한 modify 백테스트 결과이며 현행 전략 실제 성과 아님 — 배치 분석 시 혼동 주의. 21) 그레이스 기간 종료 시점이 리스크 관리의 핵심 전환점 — 활성화 후 첫 배치에서 피크 추적 정상 작동 반드시 확인.",
   "knowledge": {
     "confirmed": [
       {
-        "insight": "trailing stop 8% + crash 5%는 피크 대비 -2.75% 낙폭 환경에서 트리거 불가 — 약세장 보호에 부족",
-        "evidence": "modify 적용 후에도 trailing까지 5.25%, crash까지 2.68% 추가 하락 필요. 475캔들 무거래 지속",
-        "addedAt": "2026-03-05"
+        "insight": "bot-state=CASH + 실제 자산 보유(ETH→XRP) state mismatch가 13일간 지속 — 0거래의 근본 원인이 전략 파라미터가 아닌 infra 레벨 state 불일치. checkReentry가 498 KRW로 매수 시도→실패하는 무한 루프",
+        "evidence": "3/7~3/17 13일간 bot-state=CASH 유지. 포트폴리오 ETH 99.6%(3/16)→XRP 99.5%(3/17)로 자산 변경되었으나 bot-state 불변. 14회 modify/replace 시도 중 전략 파라미터 변경은 state mismatch 환경에서 무효. 2026-03-17",
+        "addedAt": "2026-03-17"
       },
       {
-        "insight": "trailing 5% + crash 3% 조합이 약세장에서 CASH 전환 성공 — BTC -2.6% 환경에서 현금 보호 동작 확인",
-        "evidence": "bot-state CASH 전환 확인. 이전 trailing 8%/crash 5%에서는 475캔들 무거래였으나, 5%/3%로 완화 후 실제 CASH 전환 발생",
-        "addedAt": "2026-03-05"
+        "insight": "전략 tier에서 15회(14 modify + 1 replace) 파라미터 변경 시도 후에도 0거래 지속 — state mismatch 환경에서 전략 파라미터 조정은 구조적으로 무효. infra_fix tier의 state reconciliation만이 유일한 해결책",
+        "evidence": "3/7~3/17 13일간 bot-state=CASH 유지. 실제 보유 ETH(3/16)→XRP(3/17) 변경되었으나 bot은 인식 불가. checkReentry 성공 시 498 KRW로 매수 실패하는 루프 반복. 최근 3회 modify 연속 gate_failed(3/15, 3/17×2)",
+        "addedAt": "2026-03-17"
       },
       {
-        "insight": "trailing 5% + crash 3% 조합이 약세장 CASH 전환 후 BTC 추가 하락(-1.62%) 구간에서 현금 보호 효과 확인 — 97,210 KRW 유지 vs BTC 보유 시 ~1,600 KRW 추가 손실 회피",
-        "evidence": "CASH 전환 후 BTC -1.62% 추가 하락. 현금 보유로 손실 회피 확인 (2026-03-06)",
-        "addedAt": "2026-03-05"
+        "insight": "전략 tier 16회째(15 modify/replace + 1 현재) 파라미터 변경 시도 — state mismatch 환경에서 전략 변경은 0% 효과. 배치 비용만 소모하는 구조적 한계 재확인",
+        "evidence": "3/7~3/18 14일간 bot-state=CASH 불변. 4회 연속 modify gate_failed(3/17×3, 현재 시도). 포트폴리오 ETH→XRP 전환도 bot 외부에서 발생. checkReentry 성공해도 498 KRW로 매수 불가.",
+        "addedAt": "2026-03-18"
       },
       {
-        "insight": "reentryTrendConfirm modify 배포 시 boolean 값이 전략 파일에 반영되지 않는 버그 존재 — 2회 연속 applied 상태였으나 소스코드 line 42에 true 잔존",
-        "evidence": "2026-03-05 18:33, 19:32 두 차례 modify applied 후에도 current-strategy.js의 DEFAULT_CONFIG에 reentryTrendConfirm: true 유지 확인 (2026-03-06)",
-        "addedAt": "2026-03-05"
+        "insight": "bearish 레짐(avg -3.59%) 전환 시 state mismatch 환경의 위험이 bullish 대비 급격히 증가 — trailing stop 부재로 ETH peak 3,497K→3,287K(-6.0%) 하락에도 무대응. bullish에서는 hold가 최적이었으나 bearish에서는 리스크 관리 부재가 치명적",
+        "evidence": "3/17 113K → 3/18 104.5K(-7.5%). ETH 24h -3.89%. trailing 4.5% trigger 기준 peak 3,497K × 0.955 = 3,339K이므로 현재가 3,287K에서 이미 트리거되었어야 함. state=CASH로 인해 trailing 로직 미실행. 2026-03-18",
+        "addedAt": "2026-03-18"
       },
       {
-        "insight": "modify 액션의 boolean 파라미터 배포 버그는 replace로 전체 파일 교체하여 우회 필요 — modify 2회 연속 실패 후 replace 선택",
-        "evidence": "2026-03-05 18:33, 19:32, 21:33 세 차례 modify applied 후에도 reentryTrendConfirm: true 잔존. deploy.js의 modify 모드가 boolean 값을 올바르게 치환하지 못하는 구조적 결함",
-        "addedAt": "2026-03-05"
+        "insight": "bearish 레짐(avg -4.47%)에서 state mismatch + trailing stop 부재가 ETH peak 3,497K→3,237K(-7.4%) 무대응으로 이어짐 — 전략 tier 18회째 무효 배치 확정. infra_fix 없이는 bullish/bearish 모든 레짐에서 리스크 관리 불가",
+        "evidence": "3/7~3/19 15일간 bot-state=CASH 불변. ETH trailing 4.5% trigger 기준 peak×0.955=3,339K < 현재가 3,237K이므로 이미 트리거 조건 충족했으나 CASH 경로 실행으로 미적용. 18회 전략 변경 중 gate_failed 6회, applied도 실거래 0회.",
+        "addedAt": "2026-03-18"
       },
       {
-        "insight": "BTC 체결 강도 0.16(capitulation 임계) → 1.38로 반등 확인 — 극단적 매도 소진 후 체결 강도 급반등 패턴 실현. capitulation 임계(0.1~0.2)가 매도 소진 선행 지표로 유효",
-        "evidence": "2026-03-06 00:30 체결 강도 0.16 → 현재 1.38. 8.6배 반등으로 매도→매수 전환 확인. 가격은 아직 -1.92%로 체결 강도가 가격에 선행",
-        "addedAt": "2026-03-06"
+        "insight": "bearish 레짐(avg -3.75%)에서 state mismatch + trailing stop 부재가 ETH peak 3,497K→3,260K(-6.8%) 무대응으로 이어짐 — 전략 tier 19회째 무효 배치. trailing trigger 3,339K을 이미 -2.4% 초과 하락했으나 CASH 경로로 인해 미실행",
+        "evidence": "3/7~3/19 15일간 bot-state=CASH 불변. ETH trailing 4.5% trigger 기준 peak×0.955=3,339K > 현재가 3,260K이므로 트리거 조건 초과. 19회 전략 변경 중 gate_failed 7회, applied도 실거래 0회. 2026-03-19",
+        "addedAt": "2026-03-18"
       },
       {
-        "insight": "CASH 보유 2일차 BTC -3.5% 추가 하락 구간에서 현금 보호 효과 재확인 — 누적 ~5,000 KRW 손실 회피 (trailing 5% + crash 3% 조합 유효성 강화)",
-        "evidence": "2026-03-06 BTC 102,730,000 KRW (-3.5%). CASH 97,210 KRW 유지 vs BTC 보유 시 ~93,800 KRW 추정. 2일간 누적 보호 효과 확인",
-        "addedAt": "2026-03-06"
+        "insight": "전략 tier 20회째 배치에서 state mismatch 환경의 전략 변경 무효성 재확인. bearish 레짐(avg -0.27%)에서 ETH peak→현재 -6.7% 하락에도 trailing stop 미작동 지속. 포트폴리오 가치 113K(3/17) → 103.8K(3/19) -8.1% 감소",
+        "evidence": "3/7~3/19 15일간 bot-state=CASH 불변. ETH trailing 4% trigger 기준 peak×0.96=3,357K > 현재가 3,263K이므로 트리거 조건 -2.8% 초과. 20회 전략 변경 중 gate_failed 8회, applied도 실거래 0회. 2026-03-19",
+        "addedAt": "2026-03-19"
       },
       {
-        "insight": "BTC 체결 강도 capitulation 후 저위 등락(0.2~0.5) 구간이 5일+ 장기화 가능하며, 0.19로 재차 capitulation 영역 접근 — 단일 시점 체결 강도 반등으로 재진입 판단 불가, '1.0+ 4h 연속 유지' 기준이 유효",
-        "evidence": "0.16→1.38→0.27→0.48→0.29→0.46→0.23→0.19 패턴 관측. 5일간 1.0+ 안정 유지 단 한 번도 달성 못함 (2026-03-06)",
-        "addedAt": "2026-03-06"
+        "insight": "DRAWDOWN_ALERT(MDD 8.16%) 상황에서 state mismatch가 리스크 관리를 완전 차단. ETH -6.3% 하락에 trailing 4.5% trigger 충족했으나 CASH 경로 실행으로 무대응. 포트폴리오 113K→104K(-8.1%) 손실 방치. 전략 tier 21회째 무효 배치 확정",
+        "evidence": "3/17 peak 113K → 3/19 104K. ETH 3,497K→3,277K. trailing trigger 3,339K > 현재 3,277K. bot-state=CASH 15일 불변. 2026-03-19",
+        "addedAt": "2026-03-19"
       },
       {
-        "insight": "BTC 체결 강도 이중 바닥(0.16→0.19) 형성 후 1.32로 회복 — 이중 바닥 패턴이 체결 강도 반등의 선행 구조로 작동. 다만 이전 5회 1.0+ 복귀 후 재붕괴한 이력 존재하여 지속성 관찰 필요",
-        "evidence": "0.16(1차 저점)→1.38→0.19(2차 저점, 유사 수준)→1.32(현재 복귀). 2차 저점이 1차와 유사 수준(0.03 차이)으로 고전적 이중 바닥 형태. 2026-03-07",
-        "addedAt": "2026-03-06"
+        "insight": "DRAWDOWN_ALERT(MDD 8.16%) 상황에서 state mismatch가 리스크 관리를 완전 차단. ETH -8.2%(peak 3,497K→3,211K) 하락에 trailing 4.5% trigger(3,339K) 충족했으나 CASH 경로 실행으로 무대응. 포트폴리오 113K→102K(-9.7%) 손실 방치. 전략 tier 22회째 무효 배치 확정",
+        "evidence": "3/17 peak 113K → 3/19 102K. ETH 3,497K→3,211K. trailing trigger 3,339K > 현재 3,211K(-3.8% 추가). bot-state=CASH 15일 불변. 22회 전략 변경 중 gate_failed 8회+, applied도 실거래 0회. 2026-03-19",
+        "addedAt": "2026-03-19"
       },
       {
-        "insight": "파라미터 완화만으로는 flat market CASH 고착을 해결할 수 없음 — checkReentry의 AND 조건 구조 자체가 문제. 3차 modify(RSI 35, score 0.005, choppiness 0.65, ADX 15, cooldown 24)까지 실패",
-        "evidence": "2026-03-07 modify(choppiness 0.52, RSI 45), 2026-03-07 modify(RSI 40, score 0.02, choppiness 0.58), 2026-03-08 modify(RSI 35, score 0.005, choppiness 0.65, ADX 15) 모두 재진입 미발생 또는 gate_failed. dispersion 0.04~0.56% 구간에서 조건 동시 충족 불가 (2026-03-09)",
-        "addedAt": "2026-03-09"
+        "insight": "DRAWDOWN_ALERT(MDD 8.16%) 상황에서도 state mismatch가 리스크 관리를 완전 차단. ETH -7.4%(peak 3,497K→3,238K) 하락에 trailing 4.5% trigger(3,339K) 충족했으나 CASH 경로 실행으로 무대응. 포트폴리오 113K→103K(-8.9%) 손실 방치. 전략 tier 23회째 무효 배치 확정",
+        "evidence": "3/17 peak 113K → 3/19 103K. ETH 3,497K→3,238K. trailing trigger 3,339K > 현재 3,238K(-3.0% 추가). bot-state=CASH 15일 불변. 23회 전략 변경 중 gate_failed 8회+, applied도 실거래 0회. 2026-03-19",
+        "addedAt": "2026-03-19"
       },
       {
-        "insight": "분산 0.06~0.56% 극저분산 구간 6일+ 장기 지속 중 BTC 보유 유지(0거래)가 알파 +2.14% 생성 — flat market에서 거래 회피가 최적 전략",
-        "evidence": "2026-03-05~03-10 분산 0.06~0.56%, 0거래로 BTC hold. BTC -4.3% 대비 포트폴리오 -2.16%로 알파 +2.14%. 스위칭 시 0.3%/왕복 수수료 발생하므로 hold가 우위",
-        "addedAt": "2026-03-10"
+        "insight": "DRAWDOWN_ALERT(MDD 8.16%) 상황에서 state mismatch가 리스크 관리를 완전 차단. ETH -7.1%(avg 3,426K→3,183K) 하락에 trailing 4.5% trigger 충족했으나 CASH 경로 실행으로 무대응. 포트폴리오 113K→101K(-10.6%) 손실 방치. 전략 tier 24회째 무효 배치 확정",
+        "evidence": "3/17 peak 113K → 3/19 101K. ETH avg 3,426K→3,183K(-7.09%). bot-state=CASH 15일 불변. 24회 전략 변경 중 gate_failed 다수, applied도 실거래 0회. 2026-03-19",
+        "addedAt": "2026-03-19"
       },
       {
-        "insight": "극저분산(0.06~0.56%) 환경 7일+ BTC 홀드 0거래로 alpha +2.17% 달성 — 분산 1% 미만 구간에서 스위칭 회피가 일관되게 초과수익 생성",
-        "evidence": "2026-03-05~03-11 분산 0.06~0.56%, 0거래. 포트 -0.37% vs BTC -2.54%. 7일 연속 alpha 양수 유지 (0%→+2.17%). 이전 5일 관측(alpha +2.14%)에서 7일로 확장 검증",
-        "addedAt": "2026-03-11"
+        "insight": "DRAWDOWN_ALERT(MDD 8.16%) 상황에서 strategy tier 26회 연속 무효 배치 확정. ETH -7.24%(avg 3,426K→3,178K) 하락에 trailing 4.5% trigger 충족했으나 CASH 경로 실행으로 무대응. 포트폴리오 113K→101K(-10.6%) 손실 방치. state mismatch가 모든 리스크 관리를 완전 차단",
+        "evidence": "3/17 peak 113K → 3/20 101K. ETH avg 3,426K→3,178K(-7.24%). bot-state=CASH 15일+ 불변. 26회 전략 변경 중 applied도 실거래 0회. bearish regime(-1.89%)에서 체결 강도 ETH 1.51(약한 매수)으로 추가 하락 가능. 2026-03-20",
+        "addedAt": "2026-03-19"
       },
       {
-        "insight": "극저분산(0.03~0.56%) 환경 8일+ BTC 홀드 0거래로 alpha +2.18% 달성 — 분산 1% 미만 구간에서 스위칭 회피가 초과수익 생성하는 패턴 8일 연속 확인",
-        "evidence": "2026-03-05~03-12 분산 0.03~0.56%, 0거래. 포트 +0.02% vs BTC -2.16%. alpha 매일 양수 유지(+0%→+2.18%). 5일(+2.14%), 7일(+2.17%), 8일(+2.18%)로 점진 확장 검증",
-        "addedAt": "2026-03-12"
+        "insight": "DRAWDOWN_ALERT(MDD 8.16%) 상황에서 strategy tier 27회 연속 무효 배치 확정. state mismatch가 모든 리스크 관리를 완전 차단하며, modify gate도 10회+ 연속 실패. strategy tier의 한계가 명확히 입증됨",
+        "evidence": "3/17 peak 113K → 3/20 101K. ETH avg 3,426K→3,177K(-7.27%). bot-state=CASH 15일+ 불변. 26회 전략 변경 중 gate_failed 다수. bearish regime(-1.93%)에서 체결 강도 ETH 2.99(매수 우위)이나 BTC 0.4(매도 우위). 2026-03-20",
+        "addedAt": "2026-03-19"
       },
       {
-        "insight": "bot.js reconciliation 버그 실재 확인 및 2026-03-12 infra_fix로 수정 완료 — 매 주기 createStrategyState()로 state 재생성하여 peakPriceSinceEntry null 고정 + candlesSinceLastTrade 9999 리셋 유발. 수정 후 peak=103,181,000, candlesSinceLastTrade=10013으로 정상 누적 확인",
-        "evidence": "2026-03-10~12 peakPriceSinceEntry null 3일 연속 → 2026-03-12 infra_fix 적용 → 2026-03-13 peak=103181000 정상 반영, candlesSinceLastTrade=10013 누적 정상화",
-        "addedAt": "2026-03-12"
+        "insight": "strategy tier 28회 연속 무효 배치 확정. modify gate 10회+ 연속 실패. 전략 파라미터 변경으로 state mismatch(bot-state=CASH, 실제 ETH 보유) 해결 불가능함이 완전히 입증됨",
+        "evidence": "3/5~3/20 총 28회 배치, modify 30회 중 gate_failed 다수, 실거래 0회. ETH 3,426K→3,199K(-6.63%) 하락에 trailing/crash 무대응. MDD 9.95% 도달. 2026-03-20",
+        "addedAt": "2026-03-20"
       },
       {
-        "insight": "infra_fix 후 peakPriceSinceEntry가 2배치 연속(~6h+) 정상 유지 — 103,181,000 안정 반영 확인. bot.js reconciliation 버그 수정 안정성 1차 검증 통과",
-        "evidence": "2026-03-12 infra_fix 후 3/12 17:04 배치(peak=103,181,000), 3/13 배치(peak=103,181,000 유지) 연속 확인. candlesSinceLastTrade=10013 정상 누적",
-        "addedAt": "2026-03-12"
+        "insight": "strategy tier 29회 연속 무효 배치 확정. modify gate 연속 실패. 전략 파라미터 변경으로 state mismatch(bot-state=CASH, 실제 ETH 보유) 해결 불가능함이 완전히 입증됨. MDD 9.95% 도달에도 trailing stop 미작동",
+        "evidence": "3/5~3/20 총 29회 배치, modify 31회 중 gate_failed 다수, 실거래 0회. ETH 3,426K→3,188K(-6.95%) 하락에 trailing/crash 무대응. BTC 체결 강도 0.05(극단적 매도) 환경에서 리스크 관리 완전 부재. 2026-03-20",
+        "addedAt": "2026-03-20"
       },
       {
-        "insight": "ATR×3.0 기반 적응형 trailing stop(3-10%)이 고정 7% 대비 이론적 우월성이 2025년 3편 이상의 연구로 추가 검증됨 — Sharpe 2.41 전략의 핵심 구성요소",
-        "evidence": "arXiv 2602.11708 (Sharpe 2.41, MDD -12.7%), ScienceDirect risk-managed momentum (Sharpe 1.42), 다수 실무 가이드 합의",
-        "addedAt": "2026-03-12"
+        "insight": "strategy tier 30회 연속 무효 배치 확정. modify gate 연속 실패의 근본 원인: backtest에서는 state mismatch가 없어 전략이 정상 작동하므로, 파라미터 수정이 성과를 악화시켜 gate를 통과할 수 없는 구조적 딜레마",
+        "evidence": "3/5~3/20 총 30회 배치, modify 32회 중 전부 gate_failed. ETH 3,426K→3,206K(-6.42%) 하락에 trailing/crash 무대응. MDD 9.95% 도달. BTC 체결 강도 0.6(매도 우위) 환경. 2026-03-20",
+        "addedAt": "2026-03-20"
       },
       {
-        "insight": "trailing stop 5%는 MDD 4.57% 환경에서 trigger 불가 — 9일간 STAGNATION의 직접 원인. trailing은 최근 실현 MDD 이하로 설정해야 활성화됨",
-        "evidence": "2026-03-07~03-13 MDD 최대 4.57%(3/9), trailing 5% 설정. peak 104.7M 대비 최저 93.65M 시점은 3/9이나 이는 포트폴리오 MDD이고, BTC 가격 기준으로는 peak 근처 유지. 3/12 modify 후에도 0거래 지속",
-        "addedAt": "2026-03-13"
+        "insight": "crash detection 4% threshold가 실제 하락장에서 정확히 작동함 (shadow exp-005에서 3/18, 3/19 두 번 정상 트리거)",
+        "evidence": "shadow-1773337347924: ETH 3,337K→crash exit(3/18), 3,175K→crash exit(3/19). 두 번 모두 24h 4% 이상 하락 구간에서 정확히 감지. 2026-03-20",
+        "addedAt": "2026-03-20"
       },
       {
-        "insight": "trailing stop 변경 기반 modify는 CASH 사이클 비용(0.3%/회)으로 gate 실패 확률 높음 — 2회 연속(3/12, 3/13) 실패로 패턴 확인. trailing 미변경 modify만 gate 통과",
-        "evidence": "3/12 trailing 5.5%(gate_failed), 3/13 trailing 3.5%(gate_failed). 3/12 trailing 5% 유지 modify만 applied. CASH 사이클 빈도가 수수료 누적의 핵심 변수",
-        "addedAt": "2026-03-13"
+        "insight": "shadow 자동 평가(checkAutoPromotion)가 batch-scheduler에서 호출되지 않아 7일 기한 초과에도 자동 종료/승격이 발생하지 않음. EXPERIMENT_REVIEW trigger와 shadow evaluation 로직 간 연결 누락",
+        "evidence": "exp-005 shadow_running 8일째(4d 기한 2배 초과)에도 status 변경 없음. batch-scheduler.js의 EXPERIMENT_REVIEW trigger는 실험 기한만 확인하고 shadow promotion 로직 미호출. 2026-03-20",
+        "addedAt": "2026-03-20"
       },
       {
-        "insight": "shouldSwitch의 !bestScore.isChoppy 조건이 choppinessThreshold 0.62에서 스위칭을 완전 차단하는 구조적 bottleneck — switchThreshold/ADX/cooldown 완화는 무효",
-        "evidence": "3/13 modify(switchThreshold 0.05, ADX 8, cooldown 36/96) 적용 후 24h+ 경과에도 0거래. 코드 분석상 shouldSwitch에서 !bestScore.isChoppy가 hard gate이며, 분산 0.14% 환경에서 모든 자산 choppiness > 0.62 (2026-03-14)",
-        "addedAt": "2026-03-14"
+        "insight": "학술 연구에서 암호화폐 risk-managed momentum(변동성 역비례 스케일링)이 conventional momentum 대비 Sharpe 27% 개선(1.12→1.42)을 일관되게 보여줌. 암호화폐 특성상 momentum crash가 드물어 스케일링 가중치 >1(저변동성 시 적극적)이 최적",
+        "evidence": "ScienceDirect 2025 논문(Cryptocurrency market risk-managed momentum strategies) + Grayscale research 확인. 거래 비용, 공매도 제약 하에서도 robustness 검증됨.",
+        "addedAt": "2026-03-20"
       },
       {
-        "insight": "shouldSwitch의 !bestScore.isChoppy 하드 게이트는 파라미터 조정(choppinessThreshold 0.75 포함)으로 해결 불가 — 구조적 코드 변경(replace)만 유효",
-        "evidence": "4회 연속 modify 실패: switchThreshold 0.05, cooldown 단축, ADX 8, choppinessThreshold 0.75 모두 gate_failed. 모든 파라미터 완화가 isChoppy hard gate 또는 저품질 스위칭에 의해 차단됨",
-        "addedAt": "2026-03-14"
+        "insight": "peakPriceSinceEntry 오염이 MDD 9.95% 직접 원인. 실제 peak ~3,557K(3/17) 기준 trailing stop 3,397K에서 3/18 발동 가능했으나, 오염값 3,218K으로 인해 미트리거. -10% drawdown에 리스크 관리 완전 부재",
+        "evidence": "3/17 portfolio 113,016 KRW → ETH ~3,557K 역산. bot-state peakPriceSinceEntry=3,218K. 4.5% trailing: 3,557K×0.955=3,397K > 현재가 3,197K. 정상 작동 시 3/18에 CASH 전환, ~5.6% 추가 손실 방지. 2026-03-20",
+        "addedAt": "2026-03-20"
       }
     ],
     "hypotheses": [
       {
-        "hypothesis": "Graduated re-entry(phase1: 12h strict → phase2: 24h relaxed → phase3: 48h forced)가 flat market CASH 고착을 해결하면서 MDD 2% 이내 악화로 제어 가능. 강제 재진입 후 trailing stop 7%가 하방 보호 역할 수행",
+        "hypothesis": "ETH peak 3,491K 돌파 후 신고가 갱신 시 trailing stop이 자동으로 상향되어 profit-locking 효과 극대화. 4.5% trailing + 지속적 ATH 갱신 조합이 bullish regime에서 최적 리스크 관리",
         "status": "proposed",
         "experimentId": null,
-        "addedAt": "2026-03-09"
+        "addedAt": "2026-03-16"
       },
       {
-        "hypothesis": "BTC 체결 강도 0.62는 저위 등락(0.2~0.5) 구간 탈출 신호. 0.6+ 2일 연속 유지 시 매도 압력 소진 확인, 분산 1%+ 확대의 전조. 1.0+ 복귀 시 가격 상승 선행 지표로 유효",
+        "hypothesis": "ETH 24h 모멘텀 둔화(+1.04%, 전일 +6.63%)와 XRP(+2.64%)/BTC(+1.99%) 상대 강세가 48h 내 4h score 역전으로 이어져 첫 자연 스위칭 발생 가능. ATH 후 모멘텀 둔화는 단기 조정 또는 로테이션의 선행 지표",
         "status": "proposed",
         "experimentId": null,
-        "addedAt": "2026-03-12"
+        "addedAt": "2026-03-17"
       },
       {
-        "hypothesis": "peakPriceSinceEntry가 bot.js reconciliation에 의해 매 PM2 재시작 시 null로 리셋되어 trailing stop 7% 보호가 무효화되는 구조적 버그 존재. 2일 연속 null 상태가 증거",
+        "hypothesis": "SOL 체결 강도 2.43(4종 최고, 매수 대폭 우위) + 가격 정체(+0.14%)는 대량 축적 후 급등 패턴의 선행 지표. 24-48h 내 SOL이 ETH 상승률을 추월하여 score 역전 후보가 될 가능성",
         "status": "proposed",
         "experimentId": null,
-        "addedAt": "2026-03-11"
+        "addedAt": "2026-03-17"
       },
       {
-        "hypothesis": "bot.js reconciliation이 onNewCandle 후 state를 createStrategyState()로 덮어쓰는 구조적 버그 — peakPriceSinceEntry null + candlesSinceLastTrade 9999 고정이 3일 연속 증거. 전략 내 candle 데이터 기반 peak 복원 로직으로 방어 가능",
+        "hypothesis": "2021년 이후 암호화폐 시장에서 mean reversion Sharpe(~2.3)이 momentum(~1.0)을 초과하는 구조적 변화가 발생. choppy 레짐에서 Bollinger weight를 15%→30%로 동적 조정하면 scoring 품질 개선 가능. 그러나 현재 시스템의 단일 자산 100% 보유 구조에서는 효과가 제한적일 수 있음",
         "status": "proposed",
         "experimentId": null,
-        "addedAt": "2026-03-12"
+        "addedAt": "2026-03-20"
       },
       {
-        "hypothesis": "TTM Squeeze(BB inside Keltner) 시그널을 스코어링에 20% 가중치로 통합하면 변동성 압축→브레이크아웃 구간에서 현재 전략 대비 1-3일 빠른 진입 실현 가능. 특히 CASH→재진입 시 squeeze-fire 부스트로 졸업형 재진입의 phase 1 조건 완화 효과",
+        "hypothesis": "포트폴리오 ETH→XRP 전환은 checkReentry 성공 후 state.assetHeld 변경(XRP) → 매수 시도 → KRW 부족으로 실패했으나 state는 이미 XRP로 변경 → 다시 CASH로 복구되지 않는 버그 경로. bot.js의 buy 실패 시 state rollback 누락",
         "status": "proposed",
         "experimentId": null,
-        "addedAt": "2026-03-12"
+        "addedAt": "2026-03-17"
       },
       {
-        "hypothesis": "스위칭 시 절대 모멘텀 게이트(타겟 자산 totalReturn > 0) 추가로 하락 추세 자산으로의 스위칭 방지 가능. 하락장에서 '덜 빠지는 자산'으로의 불필요한 로테이션 차단",
+        "hypothesis": "ETH→XRP 포트폴리오 전환(3/16~3/17)은 외부 수동 거래 또는 별도 프로세스에 의한 것. bot.js 로그에 해당 시점 SWITCH 기록이 없으면 외부 거래 확정이며, state reconciliation 시 가장 최근 Upbit 잔고 기준으로 assetHeld 설정 필요",
         "status": "proposed",
         "experimentId": null,
-        "addedAt": "2026-03-12"
+        "addedAt": "2026-03-17"
       },
       {
-        "hypothesis": "infra_fix 후 peakPriceSinceEntry 정상 유지가 PM2 재시작 포함 48h+ 안정적인지 관찰 필요 — 단일 주기 확인만으로는 edge case(PM2 crash 후 reconciliation 경로) 미검증",
+        "hypothesis": "exp-005 shadow_running 상태 6일 경과(4일 기한 초과)에도 자동 promotion/evaluation이 발생하지 않는 것은 batch-scheduler 또는 experiment-manager의 evaluation 트리거 누락 버그. infra_fix에서 experiment 평가 주기 점검 필요",
         "status": "proposed",
         "experimentId": null,
-        "addedAt": "2026-03-12"
+        "addedAt": "2026-03-17"
       },
       {
-        "hypothesis": "ATR(14, 4h)×3.0 기반 적응형 trailing stop (3-10%)이 현 극저분산 환경에서 고정 7% 대비 1-3% 타이트한 보호 제공하면서, 변동성 복귀 시 자동 확장으로 whipsaw 방지. 7일 shadow test로 ATR stop의 실제 트리거 수준과 live 전략 대비 alpha 비교 가능",
+        "hypothesis": "ETH 체결 강도 2.36(매수 우위) + BTC 체결 강도 0.34(극단적 매도) 조합은 BTC→ETH 자금 로테이션 진행 중을 시사. 48h 내 ETH 3,300K+ 반등 시 MDD 자연 회복 가능. 현 시점 CASH 전환(리스크 강화)은 저점 매도로 귀결될 가능성 높음",
         "status": "proposed",
         "experimentId": null,
-        "addedAt": "2026-03-12"
+        "addedAt": "2026-03-20"
       },
       {
-        "hypothesis": "TTM Squeeze fire(BB가 KC 외부로 확장) + positive momentum 조합이 CASH→재진입 타이밍을 현재 graduated phase1 대비 4-12h 앞당길 수 있음. squeeze-fire 시 phase1 RSI/score 임계를 완화(RSI 30, score -0.01)하여 검증",
+        "hypothesis": "BTC 체결 강도 0.34(극단적 매도) vs 알트 3.4~5.5(강한 매수) 괴리가 2일+ 지속 시, BTC→알트 자금 로테이션 완료 후 알트도 매도 전환되어 2차 하락 발생. 괴리 해소 시점이 추가 하락의 선행 지표",
         "status": "proposed",
         "experimentId": null,
-        "addedAt": "2026-03-12"
+        "addedAt": "2026-03-18"
       },
       {
-        "hypothesis": "절대 모멘텀 게이트(totalReturn > 0)가 하락장에서의 불필요한 자산 스위칭을 차단하여 수수료 손실 감소. 현재 전략의 0거래는 이 게이트 없이도 발생했으나, 분산 확대 시 하락 자산으로의 스위칭 방지 효과 검증 필요",
+        "hypothesis": "infra_fix에서 state reconciliation 후 현재 bearish 파라미터(trailing 3.5%, crash 3%)가 적용되면, ETH 추가 하락 시 즉시 CASH 전환되어 -2~3% 추가 손실 방지 가능. 반면 반등 시에는 재진입 RSI 40 + stochMax 80으로 과매수 진입 방지",
         "status": "proposed",
         "experimentId": null,
-        "addedAt": "2026-03-12"
+        "addedAt": "2026-03-18"
       },
       {
-        "hypothesis": "Sharpe 비율 가중치를 35%→50%로 증가시키고 Bollinger를 15%→5%로 감소시키면, 자산 선택 정확도가 개선되어 분산 확대 시 최적 스위칭 확률 향상. 2025 arXiv 논문에서 rolling Sharpe 기반 단일 선택이 복합 스코어링 대비 우월한 성과를 보인 결과에 근거",
+        "hypothesis": "infra_fix로 state 동기화 후 현재 ETH 보유 인식 시, trailing stop(-6.7% > 4% threshold)이 즉시 트리거되어 CASH 전환. 이후 bearish 파라미터(RSI 35, stoch 85, cooldown 36)가 하방 추가 진입을 방지하여 추가 손실 -3~5% 회피 가능",
         "status": "proposed",
         "experimentId": null,
-        "addedAt": "2026-03-12"
+        "addedAt": "2026-03-19"
       },
       {
-        "hypothesis": "절대 모멘텀 게이트(totalReturn > 0) + 높은 Sharpe 가중치(50%) 조합이 Dual Momentum 프레임워크를 단일 자산 100% 환경에 적용한 최적 구현. 하락 자산 회피 + 상대 강세 자산 선택을 동시에 달성",
+        "hypothesis": "infra_fix로 state 동기화(assetHeld=ETH) 시, trailing stop이 즉시 트리거(현재가 3,211K < peak 불명)되거나, peak이 현재가로 초기화되어 이후 -4.5% 하락 시 트리거. 전자의 경우 즉시 CASH 전환으로 추가 손실 방지, 후자의 경우 3,067K까지 버퍼 존재",
         "status": "proposed",
         "experimentId": null,
-        "addedAt": "2026-03-12"
+        "addedAt": "2026-03-19"
       },
       {
-        "hypothesis": "이전 modify gate 실패(3/12)의 원인은 reentryCooldown 24 + choppinessThreshold 0.65로 인한 고빈도 CASH 사이클(trailing→6h 재진입→재trigger) — 수수료 0.3%/cycle 누적이 return diff -1% 초과. 보유 파라미터만 변경하고 재진입 파라미터 유지 시 사이클 빈도 제어 가능",
+        "hypothesis": "infra_fix로 state 동기화(assetHeld=ETH) 시, trailing stop이 즉시 트리거(현재가 3,238K, peak 미설정 시 현재가로 초기화). 이후 추가 -3.5% 하락(3,125K) 시 CASH 전환되어 추가 손실 방지. 동기화 시점의 peak 초기화 방식이 즉각적 보호 수준을 결정",
         "status": "proposed",
         "experimentId": null,
-        "addedAt": "2026-03-12"
+        "addedAt": "2026-03-19"
       },
       {
-        "hypothesis": "trailing 3.5% + crash 2.5% + 재진입 cooldown 48(12h) 조합이 modify gate(return diff >= -1%, MDD <= 3%)를 통과하면서 일일 0.15~0.5회 거래를 생성하는 최소 활성화 조건. 이전 실패(재진입 완화)와 달리 사이클 빈도를 cooldown으로 제어하여 수수료 누적 방지",
+        "hypothesis": "infra_fix가 실행되지 않는 원인: (1) WEEKLY_MAINTENANCE trigger가 마지막 infra_fix 시점을 추적하지만 최근 수동 실행이 있어 7일 미경과, (2) PM2_CRASH 조건(재시작 3회+)이 미충족, (3) batch-scheduler.js의 infra_fix trigger 판정 로직에 state mismatch 감지 조건이 없음. scheduler에 balance-state 불일치 감지 trigger 추가 필요",
         "status": "proposed",
         "experimentId": null,
-        "addedAt": "2026-03-13"
+        "addedAt": "2026-03-20"
       },
       {
-        "hypothesis": "switchThreshold 0.05 + cooldown 36/96 + ADX 8로 스위칭만 완화하면, CASH 사이클 없이 자산 간 직접 로테이션으로 0.1~0.5 trades/day 생성 가능. trailing/crash 미변경으로 하방 보호 수준 유지",
+        "hypothesis": "infra_fix가 실행되지 않는 원인이 scheduler-state.json의 lastInfraFix가 7일 미경과이거나, PM2_CRASH 조건(재시작 3회+) 미충족. batch-scheduler.js에 balance-state 불일치를 직접 감지하는 새 trigger(STATE_MISMATCH) 추가 시 즉시 infra_fix 트리거 가능",
         "status": "proposed",
         "experimentId": null,
-        "addedAt": "2026-03-13"
+        "addedAt": "2026-03-20"
       },
       {
-        "hypothesis": "BTC 체결 강도 0.13(매도 4.73 vs 매수 0.63)은 단기 매도 압력 극대화 구간. 이 수준이 24h+ 지속 시 trailing 5% 트리거 범위 진입 가능(peak 106.4M → 101.1M 필요). 체결 강도를 스위칭 로직의 보조 신호로 활용 가능성",
+        "hypothesis": "infra_fix 수동 실행(run-infra-fix.sh) 후 state 동기화 시, assetHeld=KRW-ETH + peakPriceSinceEntry=3,206K(현재가)로 초기화되면 이후 -4.5% 하락(3,062K) 시점에서 trailing stop 작동. 현 시점에서 즉시 동기화가 추가 손실 -5~10% 방지의 유일한 수단",
         "status": "proposed",
         "experimentId": null,
-        "addedAt": "2026-03-13"
+        "addedAt": "2026-03-20"
       },
       {
-        "hypothesis": "shouldSwitch의 !bestScore.isChoppy 조건이 choppinessThreshold 0.62에서 저분산(0.67%) 환경의 모든 자산을 차단 — switchThreshold/ADX/cooldown 완화가 무효화되는 구조적 bottleneck. 0.70으로 상향 시 스위칭 활성화 여부 확인 필요",
+        "hypothesis": "adxMinTrend 5 + switchThreshold 0.02 조합이 약한 트렌드 노이즈 스위칭을 줄여 슬리피지 절약으로 수익률 보존",
         "status": "proposed",
         "experimentId": null,
-        "addedAt": "2026-03-13"
+        "addedAt": "2026-03-20"
       },
       {
-        "hypothesis": "choppinessThreshold 0.75로 상향 시 분산 0.14% 환경에서도 shouldSwitch의 isChoppy gate 통과 가능. 자산간 직접 로테이션으로 0.1~0.5 trades/day 생성하면서 CASH 사이클 없이 modify gate(return diff >= -1%) 충족",
+        "hypothesis": "crash exit 후 reentryCooldown을 36캔들(9h)로 늘리면 같은 날 재진입→재차 crash 패턴(exp-005에서 3/19 발생)을 방지하여 whipsaw 비용 절감 가능",
         "status": "proposed",
         "experimentId": null,
-        "addedAt": "2026-03-14"
+        "addedAt": "2026-03-20"
       },
       {
-        "hypothesis": "soft choppiness penalty(factor 1.5, base 0.45)가 하드 게이트 대비 저분산 환경에서 0.15~0.5 trades/day를 생성하면서 return diff >= 0% 유지",
+        "hypothesis": "ATR(14)/ATR(50) 비율 > 1.5를 phase-1 재진입 차단 게이트로 사용하면, exp-005에서 관찰된 crash→재진입→재crash 패턴(~1.6% 손실/사이클)을 방지하여 bearish 환경에서 거래 비용 절감. phase-2/3은 기존대로 relaxed/forced 유지",
         "status": "proposed",
         "experimentId": null,
-        "addedAt": "2026-03-14"
+        "addedAt": "2026-03-20"
       },
       {
-        "hypothesis": "Sharpe 비율 50% 가중 + 절대 모멘텀 게이트(totalReturn > 0)가 저분산 환경에서 무의미한 로테이션을 필터링하여 거래 품질 개선",
+        "hypothesis": "스위칭 임계값에 sqrt(ATR14/ATR50) 곱을 적용하면, 고변동성 환경에서 불필요한 스위칭이 감소하여 거래 비용 절감. 저변동성에서는 ATR 비율 ~1이므로 기존 동작과 동일",
         "status": "proposed",
         "experimentId": null,
-        "addedAt": "2026-03-14"
+        "addedAt": "2026-03-20"
       }
     ],
     "rejected": [
-      {
-        "hypothesis": "capitulation 후 체결 강도 반등(0.16→1.38)이 가격 반등에 6~24h 선행 — 체결 강도 1.5+ 안정 후 가격 양전환 발생 시 재진입 적기 확인 가능",
-        "reason": "1.38 반등 후 0.27로 재하락하여 가격 반등 선행 없이 체결 강도 자체가 재붕괴. 단일 체결 강도 반등은 선행 지표로 불충분하며, 지속적 안정(1.5+ 유지) 조건이 필요",
-        "rejectedAt": "2026-03-06"
-      },
-      {
-        "hypothesis": "체결 강도 BTC 3.29, ETH 5.42로 전 종목 매수 우위(>1.0) 복원 — 약세장에서 체결 강도 전종목 1.0+ 회복은 매도 압력 소진 완료 신호",
-        "reason": "BTC 체결 강도 3.29→0.48로 재하락, 전 종목 매수 우위 복원이 지속되지 않음. 일시적 반등이었으며 매도 압력 소진 완료 판단 시기상조",
-        "rejectedAt": "2026-03-06"
-      },
-      {
-        "hypothesis": "체결 강도 BTC 3.29, ETH 5.42로 전 종목 매수 우위(>1.0) 복원 — 약세장에서 체결 강도 전종목 1.0+ 회복은 매도 압력 소진 완료 신호일 수 있으며, 재진입 조건 충족 시 반등 포착 가능성 상승",
-        "reason": "이미 반증됨(3.29→0.48 재하락). 현재 2.65도 동일 패턴 반복 가능성 높아 별도 가설로 추적 불필요. 상위 가설(체결 강도 안정 유지 4h+ 확인 필요)에 통합",
-        "rejectedAt": "2026-03-06"
-      },
-      {
-        "hypothesis": "체결 강도 전 종목 1.0+ 3회차 복원(BTC 1.48, ETH 3.98, SOL 2.58, XRP 2.87)이 12h 이상 유지 중 — 이전 2회 대비 알트(ETH 3.98) 강세 두드러짐. 가격 회복(24h 양전환) 동반 시 재진입 적기 신호로 활용 가능",
-        "reason": "BTC 체결 강도 1.48→0.29로 급락. 3회차 복원도 일시적이었으며 12h 유지 실패. 전 종목 1.0+ 복원은 반복적으로 붕괴하여 재진입 신호로 신뢰도 낮음. 단일 시점 체결 강도 1.0+ 대신 '4h+ 연속 유지' 조건이 필요",
-        "rejectedAt": "2026-03-06"
-      },
-      {
-        "hypothesis": "BTC 체결 강도 0.19 — 이전 capitulation(0.16)과 유사 수준 재도달. 이중 바닥(double bottom) 패턴 형성 시 가격 반등 선행 지표로 활용 가능. 0.1 이하 추가 하락 없이 반등 시 바닥 확인 신뢰도 상승",
-        "reason": "이중 바닥 자체는 형성되었으나(0.16→0.19→1.32 복귀), 가격은 여전히 -3.5% 하락 중으로 '가격 반등 선행 지표' 판단은 시기상조. 체결 강도 바닥→가격 바닥 간 시차 불명확. 상위 가설(체결 강도 이중 바닥 후 안정 유지 여부)로 통합",
-        "rejectedAt": "2026-03-06"
-      },
-      {
-        "hypothesis": "choppinessThreshold 0.52 + reentryRsiMin 45 조합이 약세장→회복 전환 구간에서 기존 대비 1~2일 빠른 재진입 실현하면서도 MDD 2% 이내 유지 가능",
-        "reason": "적용 후 24h+ 경과에도 재진입 미발생. 현 시장 RSI가 45 미만, choppiness가 0.52 이상으로 추정되어 조건 미충족. 추가 완화 필요",
-        "rejectedAt": "2026-03-07"
-      },
-      {
-        "hypothesis": "reentryRsiMin 40 + reentryMinScore 0.02 + choppinessThreshold 0.58 조합이 약세장 말기(RSI 40-44, choppiness 0.52-0.58) 구간에서 기존 조합 대비 12-24h 빠른 재진입 실현하면서 MDD 3% 이내 유지 가능",
-        "reason": "2026-03-07 적용 후 24h+ 경과에도 재진입 미발생. reconciliation에 의한 candlesSinceLastTrade 리셋 영향 있으나, flat market(dispersion 0.07~0.56%)에서 해당 조합으로는 score/RSI/choppiness 중 하나 이상 미충족 지속",
-        "rejectedAt": "2026-03-08"
-      },
-      {
-        "hypothesis": "reentryCooldown 24 + reentryRsiMin 35 + reentryMinScore 0.005 + choppinessThreshold 0.65 + adxMinTrend 15 조합이 극저분산 flat market에서 CASH→재진입을 실현하는 최소 조건인지 확인",
-        "reason": "3차 modify까지 실패. 파라미터 완화 접근 자체가 구조적 한계 — AND 조건의 개별 임계 하향이 아닌 시간 기반 조건 완화(graduated)가 필요 (2026-03-09)",
-        "rejectedAt": "2026-03-09"
-      },
-      {
-        "hypothesis": "trailing stop 8% + crash 5%로 완화하면 약세장에서 CASH 전환 빈도 증가 → 하방 MDD 개선 가능. 재진입 쿨다운 144(1.5일)로 단축 시 반등 포착력도 향상",
-        "reason": "현재 문제는 exit 조건이 아닌 re-entry 조건. trailing stop/crash threshold 변경은 CASH 고착 문제와 무관 (2026-03-09)",
-        "rejectedAt": "2026-03-09"
-      },
-      {
-        "hypothesis": "infra_fix 후 peakPriceSinceEntry 정상 유지가 PM2 재시작 포함 48h+ 안정적인지 관찰 필요 — 단일 주기 확인만으로는 edge case 미검증",
-        "reason": "2배치(~6h+) 연속 peak=103,181,000 정상 유지 확인. 완전한 48h 검증은 아니나 PM2 재시작 없이 안정 동작 중이므로 가설 축소 — 남은 검증은 PM2 crash 후 복구 경로만 해당",
-        "rejectedAt": "2026-03-12"
-      },
-      {
-        "hypothesis": "ATR×3.0 기반 적응형 트레일링 스톱(3-10%)이 현재 극저분산(0.03-0.56%) 환경에서 고정 7% 대비 더 타이트한 보호(3-4%) 제공하면서, 변동성 복귀 시 자동 확장으로 불필요한 조기 청산 방지 가능",
-        "reason": "기존 가설을 구체화하여 실험 설계에 반영함. 이전 exp-003 실패는 전략 문제가 아닌 shadow deploy 경로 버그. 새 실험으로 대체",
-        "rejectedAt": "2026-03-12"
-      },
-      {
-        "hypothesis": "TTM Squeeze(BB inside Keltner) 시그널을 스코어링에 20% 가중치로 통합하면 변동성 압축→브레이크아웃 구간에서 현재 전략 대비 1-3일 빠른 진입 실현 가능",
-        "reason": "기존 가설을 구체화하여 실험 설계에 반영함. 새 실험의 세부 파라미터(BB 20/2.0, KC 20/1.5)로 업데이트",
-        "rejectedAt": "2026-03-12"
-      },
       {
         "hypothesis": "스위칭 시 절대 모멘텀 게이트(타겟 자산 totalReturn > 0) 추가로 하락 추세 자산으로의 스위칭 방지 가능",
         "reason": "기존 가설을 구체화하여 실험 설계에 반영함. Dual Momentum 프레임워크의 일부로 통합",
@@ -1416,6 +1667,66 @@
         "hypothesis": "choppinessThreshold 0.75로 상향 시 분산 0.14% 환경에서도 shouldSwitch의 isChoppy gate 통과 가능",
         "reason": "3/14 gate_failed. 0.75에서도 backtest의 저품질 스위칭이 return 악화 — 하드 게이트의 binary 특성상 적절한 threshold 없음. 너무 낮으면 차단, 너무 높으면 품질 저하",
         "rejectedAt": "2026-03-14"
+      },
+      {
+        "hypothesis": "soft choppiness penalty(factor 1.5, base 0.45)가 하드 게이트 대비 저분산 환경에서 0.15~0.5 trades/day를 생성하면서 return diff >= 0% 유지",
+        "reason": "base 0.45 + penalty 1.5 → effectiveThreshold 0.052는 분산 0.33%에서 과도. 1.5일 0거래. 파라미터 완화 필요 확인. 2026-03-15",
+        "rejectedAt": "2026-03-14"
+      },
+      {
+        "hypothesis": "switchThreshold 0.025 + choppinessBase 0.55 + penalty 1.0 조합이 분산 0.5%+ 환경에서 0.15~0.5 trades/day 생성하면서 modify gate 통과",
+        "reason": "분산이 0.5%에 도달하지 않아 직접 검증은 불가하나, 0.33% 시점에서도 effectiveThreshold 0.052로 과도했고, 1.5일 0거래. 분산 0.5% 가정 자체가 현 시장에서 비현실적이므로 더 낮은 threshold 필요",
+        "rejectedAt": "2026-03-15"
+      },
+      {
+        "hypothesis": "0거래의 진짜 원인이 threshold가 아닌 best === currentAsset(BTC가 항상 최고 스코어) 조건일 가능성",
+        "reason": "CASH 상태에서는 shouldSwitch가 아닌 checkReentry가 실행되므로 best===currentAsset 체크 자체가 없음. 재진입 차단 원인은 stochK>=85(reentryStochMax) 필터",
+        "rejectedAt": "2026-03-16"
+      },
+      {
+        "hypothesis": "BTC 체결 강도 15.47(매수 대폭 우위) vs ETH 0.56(매도 우위) 괴리가 24-48h 내 ETH→BTC 상대 강도 역전 선행 지표",
+        "reason": "24h 후 BTC 체결 강도 15.47→0.53 급락으로 매수 우위 해소. ETH는 오히려 +5.19% 상승하여 상대 강도 격차 확대. 체결 강도 극단값의 지속성이 낮아 방향성 예측 불가",
+        "rejectedAt": "2026-03-16"
+      },
+      {
+        "hypothesis": "전면 매도 우위(4종 모두 체결 강도 <1.0) 상태가 bullish regime에서 24h+ 지속 시, 단기 조정(2-5%) 선행 지표",
+        "reason": "3/16 전면 매도 우위 → 3/17 ETH 체결 강도 1.03(매수/매도 균형 회복)으로 전면 매도 상태 해소. ETH +6.63% 추가 상승하여 조정 미발생. 체결 강도 전면 매도가 단기 조정 선행 지표가 아님을 확인. 2026-03-17",
+        "rejectedAt": "2026-03-16"
+      },
+      {
+        "hypothesis": "0거래의 진짜 원인이 threshold가 아닌 best === currentAsset 조건이거나, stochK/ADX 필터, 또는 choppiness gate — 모두 전략 레벨 원인",
+        "reason": "13일간 bot-state=CASH 유지 + 실제 자산 보유(ETH→XRP) 확인. checkReentry가 실행되나 498 KRW로 매수 불가. 전략 파라미터 14회 변경에도 0거래 불변은 infra 원인 확정. 2026-03-17",
+        "rejectedAt": "2026-03-17"
+      },
+      {
+        "hypothesis": "bearish 레짐(avg -0.66%) 전환 시 trailing 4% + crash 3.5% + 재진입 RSI 40 + maxCashCandles 96 조합이 modify gate 통과",
+        "reason": "3회 연속 modify gate_failed로 전략 파라미터 조정 한계 확인. 실제 0거래 원인이 파라미터가 아닌 infra state mismatch이므로 파라미터 기반 가설 자체가 무효",
+        "rejectedAt": "2026-03-17"
+      },
+      {
+        "hypothesis": "ETH peak 3,491K 돌파 후 신고가 갱신 시 trailing stop이 자동으로 상향되어 profit-locking 효과 극대화",
+        "reason": "bearish 전환으로 ETH 3,422K(-1.13%)으로 ATH에서 하락. state mismatch로 trailing 자체가 미적용 상태. 또한 포트폴리오가 ETH→XRP로 전환되어 ETH trailing 가설 자체가 무효",
+        "rejectedAt": "2026-03-17"
+      },
+      {
+        "hypothesis": "4회 연속 REGIME_CHANGE bullish에서 ETH hold가 alpha 극대화의 최적 전략",
+        "reason": "bearish 전환(-3.59%)으로 ETH 24h -3.89% 하락. alpha 8.26%→6.64%로 축소 중. bullish hold 전략은 bearish에서 무효화. 특히 state mismatch로 trailing stop 부재 시 하방 무방비. 2026-03-18",
+        "rejectedAt": "2026-03-18"
+      },
+      {
+        "hypothesis": "trailingStop/crashThreshold 강화로 MDD 개선 가능",
+        "reason": "0.04/0.035 조합이 수익률 -2.16% 악화 + MDD 0.69% 악화. 조기 청산이 whipsaw 유발하여 리스크와 수익 모두 악화",
+        "rejectedAt": "2026-03-20"
+      },
+      {
+        "hypothesis": "opportunity_override(cooldown 무시 스위칭)가 bearish 환경에서 초과 수익을 창출",
+        "reason": "exp-005 shadow에서 ETH→XRP(2,278)→ETH(3,432K) 4시간 왕복이 XRP -1.05% 손실 + 거래 비용 0.6% = 총 ~1.6% 손실. bearish/횡보 환경에서 opportunity override는 슬리피지와 수수료로 순손실. 2026-03-20",
+        "rejectedAt": "2026-03-20"
+      },
+      {
+        "hypothesis": "ATR 적응형 trailing stop(3-10%) + Sharpe 중심 스코어링(50%) + 절대 모멘텀 게이트 조합이 현재 전략 대비 alpha >= 2% 달성 가능",
+        "reason": "exp-005 shadow 8일 운영 결과: 7건 거래로 ~2.1% 거래 비용 소모, bearish 환경에서 과도한 거래가 수익 잠식. 추산 수익률 ~-1.7%로 ETH hold 대비 alpha 미달. Sharpe 가중 50%가 단기 노이즈 증폭하여 whipsaw 유발. 2026-03-20",
+        "rejectedAt": "2026-03-20"
       }
     ]
   }

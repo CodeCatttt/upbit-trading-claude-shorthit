@@ -447,17 +447,27 @@ if [ "$ACTION" = "propose_experiment" ]; then
             "
 
             if [ -f "$TEMP_STRATEGY" ]; then
+                SHADOW_STDERR_FILE=$(mktemp)
                 SHADOW_DEPLOY_RESULT=$(TEMP_FILE="$TEMP_STRATEGY" SHADOW_LABEL="$HYPOTHESIS" SHADOW_EXP_ID="$EXP_ID" node -e "
-                    const { deployShadow } = require('./src/batch/learning/shadow-manager');
-                    const fs = require('fs');
-                    const code = fs.readFileSync(process.env.TEMP_FILE, 'utf8');
-                    const id = deployShadow(code, process.env.SHADOW_LABEL, process.env.SHADOW_EXP_ID);
-                    if (id) {
-                        console.log(JSON.stringify({success:true, shadowId:id}));
-                    } else {
-                        console.log(JSON.stringify({success:false, reason:'deploy_failed'}));
+                    try {
+                        const { deployShadow } = require('./src/batch/learning/shadow-manager');
+                        const fs = require('fs');
+                        const code = fs.readFileSync(process.env.TEMP_FILE, 'utf8');
+                        const id = deployShadow(code, process.env.SHADOW_LABEL, process.env.SHADOW_EXP_ID);
+                        if (id) {
+                            console.log(JSON.stringify({success:true, shadowId:id}));
+                        } else {
+                            console.log(JSON.stringify({success:false, reason:'deploy_validation_failed'}));
+                        }
+                    } catch(e) {
+                        console.log(JSON.stringify({success:false, reason:e.message}));
                     }
-                " 2>&1 || echo '{"success":false,"reason":"shadow_error"}')
+                " 2>"$SHADOW_STDERR_FILE" || echo '{"success":false,"reason":"shadow_error"}')
+                if [ -s "$SHADOW_STDERR_FILE" ]; then
+                    echo "  Shadow deploy stderr:"
+                    cat "$SHADOW_STDERR_FILE"
+                fi
+                rm -f "$SHADOW_STDERR_FILE"
 
                 SHADOW_OK=$(json_field "$SHADOW_DEPLOY_RESULT" "o.success")
                 echo "  Shadow deploy: $SHADOW_OK"
