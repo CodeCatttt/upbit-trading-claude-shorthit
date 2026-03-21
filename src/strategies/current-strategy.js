@@ -48,11 +48,11 @@ const DEFAULT_CONFIG = {
 
     // Re-entry from CASH (aggressive graduated)
     reentryRsiMin: 30,
-    reentryMinScore: 0.001,
+    reentryMinScore: -0.01,
     reentryTrendConfirm: false,
-    reentryCooldown: 36,
-    reentryPhase2Candles: 24,
-    maxCashCandles: 48,
+    reentryCooldown: 24,
+    reentryPhase2Candles: 18,
+    maxCashCandles: 36,
     reentryIntensityMin: 0.5,
     reentryStochMax: 90,
 
