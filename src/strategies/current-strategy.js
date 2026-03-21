@@ -27,7 +27,7 @@ const DEFAULT_CONFIG = {
     rsiPeriod: 14,
     choppinessPeriod: 20,
     choppinessThreshold: 0.62,
-    switchThreshold: 0.012,
+    switchThreshold: 0.005,
     adxPeriod: 14,
     adxMinTrend: 5,
 
