@@ -27,13 +27,13 @@ const DEFAULT_CONFIG = {
     rsiPeriod: 14,
     choppinessPeriod: 20,
     choppinessThreshold: 0.62,
-    switchThreshold: 0.005,
+    switchThreshold: 0.003,
     adxPeriod: 14,
     adxMinTrend: 5,
 
     // Soft choppiness for switching
     choppinessBase: 0.7,
-    choppinessPenalty: 0.4,
+    choppinessPenalty: 0,
 
     // Adaptive cooldown (15m candles)
     cooldownTrending: 12,
@@ -57,8 +57,8 @@ const DEFAULT_CONFIG = {
     reentryStochMax: 90,
 
     // Scoring weights
-    momentumWeight: 0.35,
-    trendWeight: 0.35,
+    momentumWeight: 0.45,
+    trendWeight: 0.25,
     volumeWeight: 0.15,
     bollingerWeight: 0.15,
 
