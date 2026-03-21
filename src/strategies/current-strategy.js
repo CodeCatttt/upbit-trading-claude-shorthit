@@ -54,7 +54,7 @@ const DEFAULT_CONFIG = {
     reentryPhase2Candles: 24,
     maxCashCandles: 48,
     reentryIntensityMin: 0.5,
-    reentryStochMax: 95,
+    reentryStochMax: 90,
 
     // Scoring weights
     momentumWeight: 0.35,
