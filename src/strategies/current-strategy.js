@@ -37,8 +37,8 @@ const DEFAULT_CONFIG = {
 
     // Adaptive cooldown (15m candles)
     cooldownTrending: 12,
-    cooldownChoppy: 96,
-    opportunityOverrideMultiplier: 1.25,
+    cooldownChoppy: 80,
+    opportunityOverrideMultiplier: 1.15,
 
     // Risk management — CASH conversion
     trailingStopPct: 0.045,
