@@ -41,10 +41,10 @@ const DEFAULT_CONFIG = {
     opportunityOverrideMultiplier: 1.15,
 
     // Risk management — CASH conversion
-    trailingStopPct: 0.045,
+    trailingStopPct: 0.035,
     crashWindowCandles: 96,
-    crashThreshold: 0.04,
-    riskGracePeriod: 48,
+    crashThreshold: 0.035,
+    riskGracePeriod: 36,
 
     // Re-entry from CASH (aggressive graduated)
     reentryRsiMin: 30,
