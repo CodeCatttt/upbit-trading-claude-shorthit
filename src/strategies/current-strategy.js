@@ -47,14 +47,14 @@ const DEFAULT_CONFIG = {
     riskGracePeriod: 30,
 
     // Re-entry from CASH (aggressive graduated)
-    reentryRsiMin: 40,
+    reentryRsiMin: 45,
     reentryMinScore: -0.01,
     reentryTrendConfirm: false,
     reentryCooldown: 36,
     reentryPhase2Candles: 64,
     maxCashCandles: 96,
     reentryIntensityMin: 0.7,
-    reentryStochMax: 90,
+    reentryStochMax: 80,
 
     // Scoring weights
     momentumWeight: 0.38,
