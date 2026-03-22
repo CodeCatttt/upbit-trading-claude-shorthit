@@ -36,8 +36,8 @@ const DEFAULT_CONFIG = {
     choppinessPenalty: 0,
 
     // Adaptive cooldown (15m candles)
-    cooldownTrending: 12,
-    cooldownChoppy: 80,
+    cooldownTrending: 10,
+    cooldownChoppy: 72,
     opportunityOverrideMultiplier: 1.15,
 
     // Risk management — CASH conversion
@@ -57,8 +57,8 @@ const DEFAULT_CONFIG = {
     reentryStochMax: 90,
 
     // Scoring weights
-    momentumWeight: 0.45,
-    trendWeight: 0.25,
+    momentumWeight: 0.4,
+    trendWeight: 0.3,
     volumeWeight: 0.15,
     bollingerWeight: 0.15,
 
