@@ -33,7 +33,7 @@ const DEFAULT_CONFIG = {
 
     // Soft choppiness for switching
     choppinessBase: 0.7,
-    choppinessPenalty: 0,
+    choppinessPenalty: 0.3,
 
     // Adaptive cooldown (15m candles)
     cooldownTrending: 8,
@@ -44,7 +44,7 @@ const DEFAULT_CONFIG = {
     trailingStopPct: 0.035,
     crashWindowCandles: 96,
     crashThreshold: 0.035,
-    riskGracePeriod: 36,
+    riskGracePeriod: 30,
 
     // Re-entry from CASH (aggressive graduated)
     reentryRsiMin: 40,
