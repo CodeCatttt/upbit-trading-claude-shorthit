@@ -51,8 +51,8 @@ const DEFAULT_CONFIG = {
     reentryMinScore: -0.01,
     reentryTrendConfirm: false,
     reentryCooldown: 36,
-    reentryPhase2Candles: 114,
-    maxCashCandles: 160,
+    reentryPhase2Candles: 132,
+    maxCashCandles: 180,
     reentryIntensityMin: 0.7,
     reentryStochMax: 76,
 
