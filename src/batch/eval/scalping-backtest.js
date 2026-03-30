@@ -275,4 +275,22 @@ function runScalpingBacktest(strategyModule, candleData, opts = {}) {
     };
 }
 
-module.exports = { runScalpingBacktest };
+/**
+ * Load candle data from local store for backtesting.
+ * @param {string[]} markets
+ * @returns {object} candleData compatible with runScalpingBacktest
+ */
+function loadBacktestData(markets) {
+    const { loadCandles } = require('../../core/candle-store');
+    const candleData = {};
+    for (const market of markets) {
+        const c1m = loadCandles(market, 1);
+        const c5m = loadCandles(market, 5);
+        if (c1m.length > 0) {
+            candleData[market] = { 1: c1m, 5: c5m };
+        }
+    }
+    return candleData;
+}
+
+module.exports = { runScalpingBacktest, loadBacktestData };

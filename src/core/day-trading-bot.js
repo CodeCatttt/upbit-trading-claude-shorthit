@@ -19,6 +19,7 @@ const { refreshMarkets } = require('./market-selector');
 const { UpbitWebSocket } = require('./websocket-client');
 const { CandleManager } = require('./candle-manager');
 const { RiskManager } = require('./risk-manager');
+const { loadCandles, cleanup: cleanupStore } = require('./candle-store');
 const { analyze, DEFAULT_CONFIG: STRATEGY_CONFIG } = require('../strategies/scalping-strategy');
 const { calcATR } = require('./indicators');
 const { createLogger } = require('../utils/logger');
@@ -408,7 +409,22 @@ async function runAnalysis() {
 async function seedCandleData(markets) {
     log.info(`Seeding candle data for ${markets.length} markets...`);
 
-    // Seed sequentially in batches of 3 to avoid 429 rate limits
+    // First: load from local store (instant, no API calls)
+    let storedCount = 0;
+    for (const market of markets) {
+        for (const interval of [1, 5]) {
+            const stored = loadCandles(market, interval);
+            if (stored.length > 0) {
+                candleManager.seedCandles(market, interval, stored);
+                storedCount += stored.length;
+            }
+        }
+    }
+    if (storedCount > 0) {
+        log.info(`Loaded ${storedCount} candles from local store`);
+    }
+
+    // Then: fetch latest from API to fill gaps (batched to avoid 429)
     const BATCH_SIZE = 3;
     for (let i = 0; i < markets.length; i += BATCH_SIZE) {
         const batch = markets.slice(i, i + BATCH_SIZE);
@@ -416,18 +432,22 @@ async function seedCandleData(markets) {
         for (const market of batch) {
             promises.push(
                 api.getCandles(market, 1, SEED_CANDLES_1M)
-                    .then(candles => candleManager.seedCandles(market, 1, candles))
+                    .then(candles => {
+                        if (candles.length > 0) candleManager.seedCandles(market, 1, candles);
+                    })
                     .catch(e => log.warn(`Failed to seed 1m for ${market}: ${e.message}`))
             );
             promises.push(
                 api.getCandles(market, 5, SEED_CANDLES_5M)
-                    .then(candles => candleManager.seedCandles(market, 5, candles))
+                    .then(candles => {
+                        if (candles.length > 0) candleManager.seedCandles(market, 5, candles);
+                    })
                     .catch(e => log.warn(`Failed to seed 5m for ${market}: ${e.message}`))
             );
         }
         await Promise.all(promises);
         if (i + BATCH_SIZE < markets.length) {
-            await new Promise(r => setTimeout(r, 500)); // 500ms between batches
+            await new Promise(r => setTimeout(r, 500));
         }
     }
     log.info('Candle seeding complete');
@@ -547,11 +567,15 @@ async function start() {
         }
     }, 3600000);
 
+    // Periodic candle store cleanup (every 6 hours)
+    setInterval(() => cleanupStore(), 6 * 3600000);
+
     // Graceful shutdown
     const shutdown = () => {
         log.info('Shutting down...');
         if (analysisTimer) clearInterval(analysisTimer);
         if (wsClient) wsClient.close();
+        if (candleManager) candleManager.flushAll();
         saveDailyStats();
         saveState();
         process.exit(0);

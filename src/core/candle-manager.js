@@ -7,8 +7,11 @@
 'use strict';
 
 const { createLogger } = require('../utils/logger');
+const { appendCandles } = require('./candle-store');
 
 const log = createLogger('CANDLE-MGR');
+
+const FLUSH_BATCH_SIZE = 5; // Flush to disk every N closed candles per market/interval
 
 class CandleManager {
     /**
@@ -27,9 +30,13 @@ class CandleManager {
         // Current building candle per market per interval
         this.building = {};
 
+        // Pending candles to flush to disk
+        this._pendingFlush = {};
+
         for (const market of markets) {
             this.candles[market] = { 1: [], 5: [] };
             this.building[market] = { 1: null, 5: null };
+            this._pendingFlush[market] = { 1: [], 5: [] };
         }
     }
 
@@ -89,6 +96,19 @@ class CandleManager {
 
                     if (interval === 1) result.closed1m = closed;
                     else result.closed5m = closed;
+
+                    // Queue for disk flush
+                    if (this._pendingFlush[market]) {
+                        this._pendingFlush[market][interval].push(closed);
+                        if (this._pendingFlush[market][interval].length >= FLUSH_BATCH_SIZE) {
+                            try {
+                                appendCandles(market, interval, this._pendingFlush[market][interval]);
+                            } catch (e) {
+                                log.warn(`Flush failed for ${market} ${interval}m: ${e.message}`);
+                            }
+                            this._pendingFlush[market][interval] = [];
+                        }
+                    }
                 }
 
                 // Start new candle
@@ -158,6 +178,28 @@ class CandleManager {
         const candles1m = this.candles[market] && this.candles[market][1];
         if (candles1m && candles1m.length > 0) return candles1m[candles1m.length - 1].close;
         return null;
+    }
+
+    /**
+     * Flush all pending candles to disk (call on shutdown).
+     */
+    flushAll() {
+        let flushed = 0;
+        for (const market of Object.keys(this._pendingFlush)) {
+            for (const interval of [1, 5]) {
+                const pending = this._pendingFlush[market][interval];
+                if (pending && pending.length > 0) {
+                    try {
+                        appendCandles(market, interval, pending);
+                        flushed += pending.length;
+                    } catch (e) {
+                        log.warn(`Final flush failed for ${market} ${interval}m: ${e.message}`);
+                    }
+                    this._pendingFlush[market][interval] = [];
+                }
+            }
+        }
+        if (flushed > 0) log.info(`Flushed ${flushed} pending candles to disk`);
     }
 }
 
