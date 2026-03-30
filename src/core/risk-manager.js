@@ -1,7 +1,8 @@
 /**
  * risk-manager.js
  * Real-time risk management for day trading.
- * - Per-trade stop-loss / take-profit
+ * - ATR-based dynamic stop-loss (adapts to each coin's volatility)
+ * - Trailing take-profit (locks in gains on strong moves)
  * - Daily loss limit
  * - Dynamic throttling (pause when losing)
  * - Trade frequency tracking
@@ -16,20 +17,26 @@ const log = createLogger('RISK');
 class RiskManager {
     /**
      * @param {object} config
-     * @param {number} config.maxDailyLossPct - Max daily loss before halt (e.g., 3 = 3%)
-     * @param {number} config.maxDailyTrades - Max trades per day (e.g., 1000)
-     * @param {number} config.stopLossPct - Per-trade stop loss (e.g., 0.3 = 0.3%)
-     * @param {number} config.takeProfitPct - Per-trade take profit (e.g., 0.5 = 0.5%)
-     * @param {number} config.pauseDurationMs - How long to pause when losing (e.g., 300000 = 5min)
-     * @param {number} config.pauseThresholdPct - Cumulative loss in window to trigger pause (e.g., 0.5%)
-     * @param {number} config.pauseWindowMs - Rolling window for pause check (e.g., 1800000 = 30min)
+     * @param {number} config.maxDailyLossPct - Max daily loss before halt (default 3%)
+     * @param {number} config.maxDailyTrades - Max trades per day (default 1000)
+     * @param {number} config.slAtrMultiplier - Stop-loss = ATR * this (default 1.5)
+     * @param {number} config.tpAtrMultiplier - Trailing TP activates at ATR * this (default 2.0)
+     * @param {number} config.trailingPct - Trailing distance from peak (default 0.2%)
+     * @param {number} config.fallbackStopLossPct - Fallback SL when no ATR (default 0.3%)
+     * @param {number} config.fallbackTakeProfitPct - Fallback TP when no ATR (default 0.5%)
+     * @param {number} config.pauseDurationMs - Pause duration when losing (default 5min)
+     * @param {number} config.pauseThresholdPct - Loss in window to trigger pause (default 0.5%)
+     * @param {number} config.pauseWindowMs - Rolling window for pause (default 30min)
      */
     constructor(config = {}) {
         this.config = {
             maxDailyLossPct: config.maxDailyLossPct || 3,
             maxDailyTrades: config.maxDailyTrades || 1000,
-            stopLossPct: config.stopLossPct || 0.3,
-            takeProfitPct: config.takeProfitPct || 0.5,
+            slAtrMultiplier: config.slAtrMultiplier || 1.5,
+            tpAtrMultiplier: config.tpAtrMultiplier || 2.0,
+            trailingPct: config.trailingPct || 0.2,
+            fallbackStopLossPct: config.fallbackStopLossPct || 0.3,
+            fallbackTakeProfitPct: config.fallbackTakeProfitPct || 0.5,
             pauseDurationMs: config.pauseDurationMs || 300000,
             pauseThresholdPct: config.pauseThresholdPct || 0.5,
             pauseWindowMs: config.pauseWindowMs || 1800000,
@@ -37,18 +44,20 @@ class RiskManager {
 
         // Daily tracking
         this.dailyStartBalance = 0;
-        this.dailyPnL = 0;           // Cumulative P&L today (KRW)
+        this.dailyPnL = 0;
         this.dailyTradeCount = 0;
         this.dailyDate = this._todayStr();
 
         // Trade history for rolling window
-        this.recentTrades = [];  // [{ timestamp, pnlPct }]
+        this.recentTrades = [];
 
         // Pause state
         this.pausedUntil = 0;
 
         // Active position tracking
-        this.position = null;  // { market, entryPrice, entryTime, amount }
+        this.position = null;
+        // { market, entryPrice, entryTime, amount, atr,
+        //   stopLossPrice, tpActivationPrice, peakPrice, trailingActive }
     }
 
     _todayStr() {
@@ -56,9 +65,6 @@ class RiskManager {
         return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     }
 
-    /**
-     * Reset daily counters if new day.
-     */
     _checkDayReset() {
         const today = this._todayStr();
         if (today !== this.dailyDate) {
@@ -71,34 +77,23 @@ class RiskManager {
         }
     }
 
-    /**
-     * Set the starting balance for the day.
-     */
     setDailyStartBalance(balance) {
         this.dailyStartBalance = balance;
     }
 
-    /**
-     * Check if trading is allowed right now.
-     * @returns {{ allowed: boolean, reason: string }}
-     */
     canTrade() {
         this._checkDayReset();
-
         const now = Date.now();
 
-        // Check pause
         if (now < this.pausedUntil) {
             const remaining = Math.ceil((this.pausedUntil - now) / 1000);
             return { allowed: false, reason: `paused (${remaining}s remaining)` };
         }
 
-        // Check daily trade limit
         if (this.dailyTradeCount >= this.config.maxDailyTrades) {
             return { allowed: false, reason: `daily trade limit reached (${this.dailyTradeCount}/${this.config.maxDailyTrades})` };
         }
 
-        // Check daily loss limit
         if (this.dailyStartBalance > 0) {
             const dailyLossPct = (-this.dailyPnL / this.dailyStartBalance) * 100;
             if (dailyLossPct >= this.config.maxDailyLossPct) {
@@ -110,19 +105,53 @@ class RiskManager {
     }
 
     /**
-     * Record entry into a position.
+     * Record entry into a position with ATR-based dynamic levels.
+     * @param {string} market
+     * @param {number} entryPrice
+     * @param {number} amount
+     * @param {number|null} atr - ATR value from 1m candles. If null, uses fallback fixed %.
      */
-    enterPosition(market, entryPrice, amount) {
+    enterPosition(market, entryPrice, amount, atr = null) {
+        let stopLossPrice, tpActivationPrice, stopLossPct, tpActivationPct;
+
+        if (atr && atr > 0) {
+            // ATR-based dynamic levels
+            stopLossPrice = entryPrice - (atr * this.config.slAtrMultiplier);
+            tpActivationPrice = entryPrice + (atr * this.config.tpAtrMultiplier);
+            stopLossPct = ((entryPrice - stopLossPrice) / entryPrice) * 100;
+            tpActivationPct = ((tpActivationPrice - entryPrice) / entryPrice) * 100;
+        } else {
+            // Fallback fixed percentages
+            stopLossPrice = entryPrice * (1 - this.config.fallbackStopLossPct / 100);
+            tpActivationPrice = entryPrice * (1 + this.config.fallbackTakeProfitPct / 100);
+            stopLossPct = this.config.fallbackStopLossPct;
+            tpActivationPct = this.config.fallbackTakeProfitPct;
+        }
+
         this.position = {
             market,
             entryPrice,
             entryTime: Date.now(),
             amount,
+            atr,
+            stopLossPrice,
+            tpActivationPrice,
+            peakPrice: entryPrice,
+            trailingActive: false,
+            stopLossPct,
+            tpActivationPct,
         };
+
+        log.info(`Position opened: ${market} @ ${entryPrice}, SL: ${stopLossPrice.toFixed(1)} (-${stopLossPct.toFixed(2)}%), TP activation: ${tpActivationPrice.toFixed(1)} (+${tpActivationPct.toFixed(2)}%), ATR: ${atr ? atr.toFixed(1) : 'N/A'}`);
     }
 
     /**
-     * Check if current position should be exited (stop-loss or take-profit).
+     * Check if current position should be exited.
+     * Logic:
+     *   1. Stop-loss: price <= stopLossPrice → exit
+     *   2. Trailing TP: price >= tpActivationPrice → activate trailing
+     *      Once trailing active: track peakPrice, exit when price drops trailingPct% from peak
+     *
      * @param {number} currentPrice
      * @returns {{ shouldExit: boolean, reason: string, pnlPct: number }}
      */
@@ -133,22 +162,44 @@ class RiskManager {
 
         const pnlPct = ((currentPrice - this.position.entryPrice) / this.position.entryPrice) * 100;
 
-        if (pnlPct <= -this.config.stopLossPct) {
+        // 1. Stop-loss
+        if (currentPrice <= this.position.stopLossPrice) {
             return { shouldExit: true, reason: 'stop_loss', pnlPct };
         }
 
-        if (pnlPct >= this.config.takeProfitPct) {
-            return { shouldExit: true, reason: 'take_profit', pnlPct };
+        // 2. Trailing take-profit
+        if (currentPrice >= this.position.tpActivationPrice) {
+            this.position.trailingActive = true;
         }
 
-        return { shouldExit: false, reason: 'holding', pnlPct };
+        if (this.position.trailingActive) {
+            // Update peak
+            if (currentPrice > this.position.peakPrice) {
+                this.position.peakPrice = currentPrice;
+            }
+
+            // Check trailing exit: price dropped trailingPct% from peak
+            const dropFromPeak = ((this.position.peakPrice - currentPrice) / this.position.peakPrice) * 100;
+            if (dropFromPeak >= this.config.trailingPct) {
+                return {
+                    shouldExit: true,
+                    reason: 'trailing_take_profit',
+                    pnlPct,
+                    peakPrice: this.position.peakPrice,
+                    dropFromPeak,
+                };
+            }
+        }
+
+        return {
+            shouldExit: false,
+            reason: this.position.trailingActive ? 'trailing' : 'holding',
+            pnlPct,
+            peakPrice: this.position.peakPrice,
+            trailingActive: this.position.trailingActive,
+        };
     }
 
-    /**
-     * Record a completed trade.
-     * @param {number} pnlPct - Profit/loss percentage
-     * @param {number} pnlKrw - Profit/loss in KRW
-     */
     recordTrade(pnlPct, pnlKrw) {
         this._checkDayReset();
 
@@ -158,11 +209,9 @@ class RiskManager {
 
         this.recentTrades.push({ timestamp: now, pnlPct });
 
-        // Clean old trades from rolling window
         const windowStart = now - this.config.pauseWindowMs;
         this.recentTrades = this.recentTrades.filter(t => t.timestamp >= windowStart);
 
-        // Check rolling window loss for pause
         const windowLoss = this.recentTrades
             .filter(t => t.pnlPct < 0)
             .reduce((sum, t) => sum + Math.abs(t.pnlPct), 0);
@@ -177,9 +226,6 @@ class RiskManager {
         log.info(`Trade #${this.dailyTradeCount}: ${pnlPct >= 0 ? '+' : ''}${pnlPct.toFixed(3)}% (${pnlKrw >= 0 ? '+' : ''}${pnlKrw.toFixed(0)} KRW). Daily PnL: ${this.dailyPnL.toFixed(0)} KRW`);
     }
 
-    /**
-     * Get current status summary.
-     */
     getStatus() {
         this._checkDayReset();
         const now = Date.now();

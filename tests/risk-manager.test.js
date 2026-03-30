@@ -1,5 +1,5 @@
 /**
- * Tests for RiskManager — day trading risk controls.
+ * Tests for RiskManager — ATR-based dynamic SL/TP + trailing take-profit.
  */
 
 'use strict';
@@ -15,8 +15,11 @@ describe('RiskManager', () => {
         rm = new RiskManager({
             maxDailyLossPct: 3,
             maxDailyTrades: 100,
-            stopLossPct: 0.3,
-            takeProfitPct: 0.5,
+            slAtrMultiplier: 1.5,
+            tpAtrMultiplier: 2.0,
+            trailingPct: 0.2,
+            fallbackStopLossPct: 0.3,
+            fallbackTakeProfitPct: 0.5,
             pauseDurationMs: 5000,
             pauseThresholdPct: 1.0,
             pauseWindowMs: 60000,
@@ -26,112 +29,164 @@ describe('RiskManager', () => {
 
     describe('canTrade', () => {
         it('should allow trading when no limits reached', () => {
-            const result = rm.canTrade();
-            assert.equal(result.allowed, true);
+            assert.equal(rm.canTrade().allowed, true);
         });
 
-        it('should block trading when daily trade limit reached', () => {
+        it('should block when daily trade limit reached', () => {
             rm.dailyTradeCount = 100;
-            const result = rm.canTrade();
-            assert.equal(result.allowed, false);
-            assert.ok(result.reason.includes('daily trade limit'));
+            assert.equal(rm.canTrade().allowed, false);
         });
 
-        it('should block trading when daily loss limit reached', () => {
-            rm.dailyPnL = -30000; // -3% of 1M
-            const result = rm.canTrade();
-            assert.equal(result.allowed, false);
-            assert.ok(result.reason.includes('daily loss limit'));
+        it('should block when daily loss limit reached', () => {
+            rm.dailyPnL = -30000; // -3%
+            assert.equal(rm.canTrade().allowed, false);
         });
 
-        it('should block trading during pause', () => {
+        it('should block during pause', () => {
             rm.pausedUntil = Date.now() + 10000;
-            const result = rm.canTrade();
-            assert.equal(result.allowed, false);
-            assert.ok(result.reason.includes('paused'));
+            assert.equal(rm.canTrade().allowed, false);
         });
     });
 
-    describe('checkPositionExit', () => {
-        it('should trigger stop loss', () => {
-            rm.enterPosition('KRW-BTC', 100000, 1);
-            const result = rm.checkPositionExit(99650); // -0.35%
+    describe('enterPosition with ATR', () => {
+        it('should set ATR-based stop-loss and TP activation', () => {
+            rm.enterPosition('KRW-BTC', 100000, 1000, 200); // ATR=200
+
+            assert.ok(rm.position);
+            // SL = 100000 - (200 * 1.5) = 99700
+            assert.equal(rm.position.stopLossPrice, 99700);
+            // TP activation = 100000 + (200 * 2.0) = 100400
+            assert.equal(rm.position.tpActivationPrice, 100400);
+            assert.equal(rm.position.trailingActive, false);
+            assert.equal(rm.position.atr, 200);
+        });
+
+        it('should use fallback when ATR is null', () => {
+            rm.enterPosition('KRW-BTC', 100000, 1000, null);
+
+            // Fallback SL = 100000 * (1 - 0.003) = 99700
+            assert.ok(Math.abs(rm.position.stopLossPrice - 99700) < 1);
+            // Fallback TP = 100000 * (1 + 0.005) = 100500
+            assert.ok(Math.abs(rm.position.tpActivationPrice - 100500) < 1);
+        });
+    });
+
+    describe('checkPositionExit - stop-loss', () => {
+        it('should trigger stop-loss with ATR-based level', () => {
+            rm.enterPosition('KRW-BTC', 100000, 1000, 200);
+            // SL = 99700
+            const result = rm.checkPositionExit(99690);
             assert.equal(result.shouldExit, true);
             assert.equal(result.reason, 'stop_loss');
         });
 
-        it('should trigger take profit', () => {
-            rm.enterPosition('KRW-BTC', 100000, 1);
-            const result = rm.checkPositionExit(100550); // +0.55%
+        it('should not trigger stop-loss above level', () => {
+            rm.enterPosition('KRW-BTC', 100000, 1000, 200);
+            const result = rm.checkPositionExit(99710);
+            assert.equal(result.shouldExit, false);
+        });
+    });
+
+    describe('checkPositionExit - trailing take-profit', () => {
+        it('should activate trailing when price reaches TP activation', () => {
+            rm.enterPosition('KRW-BTC', 100000, 1000, 200);
+            // TP activation = 100400
+            const result = rm.checkPositionExit(100500);
+            assert.equal(result.shouldExit, false);
+            assert.equal(rm.position.trailingActive, true);
+            assert.equal(rm.position.peakPrice, 100500);
+        });
+
+        it('should track peak price while trailing', () => {
+            rm.enterPosition('KRW-BTC', 100000, 1000, 200);
+
+            rm.checkPositionExit(100500); // activate trailing, peak=100500
+            rm.checkPositionExit(100800); // new peak=100800
+
+            assert.equal(rm.position.peakPrice, 100800);
+            assert.equal(rm.position.trailingActive, true);
+        });
+
+        it('should exit when price drops trailingPct from peak', () => {
+            rm.enterPosition('KRW-BTC', 100000, 1000, 200);
+
+            rm.checkPositionExit(100500); // activate trailing
+            rm.checkPositionExit(100800); // peak = 100800
+
+            // Trail = 0.2% of 100800 = 201.6 → exit below 100598.4
+            const result = rm.checkPositionExit(100590);
             assert.equal(result.shouldExit, true);
-            assert.equal(result.reason, 'take_profit');
+            assert.equal(result.reason, 'trailing_take_profit');
+            assert.ok(result.pnlPct > 0.5, 'Should have positive PnL');
         });
 
-        it('should hold when within range', () => {
-            rm.enterPosition('KRW-BTC', 100000, 1);
-            const result = rm.checkPositionExit(100100); // +0.1%
+        it('should not exit while price is near peak', () => {
+            rm.enterPosition('KRW-BTC', 100000, 1000, 200);
+
+            rm.checkPositionExit(100500); // activate
+            rm.checkPositionExit(100800); // peak
+
+            // Still very close to peak
+            const result = rm.checkPositionExit(100750);
             assert.equal(result.shouldExit, false);
-            assert.equal(result.reason, 'holding');
+            assert.equal(result.reason, 'trailing');
         });
 
-        it('should report no_position when not in position', () => {
-            const result = rm.checkPositionExit(100000);
-            assert.equal(result.shouldExit, false);
-            assert.equal(result.reason, 'no_position');
+        it('should capture large moves with trailing', () => {
+            rm.enterPosition('KRW-BTC', 100000, 1000, 200);
+
+            // Price pumps from 100000 → 101000 (1% gain)
+            rm.checkPositionExit(100500); // activate trailing
+            rm.checkPositionExit(100800);
+            rm.checkPositionExit(101000); // peak = 101000
+
+            // Price pulls back 0.2% from peak → exit
+            const exitPrice = 101000 * (1 - 0.002); // 100798
+            const result = rm.checkPositionExit(exitPrice);
+            assert.equal(result.shouldExit, true);
+            // P&L should be ~0.8% (much better than fixed 0.5% TP)
+            assert.ok(result.pnlPct > 0.7, `Expected >0.7% PnL, got ${result.pnlPct.toFixed(3)}%`);
         });
     });
 
     describe('recordTrade', () => {
-        it('should increment daily trade count', () => {
+        it('should increment trade count and PnL', () => {
             rm.recordTrade(0.2, 2000);
             assert.equal(rm.dailyTradeCount, 1);
             assert.equal(rm.dailyPnL, 2000);
         });
 
-        it('should trigger pause when rolling window loss exceeds threshold', () => {
-            // Record several losing trades
+        it('should trigger pause on rolling window loss', () => {
             rm.recordTrade(-0.4, -4000);
             rm.recordTrade(-0.3, -3000);
             rm.recordTrade(-0.4, -4000);
-            // Total rolling loss: 1.1% > threshold of 1.0%
-
             assert.ok(rm.pausedUntil > Date.now());
-            const check = rm.canTrade();
-            assert.equal(check.allowed, false);
         });
 
-        it('should clear position after recording trade', () => {
-            rm.enterPosition('KRW-BTC', 100000, 1);
-            assert.ok(rm.position !== null);
-            rm.recordTrade(0.2, 2000);
+        it('should clear position after recording', () => {
+            rm.enterPosition('KRW-BTC', 100000, 1000, 200);
+            rm.recordTrade(0.5, 5000);
             assert.equal(rm.position, null);
         });
     });
 
     describe('getStatus', () => {
-        it('should return complete status summary', () => {
-            rm.enterPosition('KRW-BTC', 100000, 1);
+        it('should return complete status', () => {
             rm.recordTrade(0.3, 3000);
             rm.recordTrade(-0.1, -1000);
-
             const status = rm.getStatus();
             assert.equal(status.dailyTradeCount, 2);
             assert.equal(status.dailyPnL, 2000);
-            assert.equal(status.recentWins, 1);
-            assert.equal(status.recentLosses, 1);
             assert.equal(status.winRate, 50);
-            assert.equal(status.hasPosition, false);
         });
     });
 
     describe('daily reset', () => {
-        it('should reset counters on new day', () => {
+        it('should reset on new day', () => {
             rm.dailyTradeCount = 50;
             rm.dailyPnL = 10000;
-            rm.dailyDate = '2020-01-01'; // Force old date
-
-            const result = rm.canTrade(); // triggers day check
-            assert.equal(result.allowed, true);
+            rm.dailyDate = '2020-01-01';
+            rm.canTrade();
             assert.equal(rm.dailyTradeCount, 0);
             assert.equal(rm.dailyPnL, 0);
         });

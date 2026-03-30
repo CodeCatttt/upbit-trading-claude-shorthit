@@ -20,6 +20,7 @@ const { UpbitWebSocket } = require('./websocket-client');
 const { CandleManager } = require('./candle-manager');
 const { RiskManager } = require('./risk-manager');
 const { analyze, DEFAULT_CONFIG: STRATEGY_CONFIG } = require('../strategies/scalping-strategy');
+const { calcATR } = require('./indicators');
 const { createLogger } = require('../utils/logger');
 
 const log = createLogger('DAY-BOT');
@@ -78,8 +79,11 @@ let state = {
 const riskConfig = {
     maxDailyLossPct: 3,
     maxDailyTrades: 1000,
-    stopLossPct: 0.3,
-    takeProfitPct: 0.5,
+    slAtrMultiplier: 1.5,          // SL = ATR * 1.5
+    tpAtrMultiplier: 2.0,          // Trailing TP activates at ATR * 2.0
+    trailingPct: 0.2,              // Trail 0.2% from peak
+    fallbackStopLossPct: 0.3,      // Fallback when no ATR data
+    fallbackTakeProfitPct: 0.5,    // Fallback when no ATR data
     pauseDurationMs: 300000,       // 5 min pause
     pauseThresholdPct: 0.5,        // 0.5% loss in window triggers pause
     pauseWindowMs: 1800000,        // 30 min window
@@ -228,7 +232,11 @@ async function executeBuy(market) {
     state.lastTradeTime = Date.now();
     saveState();
 
-    riskManager.enterPosition(market, price, amt);
+    // Calculate ATR from 1m candles for dynamic SL/TP
+    const candles1m = candleManager ? candleManager.getCandles(market, 1) : [];
+    const atr = candles1m.length >= 15 ? calcATR(candles1m, 14) : null;
+
+    riskManager.enterPosition(market, price, amt, atr);
 
     appendExecutionLog({
         action: 'BUY',
@@ -332,12 +340,13 @@ async function runAnalysis() {
             return;
         }
 
-        // Get candle data
+        // Get candle data + orderbook
         const candles1m = candleManager.getCandles(activeMarket, 1);
         const candles5m = candleManager.getCandles(activeMarket, 5);
+        const orderbook = wsClient ? wsClient.getOrderbook(activeMarket) : null;
 
-        // Run strategy
-        const signal = analyze(candles1m, candles5m, STRATEGY_CONFIG);
+        // Run strategy with orderbook data
+        const signal = analyze(candles1m, candles5m, STRATEGY_CONFIG, orderbook);
 
         analysisCount++;
 
@@ -450,6 +459,10 @@ async function reconcileState(markets) {
                 state.entryPrice = top.avgPrice;
                 saveState();
             }
+            // Always sync RiskManager position for stop-loss/take-profit
+            const reconCandles = candleManager ? candleManager.getCandles(top.market, 1) : [];
+            const reconAtr = reconCandles.length >= 15 ? calcATR(reconCandles, 14) : null;
+            riskManager.enterPosition(top.market, top.avgPrice, top.value, reconAtr);
         } else {
             // No crypto holdings — should be CASH
             if (state.assetHeld !== 'CASH') {

@@ -8,6 +8,7 @@
  * - Bollinger Band squeeze & breakout
  * - VWAP reversion
  * - Volume spike detection
+ * - Orderbook bid/ask imbalance
  *
  * Returns BUY/SELL/HOLD signals on every tick.
  */
@@ -49,13 +50,18 @@ const DEFAULT_CONFIG = {
     trendFilterEnabled: true,
     trendEmaPeriod: 20,
 
-    // Signal scoring weights
-    emaCrossWeight: 0.25,
-    rsiWeight: 0.20,
-    bbWeight: 0.15,
-    vwapWeight: 0.15,
-    macdWeight: 0.15,
-    volumeWeight: 0.10,
+    // Orderbook imbalance
+    orderbookWeight: 0.15,
+    orderbookBullishThreshold: 1.5, // bid/ask ratio > 1.5 = bullish
+    orderbookBearishThreshold: 0.67, // bid/ask ratio < 0.67 = bearish
+
+    // Signal scoring weights (total = 1.0)
+    emaCrossWeight: 0.20,
+    rsiWeight: 0.15,
+    bbWeight: 0.12,
+    vwapWeight: 0.12,
+    macdWeight: 0.13,
+    volumeWeight: 0.13,
 
     // Entry threshold (sum of weighted signals must exceed this)
     entryThreshold: 0.15,
@@ -71,9 +77,10 @@ const DEFAULT_CONFIG = {
  * @param {object[]} candles1m - Array of 1m candles
  * @param {object[]} candles5m - Array of 5m candles
  * @param {object} config - Strategy config
+ * @param {object|null} orderbook - { bidPrice, askPrice, bidSize, askSize, totalBidSize, totalAskSize }
  * @returns {{ action: 'BUY'|'SELL'|'HOLD', score: number, signals: object }}
  */
-function analyze(candles1m, candles5m, config = DEFAULT_CONFIG) {
+function analyze(candles1m, candles5m, config = DEFAULT_CONFIG, orderbook = null) {
     if (!candles1m || candles1m.length < config.minCandles1m) {
         return { action: 'HOLD', score: 0, signals: { reason: 'insufficient_1m_candles' } };
     }
@@ -224,7 +231,29 @@ function analyze(candles1m, candles5m, config = DEFAULT_CONFIG) {
         }
     }
 
-    // === 7. 5m Trend Filter ===
+    // === 7. Orderbook Imbalance ===
+    if (orderbook && orderbook.totalBidSize > 0 && orderbook.totalAskSize > 0) {
+        const obRatio = orderbook.totalBidSize / orderbook.totalAskSize;
+        signals.orderbookRatio = +obRatio.toFixed(2);
+
+        if (obRatio >= (config.orderbookBullishThreshold || 1.5)) {
+            buyScore += config.orderbookWeight;
+            signals.orderbookSignal = 'bullish_imbalance';
+        } else if (obRatio <= (config.orderbookBearishThreshold || 0.67)) {
+            sellScore += config.orderbookWeight;
+            signals.orderbookSignal = 'bearish_imbalance';
+        } else if (obRatio > 1.15) {
+            buyScore += config.orderbookWeight * 0.4;
+            signals.orderbookSignal = 'slight_bullish';
+        } else if (obRatio < 0.87) {
+            sellScore += config.orderbookWeight * 0.4;
+            signals.orderbookSignal = 'slight_bearish';
+        } else {
+            signals.orderbookSignal = 'balanced';
+        }
+    }
+
+    // === 8. 5m Trend Filter ===
     if (config.trendFilterEnabled && candles5m.length >= config.trendEmaPeriod) {
         const trend5mEma = calcEMA(candles5m, config.trendEmaPeriod);
         const price5m = candles5m[candles5m.length - 1].close;
