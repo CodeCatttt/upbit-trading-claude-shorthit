@@ -15,6 +15,7 @@
 const fs = require('fs');
 const path = require('path');
 const api = require('./upbit-api');
+const { refreshMarkets } = require('./market-selector');
 const { UpbitWebSocket } = require('./websocket-client');
 const { CandleManager } = require('./candle-manager');
 const { RiskManager } = require('./risk-manager');
@@ -396,23 +397,30 @@ async function runAnalysis() {
 // === Initialization ===
 
 async function seedCandleData(markets) {
-    log.info('Seeding candle data from API...');
-    const promises = [];
+    log.info(`Seeding candle data for ${markets.length} markets...`);
 
-    for (const market of markets) {
-        promises.push(
-            api.getCandles(market, 1, SEED_CANDLES_1M)
-                .then(candles => candleManager.seedCandles(market, 1, candles))
-                .catch(e => log.warn(`Failed to seed 1m candles for ${market}: ${e.message}`))
-        );
-        promises.push(
-            api.getCandles(market, 5, SEED_CANDLES_5M)
-                .then(candles => candleManager.seedCandles(market, 5, candles))
-                .catch(e => log.warn(`Failed to seed 5m candles for ${market}: ${e.message}`))
-        );
+    // Seed sequentially in batches of 3 to avoid 429 rate limits
+    const BATCH_SIZE = 3;
+    for (let i = 0; i < markets.length; i += BATCH_SIZE) {
+        const batch = markets.slice(i, i + BATCH_SIZE);
+        const promises = [];
+        for (const market of batch) {
+            promises.push(
+                api.getCandles(market, 1, SEED_CANDLES_1M)
+                    .then(candles => candleManager.seedCandles(market, 1, candles))
+                    .catch(e => log.warn(`Failed to seed 1m for ${market}: ${e.message}`))
+            );
+            promises.push(
+                api.getCandles(market, 5, SEED_CANDLES_5M)
+                    .then(candles => candleManager.seedCandles(market, 5, candles))
+                    .catch(e => log.warn(`Failed to seed 5m for ${market}: ${e.message}`))
+            );
+        }
+        await Promise.all(promises);
+        if (i + BATCH_SIZE < markets.length) {
+            await new Promise(r => setTimeout(r, 500)); // 500ms between batches
+        }
     }
-
-    await Promise.all(promises);
     log.info('Candle seeding complete');
 }
 
@@ -470,6 +478,10 @@ async function reconcileState(markets) {
 async function start() {
     log.info('=== Upbit Day Trading Bot Starting ===');
 
+    // Dynamic market selection on startup
+    log.info('Selecting top markets by 24h volume...');
+    await refreshMarkets(12);
+
     const config = loadTradingConfig();
     const markets = config.markets;
 
@@ -507,6 +519,20 @@ async function start() {
 
     // Periodic daily stats save (every hour)
     setInterval(saveDailyStats, 3600000);
+
+    // Periodic market refresh (every hour) — update WebSocket subscriptions too
+    setInterval(async () => {
+        const result = await refreshMarkets(12);
+        if (result && wsClient) {
+            // Re-initialize candle manager with new markets
+            for (const m of result.added || []) {
+                candleManager.seedCandles(m, 1, []);
+                candleManager.seedCandles(m, 5, []);
+            }
+            wsClient.updateMarkets(result.markets);
+            log.info(`Markets refreshed: ${result.markets.length} active`);
+        }
+    }, 3600000);
 
     // Graceful shutdown
     const shutdown = () => {
