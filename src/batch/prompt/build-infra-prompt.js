@@ -105,7 +105,7 @@ function buildPM2StatusSection() {
 
 function buildErrorLogSection() {
     const logFiles = [
-        { name: 'upbit-trading-bot', file: 'upbit-trading-bot-error.log' },
+        { name: 'upbit-day-trading-bot', file: 'upbit-day-trading-bot-error.log' },
         { name: 'batch-scheduler', file: 'batch-scheduler-error.log' },
     ];
 
@@ -229,7 +229,7 @@ function buildRelevantSourceSection() {
 
     // Gather all error log content
     const logFiles = [
-        'upbit-trading-bot-error.log',
+        'upbit-day-trading-bot-error.log',
         'batch-scheduler-error.log',
     ];
 
@@ -309,12 +309,12 @@ function buildArchitectureSection() {
 
 function buildConstraintsSection() {
     return `## Constraints
-- 수정 가능: src/ 하위 파일 (current-strategy.js, custom-indicators.js 제외)
+- 수정 가능: src/ 하위 파일 (scalping-strategy.js, custom-indicators.js 제외)
 - 수정 불가: .env, data/, node_modules/, backups/
 - 최대 3개 파일 수정 가능
 - 각 수정 파일은 \`\`\`file:relative/path\`\`\` 코드 블록으로 전체 파일 내용 제공
 - 새 파일 생성은 src/ 하위에서만 허용
-- 전략 파일(current-strategy.js, custom-indicators.js)은 절대 수정 금지`;
+- 전략 파일(scalping-strategy.js, custom-indicators.js)은 절대 수정 금지`;
 }
 
 function buildResponseFormatSection() {

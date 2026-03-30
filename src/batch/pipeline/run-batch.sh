@@ -48,7 +48,7 @@ json_field() {
 
 # --- Constants ---
 MAX_RETRIES=2
-TEMP_STRATEGY="$PROJECT_DIR/src/strategies/.tmp-new-strategy.js"
+TEMP_STRATEGY="$PROJECT_DIR/src/strategies/.tmp-new-scalping-strategy.js"
 CUSTOM_INDICATORS_FILE="$PROJECT_DIR/src/strategies/custom-indicators.js"
 CUSTOM_INDICATORS_BACKUP="$PROJECT_DIR/src/strategies/.backup-custom-indicators.js"
 
@@ -167,7 +167,7 @@ if [ "$ACTION" = "modify" ]; then
 
     # Step M0: Baseline walk-forward backtest (done once)
     echo "  [Modify Gate] Backtesting baseline strategy (walk-forward)..."
-    MODIFY_BASELINE_WF=$(node src/batch/eval/backtest.js --walk-forward src/strategies/current-strategy.js 2>/dev/null || echo '{"test":{"error":"backtest failed"}}')
+    MODIFY_BASELINE_WF=$(node src/batch/eval/backtest.js --walk-forward src/strategies/scalping-strategy.js 2>/dev/null || echo '{"test":{"error":"backtest failed"}}')
 
     MODIFY_BASELINE_METRICS=$(MOD_BL="$MODIFY_BASELINE_WF" node -e "
         const wf = JSON.parse(process.env.MOD_BL);
@@ -253,7 +253,7 @@ if [ "$ACTION" = "modify" ]; then
 
         # Backtest modified strategy (walk-forward)
         echo "  [Modify Gate] Backtesting modified strategy (walk-forward)..."
-        MODIFY_AFTER_WF=$(node src/batch/eval/backtest.js --walk-forward src/strategies/current-strategy.js 2>/dev/null || echo '{"test":{"error":"backtest failed"}}')
+        MODIFY_AFTER_WF=$(node src/batch/eval/backtest.js --walk-forward src/strategies/scalping-strategy.js 2>/dev/null || echo '{"test":{"error":"backtest failed"}}')
 
         # Compare with modify gate (walk-forward results)
         MODIFY_COMPARISON=$(BASELINE_WF="$MODIFY_BASELINE_WF" MODIFIED_WF="$MODIFY_AFTER_WF" node -e "
@@ -282,7 +282,7 @@ if [ "$ACTION" = "modify" ]; then
         else
             # Gate failed — revert and prepare for retry
             echo "  [Modify Gate] FAILED. Reverting strategy."
-            git checkout -- src/strategies/current-strategy.js 2>/dev/null || true
+            git checkout -- src/strategies/scalping-strategy.js 2>/dev/null || true
 
             MODIFY_LAST_PARAMS="$PARAMS"
             MODIFY_LAST_GATE_RESULT="$MODIFY_COMPARISON"
@@ -317,7 +317,7 @@ if [ "$ACTION" = "modify" ]; then
 
         # Restart PM2 to reload modified parameters
         echo "  Restarting PM2 to apply modified parameters..."
-        pm2 restart upbit-trading-bot 2>/dev/null || echo "  WARNING: PM2 restart failed"
+        pm2 restart upbit-day-trading-bot 2>/dev/null || echo "  WARNING: PM2 restart failed"
 
         MODIFY_DECISION=$(json_field "$MODIFY_CURRENT_PARSE" "JSON.stringify(o.decision)")
         MODIFY_JSON=$(PARAMS_JSON="$PARAMS" DECISION_JSON="$MODIFY_DECISION" node -e "
@@ -440,7 +440,7 @@ if [ "$ACTION" = "experiment" ]; then
                 # === PARAMETER_TEST or other: backtest only ===
                 echo "  Backtesting experiment strategy..."
                 EXP_BACKTEST=$(node src/batch/eval/backtest.js --walk-forward "$TEMP_STRATEGY" 2>/dev/null || echo '{"test":{"error":"backtest failed"}}')
-                CURRENT_WF=$(node src/batch/eval/backtest.js --walk-forward src/strategies/current-strategy.js 2>/dev/null || echo '{"test":{"error":"backtest failed"}}')
+                CURRENT_WF=$(node src/batch/eval/backtest.js --walk-forward src/strategies/scalping-strategy.js 2>/dev/null || echo '{"test":{"error":"backtest failed"}}')
 
                 EXP_COMPARISON=$(CUR_WF="$CURRENT_WF" NEW_WF_JSON="$EXP_BACKTEST" node -e "
                     const { compareStrategies } = require('./src/batch/eval/backtest');
@@ -476,7 +476,7 @@ if [ "$ACTION" = "experiment" ]; then
 
                 if [ "$CHANGES" != "{}" ] && [ "$CHANGES" != "null" ] && [ -n "$CHANGES" ]; then
                     echo "  Auto-generating modified strategy from parameter changes..."
-                    cp src/strategies/current-strategy.js "$TEMP_STRATEGY"
+                    cp src/strategies/scalping-strategy.js "$TEMP_STRATEGY"
 
                     STRATEGY_PATH="$TEMP_STRATEGY" node src/batch/eval/apply-modify.js "$CHANGES" 2>/dev/null
                     APPLY_EXIT=$?
@@ -484,7 +484,7 @@ if [ "$ACTION" = "experiment" ]; then
                     if [ $APPLY_EXIT -eq 0 ]; then
                         echo "  Backtesting experiment strategy..."
                         EXP_BACKTEST=$(node src/batch/eval/backtest.js --walk-forward "$TEMP_STRATEGY" 2>/dev/null || echo '{"test":{"error":"backtest failed"}}')
-                        CURRENT_WF=$(node src/batch/eval/backtest.js --walk-forward src/strategies/current-strategy.js 2>/dev/null || echo '{"test":{"error":"backtest failed"}}')
+                        CURRENT_WF=$(node src/batch/eval/backtest.js --walk-forward src/strategies/scalping-strategy.js 2>/dev/null || echo '{"test":{"error":"backtest failed"}}')
 
                         EXP_COMPARISON=$(CUR_WF="$CURRENT_WF" NEW_WF_JSON="$EXP_BACKTEST" node -e "
                             const { compareStrategies } = require('./src/batch/eval/backtest');
@@ -593,7 +593,7 @@ echo "[Step 4] REPLACE path — retry loop enabled (max $((MAX_RETRIES + 1)) att
 
 # Baseline: walk-forward backtest of current strategy (done once)
 echo "  Backtesting current strategy (baseline)..."
-CURRENT_WF=$(node src/batch/eval/backtest.js --walk-forward src/strategies/current-strategy.js 2>/dev/null || echo '{"test":{"error":"backtest failed"}}')
+CURRENT_WF=$(node src/batch/eval/backtest.js --walk-forward src/strategies/scalping-strategy.js 2>/dev/null || echo '{"test":{"error":"backtest failed"}}')
 
 # Extract current baseline metrics for comparison and retry prompts
 CURRENT_METRICS=$(CUR_WF="$CURRENT_WF" node -e "
@@ -1012,7 +1012,7 @@ if [ "$DEPLOY_SUCCESS" = "true" ]; then
     echo "[Step 6] Committing changes to git..."
     cd "$PROJECT_DIR"
     REASONING=$(json_field "$WINNING_PARSE" "o.decision.reasoning||'strategy replacement'")
-    git add src/strategies/current-strategy.js src/strategies/custom-indicators.js deploy-log.json trading-config.json data/batch-memory.json 2>/dev/null || true
+    git add src/strategies/scalping-strategy.js src/strategies/custom-indicators.js deploy-log.json trading-config.json data/batch-memory.json 2>/dev/null || true
     git commit -m "batch: replace strategy - $REASONING" 2>/dev/null || echo "  No changes to commit."
     git push 2>/dev/null || echo "  Push skipped (no remote configured)."
 else
@@ -1129,7 +1129,7 @@ if [ "$SHADOW_ID" != "null" ] && [ -n "$SHADOW_ID" ]; then
 
             # Git commit
             cd "$PROJECT_DIR"
-            git add src/strategies/current-strategy.js deploy-log.json data/shadow-performance.json data/experiments.json 2>/dev/null || true
+            git add src/strategies/scalping-strategy.js deploy-log.json data/shadow-performance.json data/experiments.json 2>/dev/null || true
             git commit -m "batch: auto-promote shadow strategy '$SHADOW_LABEL' (alpha +${SHADOW_ALPHA}%)" 2>/dev/null || true
             git push 2>/dev/null || echo "  Push skipped."
         else

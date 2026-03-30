@@ -111,7 +111,7 @@ if [ "$ACTION" = "replace_strategy" ]; then
 
     # Baseline: walk-forward backtest of current strategy
     echo "  Backtesting current strategy (baseline)..."
-    CURRENT_WF=$(node src/batch/eval/backtest.js --walk-forward src/strategies/current-strategy.js 2>/dev/null || echo '{"test":{"error":"backtest failed"}}')
+    CURRENT_WF=$(node src/batch/eval/backtest.js --walk-forward src/strategies/scalping-strategy.js 2>/dev/null || echo '{"test":{"error":"backtest failed"}}')
 
     CURRENT_METRICS=$(CUR_WF="$CURRENT_WF" node -e "
         const wf = JSON.parse(process.env.CUR_WF);
@@ -354,7 +354,7 @@ if [ "$ACTION" = "replace_strategy" ]; then
 
             # Git commit
             cd "$PROJECT_DIR"
-            git add src/strategies/current-strategy.js src/strategies/custom-indicators.js deploy-log.json trading-config.json data/batch-memory.json 2>/dev/null || true
+            git add src/strategies/scalping-strategy.js src/strategies/custom-indicators.js deploy-log.json trading-config.json data/batch-memory.json 2>/dev/null || true
             git commit -m "research: replace strategy - $REASONING" 2>/dev/null || echo "  No changes to commit."
             git push 2>/dev/null || echo "  Push skipped (no remote configured)."
 
@@ -497,7 +497,7 @@ if [ "$ACTION" = "propose_experiment" ]; then
 
             if [ "$CHANGES" != "{}" ] && [ "$CHANGES" != "null" ] && [ -n "$CHANGES" ]; then
                 echo "  Auto-generating modified strategy from parameter changes..."
-                cp src/strategies/current-strategy.js "$TEMP_STRATEGY"
+                cp src/strategies/scalping-strategy.js "$TEMP_STRATEGY"
 
                 STRATEGY_PATH="$TEMP_STRATEGY" node src/batch/eval/apply-modify.js "$CHANGES" 2>/dev/null
                 APPLY_EXIT=$?
@@ -505,7 +505,7 @@ if [ "$ACTION" = "propose_experiment" ]; then
                 if [ $APPLY_EXIT -eq 0 ]; then
                     echo "  Backtesting experiment strategy..."
                     EXP_BACKTEST=$(node src/batch/eval/backtest.js --walk-forward "$TEMP_STRATEGY" 2>/dev/null || echo '{"test":{"error":"backtest failed"}}')
-                    CURRENT_WF=$(node src/batch/eval/backtest.js --walk-forward src/strategies/current-strategy.js 2>/dev/null || echo '{"test":{"error":"backtest failed"}}')
+                    CURRENT_WF=$(node src/batch/eval/backtest.js --walk-forward src/strategies/scalping-strategy.js 2>/dev/null || echo '{"test":{"error":"backtest failed"}}')
 
                     EXP_COMPARISON=$(CUR_WF="$CURRENT_WF" NEW_WF_JSON="$EXP_BACKTEST" node -e "
                         const { compareStrategies } = require('./src/batch/eval/backtest');
@@ -592,7 +592,7 @@ if [ "$ACTION" = "propose_experiment" ]; then
 
             if [ -f "$TEMP_STRATEGY" ]; then
                 EXP_BACKTEST=$(node src/batch/eval/backtest.js --walk-forward "$TEMP_STRATEGY" 2>/dev/null || echo '{"test":{"error":"backtest failed"}}')
-                CURRENT_WF=$(node src/batch/eval/backtest.js --walk-forward src/strategies/current-strategy.js 2>/dev/null || echo '{"test":{"error":"backtest failed"}}')
+                CURRENT_WF=$(node src/batch/eval/backtest.js --walk-forward src/strategies/scalping-strategy.js 2>/dev/null || echo '{"test":{"error":"backtest failed"}}')
 
                 EXP_COMPARISON=$(CUR_WF="$CURRENT_WF" NEW_WF_JSON="$EXP_BACKTEST" node -e "
                     const { compareStrategies } = require('./src/batch/eval/backtest');

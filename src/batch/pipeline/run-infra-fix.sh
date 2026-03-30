@@ -211,7 +211,7 @@ fi
 echo "[Step 5] All patches applied successfully."
 
 # --- Step 6: PM2 restart ---
-echo "[Step 6] Restarting PM2 upbit-trading-bot..."
+echo "[Step 6] Restarting PM2 upbit-day-trading-bot..."
 
 # Record pre-restart state
 PRE_RESTART_TIME=$(pm2 jlist 2>/dev/null | node -e "
@@ -220,13 +220,13 @@ PRE_RESTART_TIME=$(pm2 jlist 2>/dev/null | node -e "
     process.stdin.on('end',()=>{
         try {
             const procs=JSON.parse(d);
-            const bot=procs.find(p=>p.name==='upbit-trading-bot');
+            const bot=procs.find(p=>p.name==='upbit-day-trading-bot');
             console.log(bot?bot.pm2_env.restart_time:'-1');
         } catch(e) { console.log('-1'); }
     });
 " 2>/dev/null || echo "-1")
 
-pm2 restart upbit-trading-bot --update-env 2>/dev/null || echo "  WARNING: PM2 restart command failed"
+pm2 restart upbit-day-trading-bot --update-env 2>/dev/null || echo "  WARNING: PM2 restart command failed"
 
 # --- Step 7: Health check ---
 echo "[Step 7] Waiting 30s for health check..."
@@ -238,7 +238,7 @@ PM2_STATUS=$(pm2 jlist 2>/dev/null | node -e "
     process.stdin.on('end',()=>{
         try {
             const procs=JSON.parse(d);
-            const bot=procs.find(p=>p.name==='upbit-trading-bot');
+            const bot=procs.find(p=>p.name==='upbit-day-trading-bot');
             if (!bot) { console.log('NOT_FOUND'); return; }
             const status=bot.pm2_env.status;
             const restarts=bot.pm2_env.restart_time;
@@ -285,7 +285,7 @@ if [ "$HEALTH_OK" != "true" ]; then
     done
 
     echo "  Restarting PM2 after rollback..."
-    pm2 restart upbit-trading-bot --update-env 2>/dev/null || echo "  WARNING: PM2 restart after rollback failed"
+    pm2 restart upbit-day-trading-bot --update-env 2>/dev/null || echo "  WARNING: PM2 restart after rollback failed"
     sleep 10
 
     # Notify failure

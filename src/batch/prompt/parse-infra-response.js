@@ -23,7 +23,7 @@ const TMP_PREFIX = path.join(__dirname, '.tmp-infra-check-');
 
 const FORBIDDEN_PATTERNS = ['.env', 'node_modules', 'backups/'];
 const FORBIDDEN_FILES = [
-    'src/strategies/current-strategy.js',
+    'src/strategies/scalping-strategy.js',
     'src/strategies/custom-indicators.js',
 ];
 const FORBIDDEN_DIR_PREFIXES = ['data/'];

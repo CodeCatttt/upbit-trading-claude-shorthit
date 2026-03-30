@@ -1,64 +1,57 @@
-# upbit-trading-claude
+# upbit-trading-claude-day-trading
 
-Upbit 멀티에셋 트레이딩 봇 with Claude-powered batch strategy analysis.
+Upbit 고빈도 단타(스캘핑) 트레이딩 봇 with WebSocket real-time data + Claude-powered batch strategy analysis.
 
 ## Architecture
 
-- **Bot** (`src/core/bot.js`): PM2 process running 24/7, checks every 15 minutes
-- **Execution** (`src/execution/smart-entry.js`): Smart entry module — monitors short-term price for optimal buy timing
-- **Strategy** (`src/strategies/current-strategy.js`): Hot-swappable strategy file
+- **Day Trading Bot** (`src/core/day-trading-bot.js`): PM2 process, WebSocket real-time data, 5-second analysis loop
+- **WebSocket Client** (`src/core/websocket-client.js`): Upbit WebSocket for real-time ticker/trade/orderbook
+- **Candle Manager** (`src/core/candle-manager.js`): Builds 1m/5m candles from real-time trade data
+- **Risk Manager** (`src/core/risk-manager.js`): Stop-loss 0.3%, take-profit 0.5%, daily loss limit, dynamic throttling
+- **Strategy** (`src/strategies/scalping-strategy.js`): Hot-swappable scalping strategy (EMA/RSI/BB/VWAP/MACD/Volume)
 - **Custom Indicators** (`src/strategies/custom-indicators.js`): Claude-managed custom indicator functions
-- **Batch Scheduler** (`src/batch/pipeline/batch-scheduler.js`): PM2 process — 3-tier trigger-based adaptive batch scheduling
+- **Batch Scheduler** (`src/batch/pipeline/batch-scheduler.js`): PM2 process — 3-tier trigger-based adaptive batch scheduling (5min checks)
 - **Batch Memory** (`data/batch-memory.json`): Decision history + structured knowledge base for cross-batch learning
 - **Performance Tracker** (`src/batch/learning/performance-tracker.js`): Daily real P&L vs BTC benchmark tracking
 - **Experiment Manager** (`src/batch/learning/experiment-manager.js`): Structured hypothesis → test → learn cycle
 - **Shadow Manager** (`src/batch/learning/shadow-manager.js`): Paper-trading parallel strategy evaluation
 - **Config** (`trading-config.json`): Dynamic market list, updated by Claude at each batch
+- **Legacy Bot** (`src/core/bot.js`): Original 15-minute swing trading bot (preserved for reference)
 
 ### 3-Tier Autonomous Batch System
 
 | Tier | 역할 | 주기 | 수정 대상 | 파이프라인 |
 |------|------|------|-----------|-----------|
-| **strategy** | 시장 대응, 파라미터 조정, 전략 교체 | 매일/트리거 (6h min, 긴급 3h) | current-strategy.js, custom-indicators.js | `run-batch.sh` |
+| **strategy** | 시장 대응, 파라미터 조정, 전략 교체 | 트리거 기반 (2h min, 긴급 1h) | scalping-strategy.js, custom-indicators.js | `run-batch.sh` |
 | **infra_fix** | 버그 수정, 코드 안정성 개선 | 주 1회 / PM2 crash 시 (24h min) | src/ 전체 (전략 파일 제외) | `run-infra-fix.sh` |
-| **research** | 전략 연구, 근본적 전략 교체 | 주 1회 / 성과 부진 시 (7d min) | current-strategy.js + custom-indicators.js | `run-research.sh` |
+| **research** | 전략 연구, 근본적 전략 교체 | 주 1회 / 성과 부진 시 (7d min) | scalping-strategy.js + custom-indicators.js | `run-research.sh` |
 
 **Cross-tier 동시 실행 규칙:**
 - strategy + infra_fix: 가능 (다른 파일 수정)
 - strategy + research: 불가 (둘 다 전략 파일 수정 가능)
 - infra_fix + research: 가능 (다른 파일 수정)
 
-## Strategy Interface (Multi-Timeframe)
+## Strategy Interface (Scalping)
 
 All strategies must export:
 ```javascript
 module.exports = {
   DEFAULT_CONFIG,                      // Object with strategy parameters
-  createStrategyState(),               // Returns { assetHeld: 'KRW-BTC' }
-  onNewCandle(state, candleData, config?)
-    // candleData: {
-    //   'KRW-BTC': { 15: [candle, ...], 240: [candle, ...] },
-    //   'KRW-ETH': { 15: [candle, ...], 240: [candle, ...] },
-    // }
-    // Access: candleData['KRW-BTC'][15]  — 15m candles
-    //         candleData['KRW-BTC'][240] — 4h candles
+  analyze(candles1m, candles5m, config?)
+    // candles1m: Array of 1-minute candles [{ open, high, low, close, volume, timestamp }]
+    // candles5m: Array of 5-minute candles (same format)
     // Returns:
-    //   { action: 'HOLD', details: { ... } }
-    //   { action: 'NONE', details: { reason: '...' } }
-    //   { action: 'SWITCH', details: { targetMarket: 'KRW-SOL', reason: '...', ... } }
+    //   { action: 'BUY', score: 0.45, signals: { ... } }
+    //   { action: 'SELL', score: -0.5, signals: { ... } }
+    //   { action: 'HOLD', score: 0.1, signals: { ... } }
 };
 ```
 
-### State Format
-- `state.assetHeld`: Market code (`'KRW-BTC'`, `'KRW-ETH'`, `'CASH'` etc.)
-- Candle format: `{ open, high, low, close, volume, timestamp }`
-
 ### Action Types
-- `SWITCH`: Sell current asset, buy `details.targetMarket`
-- `SWITCH` (to CASH): `{ action: 'SWITCH', details: { targetMarket: 'CASH', reason: '...' } }` — sell to KRW, hold as cash
-- `SWITCH` (from CASH): Strategy's `checkReentry()` determines when to buy back (RSI + trend + cooldown)
-- `HOLD`: Keep current position (or stay in CASH)
-- `NONE`: No action (insufficient data)
+- `BUY`: Enter position (buy market order)
+- `SELL`: Exit position (sell market order)
+- `HOLD`: No action
+- Risk management (stop-loss/take-profit) handled by RiskManager, not strategy
 
 ### Current Strategy: Adaptive Regime Multi-Timeframe
 - **15m 캔들**: 빠른 리스크 신호 (crash detection, trailing stop)

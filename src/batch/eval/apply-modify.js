@@ -11,7 +11,7 @@ const fs = require('fs');
 const path = require('path');
 
 const params = JSON.parse(process.argv[2]);
-const strategyPath = process.env.STRATEGY_PATH || 'src/strategies/current-strategy.js';
+const strategyPath = process.env.STRATEGY_PATH || 'src/strategies/scalping-strategy.js';
 let code = fs.readFileSync(strategyPath, 'utf8');
 
 // If re-export, resolve to actual file

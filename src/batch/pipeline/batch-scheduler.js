@@ -28,19 +28,19 @@ const EXPERIMENTS_FILE = path.join(PROJECT_DIR, 'data/experiments.json');
 const SCHEDULER_STATE_FILE = path.join(PROJECT_DIR, 'data/scheduler-state.json');
 const PERFORMANCE_FILE = path.join(PROJECT_DIR, 'data/performance-ledger.json');
 
-const CHECK_INTERVAL_MS = 15 * 60 * 1000; // 15 minutes
-const PRICE_CHANGE_THRESHOLD = 5; // 5%
-const MDD_THRESHOLD = 8; // 8%
-const STAGNATION_DAYS = 7;
+const CHECK_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes (day trading needs faster checks)
+const PRICE_CHANGE_THRESHOLD = 3; // 3% (more sensitive for scalping)
+const MDD_THRESHOLD = 5; // 5% (tighter for day trading)
+const STAGNATION_HOURS = 4; // 4 hours without trades = stagnation for day trading
 
-// Per-tier minimum intervals
+// Per-tier minimum intervals (shortened for day trading responsiveness)
 const MIN_INTERVALS = {
-    strategy: 6 * 60 * 60 * 1000,           // 6 hours (normal)
-    strategy_urgent: 3 * 60 * 60 * 1000,     // 3 hours (urgent: DRAWDOWN, REGIME)
+    strategy: 2 * 60 * 60 * 1000,           // 2 hours (day trading needs faster adaptation)
+    strategy_urgent: 1 * 60 * 60 * 1000,     // 1 hour (urgent: DRAWDOWN, REGIME)
     infra_fix: 24 * 60 * 60 * 1000,          // 24 hours (regular maintenance)
     infra_fix_crash: 6 * 60 * 60 * 1000,     // 6 hours (PM2 crash — more urgent)
     infra_fix_weekly: 7 * 24 * 60 * 60 * 1000, // 7 days (weekly maintenance)
-    research: 7 * 24 * 60 * 60 * 1000,       // 7 days
+    research: 3 * 24 * 60 * 60 * 1000,       // 3 days (day trading generates data faster)
 };
 
 // Per-tier timeout
@@ -197,9 +197,38 @@ function checkStagnation() {
     if (execLog.length === 0) return true;
     const lastTrade = execLog[execLog.length - 1];
     if (!lastTrade.timestamp) return false;
-    const daysSinceTrade = (Date.now() - new Date(lastTrade.timestamp).getTime()) / (1000 * 60 * 60 * 24);
-    if (daysSinceTrade >= STAGNATION_DAYS) {
-        log.info(`Stagnation detected: ${daysSinceTrade.toFixed(1)} days since last trade`);
+    const hoursSinceTrade = (Date.now() - new Date(lastTrade.timestamp).getTime()) / (1000 * 60 * 60);
+    if (hoursSinceTrade >= STAGNATION_HOURS) {
+        log.info(`Stagnation detected: ${hoursSinceTrade.toFixed(1)} hours since last trade (threshold: ${STAGNATION_HOURS}h)`);
+        return true;
+    }
+    return false;
+}
+
+function checkLowTradeFrequency() {
+    // Anti-conservatism: trigger if daily trades are way below target
+    const dailyStatsFile = path.join(PROJECT_DIR, 'data/daily-stats.json');
+    const stats = loadJSON(dailyStatsFile, []);
+    if (stats.length < 2) return false;
+    const recent = stats.slice(-2);
+    const avgTrades = recent.reduce((sum, s) => sum + (s.trades || 0), 0) / recent.length;
+    if (avgTrades < 10) {
+        log.info(`Low trade frequency: avg ${avgTrades.toFixed(1)} trades/day over 2 days (target: 20+)`);
+        return true;
+    }
+    return false;
+}
+
+function checkPoorWinRate() {
+    // Day trading specific: check if recent win rate is too low
+    const dailyStatsFile = path.join(PROJECT_DIR, 'data/daily-stats.json');
+    const stats = loadJSON(dailyStatsFile, []);
+    if (stats.length < 3) return false;
+    const recent3 = stats.slice(-3);
+    const avgWinRate = recent3.reduce((sum, s) => sum + (s.winRate || 0), 0) / recent3.length;
+    const totalPnl = recent3.reduce((sum, s) => sum + (s.pnlPct || 0), 0);
+    if (avgWinRate < 40 && totalPnl < 0) {
+        log.info(`Poor win rate detected: avg ${avgWinRate.toFixed(1)}% over 3 days, total PnL ${totalPnl.toFixed(2)}%`);
         return true;
     }
     return false;
@@ -337,12 +366,22 @@ async function evaluateTriggers() {
         if (checkPersistentUnderperformance()) return { tier: 'research', trigger: 'PERSISTENT_UNDERPERFORMANCE' };
     }
 
-    // 7. STAGNATION → strategy (6h interval)
+    // 7. LOW_TRADE_FREQUENCY → strategy (anti-conservatism)
+    if (checkTierInterval(state, 'strategy')) {
+        if (checkLowTradeFrequency()) return { tier: 'strategy', trigger: 'LOW_TRADE_FREQUENCY' };
+    }
+
+    // 8. POOR_WIN_RATE → strategy (day-trading specific)
+    if (checkTierInterval(state, 'strategy')) {
+        if (checkPoorWinRate()) return { tier: 'strategy', trigger: 'POOR_WIN_RATE' };
+    }
+
+    // 8. STAGNATION → strategy (hours-based for day trading)
     if (checkTierInterval(state, 'strategy')) {
         if (checkStagnation()) return { tier: 'strategy', trigger: 'STAGNATION' };
     }
 
-    // 8. DAILY_REVIEW → strategy (6h interval)
+    // 9. DAILY_REVIEW → strategy
     if (checkTierInterval(state, 'strategy')) {
         if (checkDailyClose(state)) return { tier: 'strategy', trigger: 'DAILY_REVIEW' };
     }

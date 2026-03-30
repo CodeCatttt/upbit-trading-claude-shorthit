@@ -11,7 +11,7 @@
  *
  * Usage:
  *   node backtest.js [strategyPath]
- *   If no path given, backtests current-strategy.js.
+ *   If no path given, backtests scalping-strategy.js.
  */
 
 'use strict';
@@ -303,10 +303,10 @@ function runBacktest(strategy, candleData, label = 'unnamed', measureFromIdx = n
     return result;
 }
 
-// Tiered gate thresholds — tightened to prevent regression
+// Tiered gate thresholds — adjusted for day trading (higher trade frequency allowed)
 const GATE_THRESHOLDS = {
-    replace: { minReturn: 0, maxMddWorsening: 2, maxDailyTrades: 10, minDailyTrades: 0.15 },
-    modify:  { minReturn: -1, maxMddWorsening: 3, maxDailyTrades: 10, minDailyTrades: 0.1 },
+    replace: { minReturn: 0, maxMddWorsening: 2, maxDailyTrades: 500, minDailyTrades: 1 },
+    modify:  { minReturn: -1, maxMddWorsening: 3, maxDailyTrades: 500, minDailyTrades: 0.5 },
 };
 
 function compareStrategies(currentResult, newResult, gateType = 'replace') {
@@ -320,11 +320,26 @@ function compareStrategies(currentResult, newResult, gateType = 'replace') {
     const drawdownWorsening = newMetrics.maxDrawdown - currentMetrics.maxDrawdown;
     const dailyTrades = newMetrics.dailyTrades;
 
+    // Anti-conservatism: reject if new strategy trades LESS than current
+    const currentDailyTrades = currentMetrics.dailyTrades || 0;
+    const tradeFreqRegression = currentDailyTrades > 0 && dailyTrades < currentDailyTrades * 0.5;
+
     const pass =
         returnImprovement >= gate.minReturn &&
         drawdownWorsening <= gate.maxMddWorsening &&
         dailyTrades <= gate.maxDailyTrades &&
-        dailyTrades >= (gate.minDailyTrades || 0);
+        dailyTrades >= (gate.minDailyTrades || 0) &&
+        !tradeFreqRegression;
+
+    const reasons = [
+        pass ? 'PASSED' : 'FAILED',
+        `Return improvement: ${returnImprovement.toFixed(2)}% (need >= ${gate.minReturn}%)`,
+        `Drawdown worsening: ${drawdownWorsening.toFixed(2)}% (need <= ${gate.maxMddWorsening}%)`,
+        `Daily trades: ${dailyTrades} (need >= ${gate.minDailyTrades || 0} and <= ${gate.maxDailyTrades})`,
+    ];
+    if (tradeFreqRegression) {
+        reasons.push(`BLOCKED: Trade frequency regression — new ${dailyTrades.toFixed(1)}/day vs current ${currentDailyTrades.toFixed(1)}/day (< 50% of current)`);
+    }
 
     return {
         pass,
@@ -332,12 +347,8 @@ function compareStrategies(currentResult, newResult, gateType = 'replace') {
         returnImprovement: parseFloat(returnImprovement.toFixed(4)),
         drawdownWorsening: parseFloat(drawdownWorsening.toFixed(4)),
         dailyTrades,
-        reasons: [
-            pass ? 'PASSED' : 'FAILED',
-            `Return improvement: ${returnImprovement.toFixed(2)}% (need >= ${gate.minReturn}%)`,
-            `Drawdown worsening: ${drawdownWorsening.toFixed(2)}% (need <= ${gate.maxMddWorsening}%)`,
-            `Daily trades: ${dailyTrades} (need >= ${gate.minDailyTrades || 0} and <= ${gate.maxDailyTrades})`,
-        ],
+        tradeFreqRegression,
+        reasons,
     };
 }
 
@@ -424,7 +435,7 @@ function saveResult(result, comparison = null) {
 if (require.main === module) {
     const args = process.argv.slice(2);
     const walkForward = args.includes('--walk-forward');
-    const strategyPath = args.find(a => !a.startsWith('--')) || path.join(__dirname, '../../strategies/current-strategy.js');
+    const strategyPath = args.find(a => !a.startsWith('--')) || path.join(__dirname, '../../strategies/scalping-strategy.js');
     const resolvedPath = path.resolve(strategyPath);
 
     process.stderr.write(`[BACKTEST] Strategy: ${resolvedPath}${walkForward ? ' (walk-forward)' : ''}\n`);

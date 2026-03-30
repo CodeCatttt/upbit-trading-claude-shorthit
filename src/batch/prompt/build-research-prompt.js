@@ -19,7 +19,7 @@ const { createLogger } = require('../../utils/logger');
 const log = createLogger('BUILD-RESEARCH-PROMPT');
 
 const PROJECT_DIR = path.join(__dirname, '../../..');
-const STRATEGY_FILE = path.join(PROJECT_DIR, 'src/strategies/current-strategy.js');
+const STRATEGY_FILE = path.join(PROJECT_DIR, 'src/strategies/scalping-strategy.js');
 const CUSTOM_INDICATORS_FILE = path.join(PROJECT_DIR, 'src/strategies/custom-indicators.js');
 const INDICATORS_FILE = path.join(PROJECT_DIR, 'src/core/indicators.js');
 const MEMORY_FILE = path.join(PROJECT_DIR, 'data/batch-memory.json');

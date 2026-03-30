@@ -16,13 +16,14 @@ const { createLogger } = require('../../utils/logger');
 const log = createLogger('DEPLOY');
 
 const PROJECT_ROOT = path.join(__dirname, '../../..');
+const SCALPING_STRATEGY = path.join(__dirname, '../../strategies/scalping-strategy.js');
 const CURRENT_STRATEGY = path.join(__dirname, '../../strategies/current-strategy.js');
 const CUSTOM_INDICATORS = path.join(__dirname, '../../strategies/custom-indicators.js');
 const BACKUP_DIR = path.join(PROJECT_ROOT, 'backups');
 const DEPLOY_LOG_FILE = path.join(PROJECT_ROOT, 'deploy-log.json');
 const HEARTBEAT_FILE = path.join(PROJECT_ROOT, 'data/bot-heartbeat.json');
 const HEALTH_CHECK_WAIT_MS = 30000;
-const PM2_NAME = 'upbit-trading-bot';
+const PM2_NAME = 'upbit-day-trading-bot';
 
 function ensureDir(dir) {
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
@@ -138,8 +139,12 @@ function preDeployValidation(strategyCode) {
         delete require.cache[require.resolve(tmpFile)];
         const mod = require(tmpFile);
 
-        if (typeof mod.createStrategyState !== 'function' || typeof mod.onNewCandle !== 'function') {
-            errors.push('Missing required exports (createStrategyState or onNewCandle)');
+        // Detect strategy type: scalping (analyze) vs legacy (onNewCandle)
+        const isScalping = typeof mod.analyze === 'function';
+        const isLegacy = typeof mod.onNewCandle === 'function' && typeof mod.createStrategyState === 'function';
+
+        if (!isScalping && !isLegacy) {
+            errors.push('Missing required exports (analyze for scalping or createStrategyState+onNewCandle for legacy)');
             try { fs.unlinkSync(tmpFile); } catch {}
             return { pass: false, errors };
         }
@@ -161,52 +166,85 @@ function preDeployValidation(strategyCode) {
             }
         }
 
-        // Need at least one market with 15m data
-        const markets = Object.keys(candleData).filter(m => candleData[m][15]?.length >= 50);
-        if (markets.length === 0) {
-            log.warn('No sufficient candle data for dry-run, skipping');
-            try { fs.unlinkSync(tmpFile); } catch {}
-            return { pass: true, errors: [], skipped: true };
-        }
-
-        // Run onNewCandle 100 times, simulating candle-by-candle feed
-        const state = mod.createStrategyState();
-        const config = mod.DEFAULT_CONFIG || {};
-        let errorCount = 0;
-
-        for (let i = 50; i <= 150 && i <= (candleData[markets[0]][15]?.length || 0); i++) {
-            // Build progressive candle data (up to index i)
-            const slicedData = {};
-            for (const market of markets) {
-                slicedData[market] = {};
-                if (candleData[market][15]) {
-                    slicedData[market][15] = candleData[market][15].slice(0, i);
-                }
-                if (candleData[market][240]) {
-                    // Proportional slice for 4h candles
-                    const ratio = Math.max(1, Math.floor(i / 16));
-                    slicedData[market][240] = candleData[market][240].slice(0, ratio);
-                }
+        if (isScalping) {
+            // Scalping strategy dry-run: needs 1m data
+            const markets = Object.keys(candleData).filter(m => candleData[m][1]?.length >= 50 || candleData[m][5]?.length >= 30);
+            if (markets.length === 0) {
+                log.warn('No sufficient 1m/5m candle data for scalping dry-run, skipping');
+                try { fs.unlinkSync(tmpFile); } catch {}
+                return { pass: true, errors: [], skipped: true };
             }
 
-            try {
-                const result = mod.onNewCandle(state, slicedData, config);
-                if (!result || !result.action) {
-                    errorCount++;
-                    if (errorCount >= 5) {
-                        errors.push(`onNewCandle returned invalid result at iteration ${i - 50 + 1}`);
+            const market = markets[0];
+            const candles1m = candleData[market][1] || [];
+            const candles5m = candleData[market][5] || [];
+            const config = mod.DEFAULT_CONFIG || {};
+            let errorCount = 0;
+
+            for (let i = 50; i <= 150 && i <= candles1m.length; i++) {
+                try {
+                    const slice1m = candles1m.slice(0, i);
+                    const slice5m = candles5m.slice(0, Math.max(1, Math.floor(i / 5)));
+                    const result = mod.analyze(slice1m, slice5m, config);
+                    if (!result || !result.action) {
+                        errorCount++;
+                        if (errorCount >= 5) {
+                            errors.push(`analyze returned invalid result at iteration ${i - 50 + 1}`);
+                            break;
+                        }
+                    } else if (!['BUY', 'SELL', 'HOLD'].includes(result.action)) {
+                        errors.push(`Invalid action "${result.action}" at iteration ${i - 50 + 1}`);
                         break;
                     }
-                } else if (!['SWITCH', 'HOLD', 'NONE'].includes(result.action)) {
-                    errors.push(`Invalid action "${result.action}" at iteration ${i - 50 + 1}`);
+                } catch (e) {
+                    errors.push(`Runtime error at iteration ${i - 50 + 1}: ${e.message}`);
                     break;
-                } else if (result.action === 'SWITCH' && result.details?.targetMarket) {
-                    // Simulate asset switch in state
-                    state.assetHeld = result.details.targetMarket;
                 }
-            } catch (e) {
-                errors.push(`Runtime error at iteration ${i - 50 + 1}: ${e.message}`);
-                break;
+            }
+        } else {
+            // Legacy strategy dry-run
+            const markets = Object.keys(candleData).filter(m => candleData[m][15]?.length >= 50);
+            if (markets.length === 0) {
+                log.warn('No sufficient candle data for dry-run, skipping');
+                try { fs.unlinkSync(tmpFile); } catch {}
+                return { pass: true, errors: [], skipped: true };
+            }
+
+            const state = mod.createStrategyState();
+            const config = mod.DEFAULT_CONFIG || {};
+            let errorCount = 0;
+
+            for (let i = 50; i <= 150 && i <= (candleData[markets[0]][15]?.length || 0); i++) {
+                const slicedData = {};
+                for (const market of markets) {
+                    slicedData[market] = {};
+                    if (candleData[market][15]) {
+                        slicedData[market][15] = candleData[market][15].slice(0, i);
+                    }
+                    if (candleData[market][240]) {
+                        const ratio = Math.max(1, Math.floor(i / 16));
+                        slicedData[market][240] = candleData[market][240].slice(0, ratio);
+                    }
+                }
+
+                try {
+                    const result = mod.onNewCandle(state, slicedData, config);
+                    if (!result || !result.action) {
+                        errorCount++;
+                        if (errorCount >= 5) {
+                            errors.push(`onNewCandle returned invalid result at iteration ${i - 50 + 1}`);
+                            break;
+                        }
+                    } else if (!['SWITCH', 'HOLD', 'NONE'].includes(result.action)) {
+                        errors.push(`Invalid action "${result.action}" at iteration ${i - 50 + 1}`);
+                        break;
+                    } else if (result.action === 'SWITCH' && result.details?.targetMarket) {
+                        state.assetHeld = result.details.targetMarket;
+                    }
+                } catch (e) {
+                    errors.push(`Runtime error at iteration ${i - 50 + 1}: ${e.message}`);
+                    break;
+                }
             }
         }
 
@@ -239,6 +277,11 @@ async function deploy(strategyCode, backtestComparison = null) {
         return { success: false, reason: 'dryrun_failed', errors: dryRun.errors };
     }
 
+    // Detect strategy type
+    const isScalping = strategyCode.includes('analyze') && !strategyCode.includes('onNewCandle');
+    const targetFile = isScalping ? SCALPING_STRATEGY : CURRENT_STRATEGY;
+    const targetName = isScalping ? 'scalping-strategy.js' : 'current-strategy.js';
+
     // 0. Record restart count before deploy
     const restartsBefore = getPM2RestartCount();
 
@@ -246,8 +289,8 @@ async function deploy(strategyCode, backtestComparison = null) {
     const backupPath = backupCurrentStrategy();
 
     // 2. Write new strategy
-    fs.writeFileSync(CURRENT_STRATEGY, strategyCode);
-    log.info('New strategy written to current-strategy.js');
+    fs.writeFileSync(targetFile, strategyCode);
+    log.info(`New strategy written to ${targetName}`);
 
     // 3. PM2 restart
     if (!restartPM2()) {

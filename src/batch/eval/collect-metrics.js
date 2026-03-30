@@ -17,7 +17,7 @@ const log = createLogger('METRICS');
 
 const STATE_FILE = path.join(__dirname, '../../../bot-state.json');
 const HEARTBEAT_FILE = path.join(__dirname, '../../../data/bot-heartbeat.json');
-const STRATEGY_FILE = path.join(__dirname, '../../strategies/current-strategy.js');
+const STRATEGY_FILE = path.join(__dirname, '../../strategies/scalping-strategy.js');
 const METRICS_DIR = path.join(__dirname, '../../../data/metrics');
 const DEPLOY_LOG = path.join(__dirname, '../../../deploy-log.json');
 const CONFIG_FILE = path.join(__dirname, '../../../trading-config.json');
@@ -419,7 +419,7 @@ async function collectMetrics() {
             holdings,
         },
         strategy: {
-            file: 'current-strategy.js',
+            file: 'scalping-strategy.js',
             source: strategySource,
             lastDeploy,
         },

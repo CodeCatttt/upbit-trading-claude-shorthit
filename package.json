@@ -1,20 +1,24 @@
 {
-  "name": "upbit-trading-claude",
-  "version": "1.0.0",
-  "description": "Upbit BTC/ETH relative value trading bot with Claude-powered batch analysis",
+  "name": "upbit-trading-claude-day-trading",
+  "version": "2.0.0",
+  "description": "Upbit high-frequency day trading bot with WebSocket real-time data",
   "type": "commonjs",
   "scripts": {
-    "start": "node src/core/bot.js",
-    "backtest": "node src/batch/backtest.js",
+    "start": "node src/core/day-trading-bot.js",
+    "start:legacy": "node src/core/bot.js",
+    "backtest": "node src/batch/eval/scalping-backtest.js",
+    "backtest:legacy": "node src/batch/eval/backtest.js",
     "batch": "bash src/batch/run-batch.sh",
     "fetch-candles": "node src/data/candle-fetcher.js",
-    "collect-metrics": "node src/batch/collect-metrics.js"
+    "collect-metrics": "node src/batch/collect-metrics.js",
+    "test": "node --test tests/"
   },
   "dependencies": {
     "axios": "^1.13.5",
     "dotenv": "^17.3.1",
     "jsonwebtoken": "^9.0.3",
     "node-cron": "^4.2.1",
-    "uuid": "^13.0.0"
+    "uuid": "^13.0.0",
+    "ws": "^8.20.0"
   }
 }

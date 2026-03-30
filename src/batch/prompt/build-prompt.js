@@ -25,6 +25,10 @@ const CONFIG_FILE = path.join(__dirname, '../../../trading-config.json');
 const MEMORY_FILE = path.join(__dirname, '../../../data/batch-memory.json');
 const PERFORMANCE_FILE = path.join(__dirname, '../../../data/performance-ledger.json');
 const EXPERIMENTS_FILE = path.join(__dirname, '../../../data/experiments.json');
+const DAILY_STATS_FILE = path.join(__dirname, '../../../data/daily-stats.json');
+const SCALPING_STRATEGY_FILE = path.join(__dirname, '../../strategies/scalping-strategy.js');
+
+const MIN_DAILY_TRADES_TARGET = 20; // Day trading bot should do at least 20 trades/day
 
 // --- Data loaders ---
 
@@ -296,11 +300,28 @@ function buildFocusSection(triggerType) {
 3. 리스크 파라미터 강화 필요 여부`,
 
         STAGNATION: `## 이번 배치의 초점: 기회 탐색 (장기 미거래)
-7일 이상 거래가 없었습니다. **keep은 권장하지 않습니다.** 다음 중 하나를 실행하세요:
-1. modify: 쿨다운/임계값을 낮춰 거래 활성화
-2. replace: 더 적극적인 전략으로 교체 (minDailyTrades >= 0.15 필수)
-3. experiment (shadow_strategy): 새 전략을 4일 페이퍼 트레이딩으로 검증
-거래 0 상태에서는 알파 생성이 불가능합니다. 변경을 시도하세요.`,
+수 시간 동안 거래가 없었습니다. 단타 봇이 거래를 안 한다면 시그널 감도에 문제가 있습니다. **keep은 권장하지 않습니다.**
+1. modify: entryThreshold를 낮추거나 RSI/BB 임계값을 완화하여 진입 기회 확대
+2. replace: 더 공격적인 시그널 조합으로 교체
+3. experiment: 새 시그널 조합을 테스트
+단타 봇은 하루 수십~수백건 거래해야 수익을 낼 수 있습니다.`,
+
+        LOW_TRADE_FREQUENCY: `## 이번 배치의 초점: 거래 빈도 부족 (보수화 드리프트 감지)
+봇이 하루 10건 미만으로 거래하고 있습니다. 단타 봇으로서 심각하게 부족합니다.
+**이것은 전략이 너무 보수적이라는 명백한 신호입니다. keep은 절대 불가합니다.**
+반드시 다음 중 하나를 실행하세요:
+1. modify: entryThreshold를 0.10~0.15로 낮추기, 시그널 가중치 재조정
+2. replace: 더 공격적인 시그널 조합으로 전면 교체
+3. 5m 트렌드 페널티 완화 (0.75 → 0.85)
+**entryThreshold를 높이거나 시그널 조건을 강화하면 게이트에서 차단됩니다.**`,
+
+        POOR_WIN_RATE: `## 이번 배치의 초점: 저조한 승률 개선
+최근 3일간 승률이 40% 미만이고 순손실이 발생했습니다. 다음에 집중하세요:
+1. 시그널 품질 개선: 잘못된 진입을 줄이기 위한 필터 강화
+2. 5m 트렌드 필터 가중치 조정: 역추세 진입 억제
+3. entryThreshold 상향: 확신이 높은 시그널만 진입
+4. 손절/익절 비율 조정 검토
+승률 50% 이상이 수수료를 이기는 최소 조건입니다.`,
 
         DAILY_REVIEW: `## 이번 배치의 초점: 일일 정기 점검
 일일 캔들 마감에 따른 정기 점검입니다. 성과 데이터를 기반으로 판단하세요.
@@ -320,19 +341,20 @@ function buildFocusSection(triggerType) {
 
 function buildConstraintsSection() {
     return `## Constraints
-- Strategy must export: \`DEFAULT_CONFIG\`, \`createStrategyState()\`, \`onNewCandle(state, candleData, config?)\`
-- \`candleData\`: \`{ 'KRW-BTC': { 15: [...], 240: [...] }, ... }\`
-- Returns: \`{ action: 'HOLD'|'SWITCH'|'NONE', details: { ... } }\`
-- SWITCH to CASH: \`{ action: 'SWITCH', details: { targetMarket: 'CASH', reason: '...' } }\`
-- \`createStrategyState()\` must return \`{ assetHeld: 'KRW-BTC' }\`
-- DEFAULT_CONFIG must include \`executionMode\` and \`smartEntry\` fields
-- Available: \`require('../core/indicators')\`, \`require('./custom-indicators')\`, \`require('../utils/adf-test')\`
+- Strategy must export: \`DEFAULT_CONFIG\`, \`analyze(candles1m, candles5m, config?)\`
+- \`candles1m\`: Array of 1-minute candles \`[{ open, high, low, close, volume, timestamp }]\`
+- \`candles5m\`: Array of 5-minute candles (same format)
+- Returns: \`{ action: 'BUY'|'SELL'|'HOLD', score: number, signals: { ... } }\`
+- Available: \`require('../core/indicators')\` — EMA, RSI, BollingerBands, ATR, VWAP, MACD, Stochastic, ADX, etc.
 - No external npm packages beyond what exists
-- Daily trade frequency: >= 0.15 and <= 10 trades/day (0-trade 전략은 게이트 탈락)
-- Backtest: 0.1% slippage (0.05% smart) + 0.05% fee per side
-- Walk-forward: replace uses 70/30 split, TEST period for gate evaluation
-- Gates: replace(return diff >= 0%, MDD <= 2% worse, trades 0.15~10/day), modify(return diff >= -1%, MDD <= 3% worse, trades 0.1~10/day)
-- Walk-forward: test 구간에서 fresh state로 평가 (train 오염 방지)
+- This is a **scalping/day-trading** strategy — optimize for short-term moves (minutes, not hours)
+- Each trade has 0.3% stop-loss and 0.5% take-profit managed by RiskManager
+- Fee: 0.05% per side (0.1% round-trip) — strategy must consistently beat fee drag
+- Daily trade limit: up to 1000 trades/day, dynamic throttling pauses if losing
+- Backtest: 0.05% slippage + 0.05% fee per side
+- Gates: replace(return diff >= 0%, MDD <= 2% worse, trades 1~500/day), modify(return diff >= -1%, MDD <= 3% worse, trades 0.5~500/day)
+- **Key signals to leverage**: EMA crossovers, RSI extremes, Bollinger Band touches, VWAP deviation, MACD histogram, volume spikes
+- **5m trend filter**: penalize counter-trend trades for higher win rate
 - **3회 연속 keep 후에는 반드시 modify 또는 replace 선택 필수**`;
 }
 
@@ -398,6 +420,54 @@ replace 시 최대 3개 변형 가능. 각 \`\`\`javascript 블록 첫줄에 \`/
 모든 변형 독립 백테스트 → 게이트 통과 최고 성과 배포. 실패 시 최대 2회 재시도.`;
 }
 
+function buildAntiConservatismSection() {
+    const lines = [];
+
+    // Read current strategy entryThreshold
+    let currentThreshold = null;
+    try {
+        const stratSource = fs.readFileSync(SCALPING_STRATEGY_FILE, 'utf8');
+        const match = stratSource.match(/entryThreshold:\s*([\d.]+)/);
+        if (match) currentThreshold = parseFloat(match[1]);
+    } catch {}
+
+    // Read recent daily stats for trade frequency
+    const dailyStats = loadJSON(DAILY_STATS_FILE, []);
+    const recent3 = dailyStats.slice(-3);
+    const avgDailyTrades = recent3.length > 0
+        ? recent3.reduce((sum, s) => sum + (s.trades || 0), 0) / recent3.length
+        : 0;
+
+    const isConservative = avgDailyTrades < MIN_DAILY_TRADES_TARGET;
+
+    if (isConservative || (currentThreshold && currentThreshold > 0.3)) {
+        lines.push('## ⚠ 보수화 드리프트 경고');
+        lines.push('');
+
+        if (avgDailyTrades < MIN_DAILY_TRADES_TARGET && recent3.length > 0) {
+            lines.push(`**최근 3일 평균 거래: ${avgDailyTrades.toFixed(1)}건/일 (목표: ${MIN_DAILY_TRADES_TARGET}건/일 이상)**`);
+            lines.push('단타 봇이 충분히 거래하지 않고 있습니다. 이는 수익 기회를 놓치는 것입니다.');
+            lines.push('');
+        }
+
+        if (currentThreshold && currentThreshold > 0.3) {
+            lines.push(`**현재 entryThreshold: ${currentThreshold} — 너무 높습니다.**`);
+            lines.push('entryThreshold가 0.3을 초과하면 거의 거래가 발생하지 않습니다.');
+            lines.push('');
+        }
+
+        lines.push('**MANDATORY**: 다음 중 하나를 반드시 실행하세요:');
+        lines.push('1. `modify`: entryThreshold를 0.10~0.20 범위로 낮추기');
+        lines.push('2. `replace`: 더 공격적인 시그널 조합으로 교체');
+        lines.push('');
+        lines.push('**절대 금지**: entryThreshold를 현재보다 높이거나, 시그널 가중치를 줄이는 것');
+        lines.push('**핵심 원칙**: 이 봇은 단타 봇입니다. 거래를 안 하는 것이 최악의 결과입니다.');
+        lines.push(`**entryThreshold 허용 범위**: 0.05 ~ 0.25 (절대 0.25 초과 금지)`);
+    }
+
+    return lines.length > 0 ? lines.join('\n') : '';
+}
+
 // --- Main build function ---
 
 function buildPrompt(triggerType) {
@@ -419,8 +489,10 @@ function buildPrompt(triggerType) {
     const sections = [];
 
     // Header with trigger context
-    sections.push(`You are a quantitative trading strategy analyst for a multi-asset trading bot on Upbit.
-The bot holds exactly one asset at a time (100% allocation) and can switch between watched markets.
+    sections.push(`You are a quantitative trading strategy analyst for a high-frequency day trading bot on Upbit.
+The bot uses WebSocket real-time data, trades on 1m/5m candles, and aims for up to 1000 trades/day.
+It holds one asset at a time with 0.3% stop-loss and 0.5% take-profit per trade.
+Dynamic throttling pauses trading when losing too much in a rolling window.
 
 **배치 트리거**: ${triggerType}`);
 
@@ -430,6 +502,9 @@ The bot holds exactly one asset at a time (100% allocation) and can switch betwe
 
     // Always include: real performance (core improvement)
     sections.push(buildPerformanceSection(metrics, performance));
+
+    // Anti-conservatism enforcement
+    sections.push(buildAntiConservatismSection());
 
     // Always include: knowledge base (replaces strategicNotes)
     sections.push(buildKnowledgeSection(memory));
