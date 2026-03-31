@@ -187,6 +187,7 @@ async function buyMarketOrder(market, amountKrw) {
 
 async function sellMarketOrder(market, volume) {
     let lastOrderId = null;
+    const currency = market.replace('KRW-', '');
     for (let attempt = 0; attempt <= MAX_ORDER_RETRIES; attempt++) {
         try {
             // Before retrying, check if previous order actually filled
@@ -195,6 +196,12 @@ async function sellMarketOrder(market, volume) {
                 if (prevResult.success) {
                     console.log(`[SELL] ${market} previous order ${lastOrderId} filled on recheck.`);
                     return prevResult.data;
+                }
+                // Previous order placed but not confirmed — check if coins were already sold.
+                const remainingBalance = await getBalance(currency);
+                if (remainingBalance < volume * 0.5) {
+                    console.error(`[SELL] ${market} balance depleted (${remainingBalance} remaining) after order ${lastOrderId}. Not placing duplicate order.`);
+                    return null;
                 }
             }
             const body = { market, side: 'ask', volume: volume.toString(), ord_type: 'market' };

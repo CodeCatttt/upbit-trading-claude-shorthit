@@ -301,8 +301,32 @@ async function executeSell(market, reason) {
     log.info(`SELL ${market}: ${balance} ${currency} (reason: ${reason})`);
     const result = await api.sellMarketOrder(market, balance);
     if (!result) {
-        log.error(`Sell failed for ${market}`);
-        return false;
+        // Sell confirmation failed, but order may have filled on the exchange.
+        log.warn(`Sell confirmation failed for ${market}. Checking actual balance...`);
+        await new Promise(r => setTimeout(r, 3000));
+        const remainingBalance = await api.getBalance(currency);
+        const currentPrice = await api.getCurrentPrice(market);
+        if (remainingBalance > 0 && currentPrice > 0 && remainingBalance * currentPrice > MIN_ORDER_KRW) {
+            log.error(`Sell failed for ${market} — still holding ${remainingBalance} ${currency}`);
+            return false;
+        }
+        // Balance is gone → sell actually went through despite confirmation failure
+        log.warn(`RECONCILE: Sell confirmation failed but ${currency} balance is now ${remainingBalance}. Order likely filled.`);
+        const sellPrice = currentPrice || priceBeforeSell;
+        const entryPrice = state.entryPrice || sellPrice;
+        const pnlPct = ((sellPrice - entryPrice) / entryPrice) * 100;
+        const pnlKrw = (sellPrice - entryPrice) / entryPrice * (balance * entryPrice);
+        riskManager.recordTrade(pnlPct, pnlKrw);
+        state.assetHeld = 'CASH';
+        state.entryPrice = null;
+        state.lastTradeTime = Date.now();
+        saveState();
+        appendExecutionLog({
+            action: 'SELL', market, price: sellPrice, entryPrice,
+            pnlPct: +pnlPct.toFixed(4), pnlKrw: +pnlKrw.toFixed(0),
+            reason, note: 'reconciled_after_confirmation_failure',
+        });
+        return true;
     }
 
     // Calculate P&L
@@ -354,16 +378,32 @@ async function runAnalysis() {
         // If holding, always check stop-loss/take-profit regardless of pause
         if (state.assetHeld !== 'CASH' && state.activeMarket) {
             const market = state.activeMarket;
-            const currentPrice = candleManager.getLatestPrice(market) || wsClient.getPrice(market);
+            const candlePrice = candleManager.getLatestPrice(market);
+            const wsPrice = wsClient ? wsClient.getPrice(market) : 0;
+            // Prefer WebSocket price (real-time), fall back to candle price
+            const currentPrice = wsPrice || candlePrice;
 
-            if (currentPrice > 0) {
+            if (!currentPrice || currentPrice <= 0) {
+                // No valid price — skip exit check to avoid false triggers
+                if (analysisCount % 60 === 0) {
+                    log.warn(`No valid price for ${market} (ws=${wsPrice}, candle=${candlePrice}). Skipping exit check.`);
+                }
+            } else {
                 const exitCheck = riskManager.checkPositionExit(currentPrice);
                 if (exitCheck.shouldExit) {
-                    log.info(`Exit signal: ${exitCheck.reason} (PnL: ${exitCheck.pnlPct.toFixed(3)}%)`);
-                    await executeSell(market, exitCheck.reason);
-                    writeHeartbeat(exitCheck.reason);
-                    isProcessing = false;
-                    return;
+                    // Double-check with fresh API price before executing stop-loss
+                    const freshPrice = await api.getCurrentPrice(market);
+                    if (freshPrice > 0) {
+                        const freshExit = riskManager.checkPositionExit(freshPrice);
+                        if (freshExit.shouldExit) {
+                            log.info(`Exit signal: ${freshExit.reason} (PnL: ${freshExit.pnlPct.toFixed(3)}%, price: ${freshPrice})`);
+                            await executeSell(market, freshExit.reason);
+                            writeHeartbeat(freshExit.reason);
+                            isProcessing = false;
+                            return;
+                        }
+                        log.info(`Exit signal from cached price (${currentPrice}) but NOT confirmed by API price (${freshPrice}). Skipping.`);
+                    }
                 }
             }
         }

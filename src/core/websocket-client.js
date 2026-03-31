@@ -15,6 +15,7 @@ const UPBIT_WS_URL = 'wss://api.upbit.com/websocket/v1';
 const PING_INTERVAL = 30000;
 const RECONNECT_DELAY_BASE = 1000;
 const RECONNECT_DELAY_MAX = 30000;
+const PRICE_STALE_MS = 30000; // Prices older than 30s are considered stale
 
 class UpbitWebSocket extends EventEmitter {
     constructor(markets = []) {
@@ -26,9 +27,9 @@ class UpbitWebSocket extends EventEmitter {
         this.isConnecting = false;
         this.isClosed = false;
 
-        // Latest data cache
-        this.prices = {};        // market -> price
-        this.orderbooks = {};    // market -> { bidPrice, askPrice, ... }
+        // Latest data cache (with timestamps for staleness detection)
+        this.prices = {};        // market -> { value, updatedAt }
+        this.orderbooks = {};    // market -> { bidPrice, askPrice, ..., updatedAt }
         this.trades = {};        // market -> last trade
     }
 
@@ -134,7 +135,7 @@ class UpbitWebSocket extends EventEmitter {
         const market = data.code;
 
         if (data.type === 'ticker') {
-            this.prices[market] = data.trade_price;
+            this.prices[market] = { value: data.trade_price, updatedAt: Date.now() };
             this.emit('ticker', {
                 market,
                 price: data.trade_price,
@@ -171,6 +172,7 @@ class UpbitWebSocket extends EventEmitter {
                     totalAskSize: data.total_ask_size,
                     spreadPct: +((top.ask_price - top.bid_price) / top.bid_price * 100).toFixed(4),
                     timestamp: data.timestamp,
+                    updatedAt: Date.now(),
                 };
                 this.emit('orderbook', { market, ...this.orderbooks[market] });
             }
@@ -205,11 +207,19 @@ class UpbitWebSocket extends EventEmitter {
     }
 
     getPrice(market) {
-        return this.prices[market] || 0;
+        const entry = this.prices[market];
+        if (!entry) return 0;
+        // Return 0 for stale prices (older than 30s) to prevent trading on dead data
+        if (Date.now() - entry.updatedAt > PRICE_STALE_MS) return 0;
+        return entry.value;
     }
 
     getOrderbook(market) {
-        return this.orderbooks[market] || null;
+        const ob = this.orderbooks[market];
+        if (!ob) return null;
+        // Return null for stale orderbook data
+        if (Date.now() - ob.updatedAt > PRICE_STALE_MS) return null;
+        return ob;
     }
 
     updateMarkets(markets) {
