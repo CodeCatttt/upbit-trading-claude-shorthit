@@ -152,6 +152,13 @@ async function buyMarketOrder(market, amountKrw) {
                     console.log(`[BUY] ${market} previous order ${lastOrderId} filled on recheck.`);
                     return prevResult.data;
                 }
+                // Previous order placed but not confirmed — check if KRW was consumed.
+                // If KRW is insufficient, the order likely went through; don't place another.
+                const remainingKrw = await getBalance('KRW');
+                if (remainingKrw < amountKrw * 0.5) {
+                    console.error(`[BUY] ${market} KRW depleted (${Math.floor(remainingKrw)} remaining) after order ${lastOrderId}. Not placing duplicate order.`);
+                    return null; // Caller's reconciliation logic will detect actual holdings
+                }
             }
             const body = { market, side: 'bid', price: amountKrw.toString(), ord_type: 'price' };
             const res = await axios.post(`${server_url}/v1/orders`, body, {

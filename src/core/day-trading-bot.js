@@ -51,6 +51,9 @@ const SEED_CANDLES_5M = 100;
 
 let lastHeartbeatTime = 0;
 let lastStatusLogTime = 0;
+let lastReconcileTime = 0;
+const RECONCILE_INTERVAL_MS = 300000; // Reconcile every 5 minutes
+let consecutiveInsufficientKrw = 0;
 let analysisCount = 0;
 
 function loadTradingConfig() {
@@ -215,14 +218,47 @@ async function executeBuy(market) {
     const amt = Math.floor(krw * TRADE_RATIO);
 
     if (amt < MIN_ORDER_KRW) {
-        log.warn(`Insufficient KRW for buy: ${amt}`);
+        consecutiveInsufficientKrw++;
+        // Only log every 60th occurrence (~5min at 5s interval) to avoid log spam
+        if (consecutiveInsufficientKrw <= 1 || consecutiveInsufficientKrw % 60 === 0) {
+            log.warn(`Insufficient KRW for buy: ${amt} (occurred ${consecutiveInsufficientKrw} times)`);
+        }
         return false;
     }
+    consecutiveInsufficientKrw = 0;
 
     log.info(`BUY ${market}: ${amt} KRW`);
     const result = await api.buyMarketOrder(market, amt);
     if (!result) {
-        log.error(`Buy failed for ${market}`);
+        // Order confirmation failed, but order may have filled on the exchange.
+        // Check actual balance to detect ghost fills.
+        log.warn(`Buy confirmation failed for ${market}. Checking actual balance...`);
+        await new Promise(r => setTimeout(r, 3000)); // wait for exchange settlement
+        const currency = getCurrencyFromMarket(market);
+        const actualBalance = await api.getBalance(currency);
+        const currentPrice = await api.getCurrentPrice(market);
+        if (actualBalance > 0 && currentPrice > 0 && actualBalance * currentPrice > MIN_ORDER_KRW) {
+            log.warn(`RECONCILE: Buy confirmation failed but holding ${actualBalance} ${currency} (${Math.round(actualBalance * currentPrice)} KRW). Updating state.`);
+            state.assetHeld = market;
+            state.activeMarket = market;
+            state.entryPrice = currentPrice;
+            state.lastTradeTime = Date.now();
+            saveState();
+
+            const candles1m = candleManager ? candleManager.getCandles(market, 1) : [];
+            const atr = candles1m.length >= 15 ? calcATR(candles1m, 14) : null;
+            riskManager.enterPosition(market, currentPrice, actualBalance * currentPrice, atr);
+
+            appendExecutionLog({
+                action: 'BUY',
+                market,
+                price: currentPrice,
+                amountKrw: Math.round(actualBalance * currentPrice),
+                note: 'reconciled_after_confirmation_failure',
+            });
+            return true;
+        }
+        log.error(`Buy failed for ${market} — no balance detected after confirmation failure`);
         return false;
     }
 
@@ -304,6 +340,13 @@ async function runAnalysis() {
     try {
         const config = loadTradingConfig();
         const markets = config.markets;
+
+        // Periodic reconciliation: detect state mismatches (e.g. ghost fills)
+        const now0 = Date.now();
+        if (now0 - lastReconcileTime >= RECONCILE_INTERVAL_MS) {
+            lastReconcileTime = now0;
+            await reconcileState(markets);
+        }
 
         // Check risk limits
         const riskCheck = riskManager.canTrade();
