@@ -55,6 +55,10 @@ let lastReconcileTime = 0;
 const RECONCILE_INTERVAL_MS = 300000; // Reconcile every 5 minutes
 let consecutiveInsufficientKrw = 0;
 let analysisCount = 0;
+let lastStopLossTime = 0;
+let consecutiveStopLosses = 0;
+const STOP_LOSS_COOLDOWN_BASE_MS = 180000; // 3 min base cooldown after stop-loss
+const STOP_LOSS_COOLDOWN_MAX_MS = 900000;  // 15 min max cooldown (escalating)
 
 function loadTradingConfig() {
     try {
@@ -184,8 +188,11 @@ function saveDailyStats() {
 
 // === Core Trading Logic ===
 
+const MIN_COIN_PRICE = 100; // Exclude coins below 100 KRW (tick size makes scalping impossible)
+
 /**
- * Select the best market to trade based on 5m volatility and volume.
+ * Select the best market to trade based on 5m volatility and KRW volume.
+ * Uses KRW-denominated volume to avoid bias toward cheap coins.
  */
 function selectMarket(markets) {
     let bestMarket = null;
@@ -195,11 +202,15 @@ function selectMarket(markets) {
         const candles5m = candleManager.getCandles(market, 5);
         if (candles5m.length < 20) continue;
 
-        // Score = volatility * volume (higher = better for scalping)
+        // Filter out very cheap coins — tick size distortion makes them unsuitable
+        const lastPrice = candles5m[candles5m.length - 1].close;
+        if (lastPrice < MIN_COIN_PRICE) continue;
+
+        // Score = volatility * KRW volume (volume in KRW, not coin units)
         const recent = candles5m.slice(-10);
         const avgRange = recent.reduce((sum, c) => sum + (c.high - c.low) / c.close, 0) / recent.length;
-        const avgVolume = recent.reduce((sum, c) => sum + c.volume, 0) / recent.length;
-        const score = avgRange * avgVolume;
+        const avgVolumeKrw = recent.reduce((sum, c) => sum + c.volume * c.close, 0) / recent.length;
+        const score = avgRange * avgVolumeKrw;
 
         if (score > bestScore) {
             bestScore = score;
@@ -235,24 +246,29 @@ async function executeBuy(market) {
         log.warn(`Buy confirmation failed for ${market}. Checking actual balance...`);
         await new Promise(r => setTimeout(r, 3000)); // wait for exchange settlement
         const currency = getCurrencyFromMarket(market);
-        const actualBalance = await api.getBalance(currency);
+        // Use getBalances() to get avg_buy_price for accurate entry price
+        const balances = await api.getBalances();
+        const assetBalance = balances.find(b => b.currency === currency);
+        const actualBalance = assetBalance ? parseFloat(assetBalance.balance) + parseFloat(assetBalance.locked || '0') : 0;
+        const avgBuyPrice = assetBalance ? parseFloat(assetBalance.avg_buy_price || '0') : 0;
         const currentPrice = await api.getCurrentPrice(market);
+        const entryPrice = avgBuyPrice > 0 ? avgBuyPrice : currentPrice; // Prefer avg_buy_price
         if (actualBalance > 0 && currentPrice > 0 && actualBalance * currentPrice > MIN_ORDER_KRW) {
-            log.warn(`RECONCILE: Buy confirmation failed but holding ${actualBalance} ${currency} (${Math.round(actualBalance * currentPrice)} KRW). Updating state.`);
+            log.warn(`RECONCILE: Buy confirmation failed but holding ${actualBalance} ${currency} (${Math.round(actualBalance * currentPrice)} KRW, avg_buy_price: ${avgBuyPrice}). Updating state.`);
             state.assetHeld = market;
             state.activeMarket = market;
-            state.entryPrice = currentPrice;
+            state.entryPrice = entryPrice;
             state.lastTradeTime = Date.now();
             saveState();
 
             const candles1m = candleManager ? candleManager.getCandles(market, 1) : [];
             const atr = candles1m.length >= 15 ? calcATR(candles1m, 14) : null;
-            riskManager.enterPosition(market, currentPrice, actualBalance * currentPrice, atr);
+            riskManager.enterPosition(market, entryPrice, actualBalance * currentPrice, atr);
 
             appendExecutionLog({
                 action: 'BUY',
                 market,
-                price: currentPrice,
+                price: entryPrice,
                 amountKrw: Math.round(actualBalance * currentPrice),
                 note: 'reconciled_after_confirmation_failure',
             });
@@ -398,6 +414,15 @@ async function runAnalysis() {
                         if (freshExit.shouldExit) {
                             log.info(`Exit signal: ${freshExit.reason} (PnL: ${freshExit.pnlPct.toFixed(3)}%, price: ${freshPrice})`);
                             await executeSell(market, freshExit.reason);
+                            // Track consecutive stop losses for escalating cooldown
+                            if (freshExit.reason === 'stop_loss') {
+                                consecutiveStopLosses++;
+                                lastStopLossTime = Date.now();
+                                const cooldown = Math.min(STOP_LOSS_COOLDOWN_BASE_MS * consecutiveStopLosses, STOP_LOSS_COOLDOWN_MAX_MS);
+                                log.warn(`Stop-loss #${consecutiveStopLosses} — cooldown ${Math.round(cooldown / 1000)}s before next buy`);
+                            } else {
+                                consecutiveStopLosses = 0;
+                            }
                             writeHeartbeat(freshExit.reason);
                             isProcessing = false;
                             return;
@@ -436,10 +461,24 @@ async function runAnalysis() {
 
         // Act on signal
         if (state.assetHeld === 'CASH' && signal.action === 'BUY') {
-            log.info(`BUY signal for ${activeMarket} (score: ${signal.score})`, signal.signals);
-            const success = await executeBuy(activeMarket);
-            if (success) {
-                writeHeartbeat('BUY', { market: activeMarket, signal });
+            // Enforce cooldown after stop-loss (escalating with consecutive losses)
+            const cooldownMs = Math.min(STOP_LOSS_COOLDOWN_BASE_MS * consecutiveStopLosses, STOP_LOSS_COOLDOWN_MAX_MS);
+            const timeSinceStopLoss = Date.now() - lastStopLossTime;
+            if (consecutiveStopLosses > 0 && timeSinceStopLoss < cooldownMs) {
+                const remaining = Math.round((cooldownMs - timeSinceStopLoss) / 1000);
+                if (analysisCount % 60 === 0) {
+                    log.info(`BUY suppressed — stop-loss cooldown (${remaining}s remaining, ${consecutiveStopLosses} consecutive SLs)`);
+                }
+            } else {
+                if (consecutiveStopLosses > 0 && timeSinceStopLoss >= cooldownMs) {
+                    log.info(`Stop-loss cooldown expired. Resuming trading.`);
+                    consecutiveStopLosses = 0;
+                }
+                log.info(`BUY signal for ${activeMarket} (score: ${signal.score})`, signal.signals);
+                const success = await executeBuy(activeMarket);
+                if (success) {
+                    writeHeartbeat('BUY', { market: activeMarket, signal });
+                }
             }
         } else if (state.assetHeld !== 'CASH' && signal.action === 'SELL') {
             // Check if current P&L covers round-trip fees before strategy sell
@@ -542,14 +581,41 @@ async function reconcileState(markets) {
         if (!balances || balances.length === 0) return;
 
         const holdings = [];
+        const orphanedHoldings = [];
         for (const b of balances) {
             if (b.currency === 'KRW') continue;
             const market = `KRW-${b.currency}`;
             const bal = parseFloat(b.balance) + parseFloat(b.locked || '0');
             const avgPrice = parseFloat(b.avg_buy_price || '0');
             const value = bal * avgPrice;
-            if (value > MIN_ORDER_KRW && markets.includes(market)) {
-                holdings.push({ market, value, avgPrice });
+            if (value > MIN_ORDER_KRW) {
+                // Check actual current price — coins below MIN_COIN_PRICE are orphaned
+                // regardless of whether they're in the markets list (prevents circular preservation)
+                const currentPrice = await api.getCurrentPrice(market);
+                const effectivePrice = currentPrice > 0 ? currentPrice : avgPrice;
+                if (effectivePrice < MIN_COIN_PRICE) {
+                    orphanedHoldings.push({ market, value, avgPrice, balance: bal, currency: b.currency });
+                } else if (markets.includes(market)) {
+                    holdings.push({ market, value, avgPrice, balance: bal });
+                } else {
+                    // Holding a coin not in our active markets list — sell it
+                    orphanedHoldings.push({ market, value, avgPrice, balance: bal, currency: b.currency });
+                }
+            }
+        }
+
+        // Sell orphaned holdings (coins removed from market list or below price filter)
+        for (const orphan of orphanedHoldings) {
+            log.warn(`RECONCILE: Orphaned holding ${orphan.market} (${Math.round(orphan.value)} KRW) not in active markets. Selling.`);
+            try {
+                await api.sellMarketOrder(orphan.market, orphan.balance);
+                appendExecutionLog({
+                    action: 'SELL', market: orphan.market, price: orphan.avgPrice,
+                    entryPrice: orphan.avgPrice, pnlPct: 0, pnlKrw: 0,
+                    reason: 'orphaned_holding_cleanup',
+                });
+            } catch (e) {
+                log.error(`Failed to sell orphaned ${orphan.market}: ${e.message}`);
             }
         }
 

@@ -22,6 +22,10 @@ const EXCLUDE_COINS = new Set([
     'KRW-USDT', 'KRW-USDC',
 ]);
 
+// Minimum price filter — coins below this are unsuitable for scalping
+// (tick size relative to price is too large, causing artificial volatility)
+const MIN_COIN_PRICE_KRW = 100;
+
 /**
  * Fetch all KRW markets and select top N by 24h trading volume.
  * @param {number} topN - Number of markets to select (default 12)
@@ -54,6 +58,7 @@ async function selectTopMarkets(topN = 12, minVolume24h = 10_000_000_000) {
     // 3. Sort by 24h trading volume (KRW) and filter
     const ranked = tickerRes.data
         .filter(t => t.acc_trade_price_24h >= minVolume24h)
+        .filter(t => t.trade_price >= MIN_COIN_PRICE_KRW) // Exclude cheap coins
         .sort((a, b) => b.acc_trade_price_24h - a.acc_trade_price_24h)
         .slice(0, topN);
 
