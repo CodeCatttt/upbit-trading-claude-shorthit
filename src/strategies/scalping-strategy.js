@@ -64,7 +64,7 @@ const DEFAULT_CONFIG = {
     volumeWeight: 0.13,
 
     // Entry threshold (sum of weighted signals must exceed this)
-    entryThreshold: 0.15,
+    entryThreshold: 0.35,
 
     // Minimum candles before first trade
     minCandles1m: 30,
@@ -258,15 +258,23 @@ function analyze(candles1m, candles5m, config = DEFAULT_CONFIG, orderbook = null
         const trend5mEma = calcEMA(candles5m, config.trendEmaPeriod);
         const price5m = candles5m[candles5m.length - 1].close;
         if (trend5mEma !== null) {
-            const trendDir = price5m > trend5mEma ? 'up' : 'down';
+            const trendDeviation = (price5m - trend5mEma) / trend5mEma;
+            const trendDir = trendDeviation > 0 ? 'up' : 'down';
             signals.trend5m = trendDir;
+            signals.trendDeviation = +(trendDeviation * 100).toFixed(3);
 
-            // Penalize counter-trend trades
             if (trendDir === 'down' && buyScore > sellScore) {
-                buyScore *= 0.75;
-                signals.trendFilter = 'buy_penalized';
+                if (trendDeviation < -0.003) {
+                    // Strong downtrend (>0.3% below EMA): block buy entirely
+                    buyScore = 0;
+                    signals.trendFilter = 'buy_blocked_strong_downtrend';
+                } else {
+                    // Mild downtrend: heavy penalty
+                    buyScore *= 0.4;
+                    signals.trendFilter = 'buy_penalized';
+                }
             } else if (trendDir === 'up' && sellScore > buyScore) {
-                sellScore *= 0.75;
+                sellScore *= 0.5;
                 signals.trendFilter = 'sell_penalized';
             } else {
                 signals.trendFilter = 'aligned';

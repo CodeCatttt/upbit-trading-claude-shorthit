@@ -57,8 +57,10 @@ let consecutiveInsufficientKrw = 0;
 let analysisCount = 0;
 let lastStopLossTime = 0;
 let consecutiveStopLosses = 0;
-const STOP_LOSS_COOLDOWN_BASE_MS = 180000; // 3 min base cooldown after stop-loss
-const STOP_LOSS_COOLDOWN_MAX_MS = 900000;  // 15 min max cooldown (escalating)
+const STOP_LOSS_COOLDOWN_BASE_MS = 600000; // 10 min base cooldown after stop-loss
+const STOP_LOSS_COOLDOWN_MAX_MS = 1800000; // 30 min max cooldown (escalating)
+const stoppedMarkets = new Map();          // market → timestamp of last stop-loss
+const MARKET_COOLDOWN_AFTER_SL_MS = 1800000; // 30 min: don't re-enter same market after stop-loss
 
 function loadTradingConfig() {
     try {
@@ -196,10 +198,15 @@ const MIN_COIN_PRICE = 100; // Exclude coins below 100 KRW (tick size makes scal
  * Uses KRW-denominated volume to avoid bias toward cheap coins.
  */
 function selectMarket(markets) {
+    const now = Date.now();
     let bestMarket = null;
     let bestScore = -Infinity;
 
     for (const market of markets) {
+        // Skip markets that recently had a stop-loss
+        const slTime = stoppedMarkets.get(market);
+        if (slTime && (now - slTime) < MARKET_COOLDOWN_AFTER_SL_MS) continue;
+
         const candles5m = candleManager.getCandles(market, 5);
         if (candles5m.length < 20) continue;
 
@@ -419,8 +426,9 @@ async function runAnalysis() {
                             if (freshExit.reason === 'stop_loss') {
                                 consecutiveStopLosses++;
                                 lastStopLossTime = Date.now();
+                                stoppedMarkets.set(market, Date.now());
                                 const cooldown = Math.min(STOP_LOSS_COOLDOWN_BASE_MS * consecutiveStopLosses, STOP_LOSS_COOLDOWN_MAX_MS);
-                                log.warn(`Stop-loss #${consecutiveStopLosses} — cooldown ${Math.round(cooldown / 1000)}s before next buy`);
+                                log.warn(`Stop-loss #${consecutiveStopLosses} on ${market} — cooldown ${Math.round(cooldown / 1000)}s, market blocked ${Math.round(MARKET_COOLDOWN_AFTER_SL_MS / 60000)}min`);
                             } else {
                                 consecutiveStopLosses = 0;
                             }
@@ -465,10 +473,20 @@ async function runAnalysis() {
             // Enforce cooldown after stop-loss (escalating with consecutive losses)
             const cooldownMs = Math.min(STOP_LOSS_COOLDOWN_BASE_MS * consecutiveStopLosses, STOP_LOSS_COOLDOWN_MAX_MS);
             const timeSinceStopLoss = Date.now() - lastStopLossTime;
+
+            // Check market-specific cooldown (don't re-enter a market that just stopped out)
+            const marketSlTime = stoppedMarkets.get(activeMarket);
+            const marketCooldownActive = marketSlTime && (Date.now() - marketSlTime) < MARKET_COOLDOWN_AFTER_SL_MS;
+
             if (consecutiveStopLosses > 0 && timeSinceStopLoss < cooldownMs) {
                 const remaining = Math.round((cooldownMs - timeSinceStopLoss) / 1000);
                 if (analysisCount % 60 === 0) {
                     log.info(`BUY suppressed — stop-loss cooldown (${remaining}s remaining, ${consecutiveStopLosses} consecutive SLs)`);
+                }
+            } else if (marketCooldownActive) {
+                const remaining = Math.round((MARKET_COOLDOWN_AFTER_SL_MS - (Date.now() - marketSlTime)) / 1000);
+                if (analysisCount % 60 === 0) {
+                    log.info(`BUY suppressed — ${activeMarket} market cooldown (${remaining}s remaining after stop-loss)`);
                 }
             } else {
                 if (consecutiveStopLosses > 0 && timeSinceStopLoss >= cooldownMs) {
