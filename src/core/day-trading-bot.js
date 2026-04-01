@@ -92,6 +92,7 @@ const riskConfig = {
     trailingPct: 0.2,              // Trail 0.2% from peak
     fallbackStopLossPct: 0.3,      // Fallback when no ATR data
     fallbackTakeProfitPct: 0.5,    // Fallback when no ATR data
+    maxStopLossPct: 1.0,           // Cap ATR-based SL to 1% max (prevents oversized losses on volatile coins)
     pauseDurationMs: 300000,       // 5 min pause
     pauseThresholdPct: 0.5,        // 0.5% loss in window triggers pause
     pauseWindowMs: 1800000,        // 30 min window

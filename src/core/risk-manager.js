@@ -120,6 +120,13 @@ class RiskManager {
             tpActivationPrice = entryPrice + (atr * this.config.tpAtrMultiplier);
             stopLossPct = ((entryPrice - stopLossPrice) / entryPrice) * 100;
             tpActivationPct = ((tpActivationPrice - entryPrice) / entryPrice) * 100;
+
+            // Cap stop-loss to prevent oversized losses on volatile coins
+            const maxSlPct = this.config.maxStopLossPct || 1.0;
+            if (stopLossPct > maxSlPct) {
+                stopLossPrice = entryPrice * (1 - maxSlPct / 100);
+                stopLossPct = maxSlPct;
+            }
         } else {
             // Fallback fixed percentages
             stopLossPrice = entryPrice * (1 - this.config.fallbackStopLossPct / 100);
