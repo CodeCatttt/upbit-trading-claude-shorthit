@@ -63,8 +63,8 @@ const DEFAULT_CONFIG = {
     macdWeight: 0.13,
     volumeWeight: 0.13,
 
-    // Entry threshold (sum of weighted signals must exceed this)
-    entryThreshold: 0.35,
+    // Entry threshold (raised from 0.35 to reduce weak entries)
+    entryThreshold: 0.40,
 
     // Minimum candles before first trade
     minCandles1m: 30,
@@ -264,13 +264,13 @@ function analyze(candles1m, candles5m, config = DEFAULT_CONFIG, orderbook = null
             signals.trendDeviation = +(trendDeviation * 100).toFixed(3);
 
             if (trendDir === 'down' && buyScore > sellScore) {
-                if (trendDeviation < -0.003) {
-                    // Strong downtrend (>0.3% below EMA): block buy entirely
+                if (trendDeviation < -0.001) {
+                    // Any meaningful downtrend: block buy entirely
                     buyScore = 0;
-                    signals.trendFilter = 'buy_blocked_strong_downtrend';
+                    signals.trendFilter = 'buy_blocked_downtrend';
                 } else {
-                    // Mild downtrend: heavy penalty
-                    buyScore *= 0.4;
+                    // Barely below EMA: heavy penalty
+                    buyScore *= 0.3;
                     signals.trendFilter = 'buy_penalized';
                 }
             } else if (trendDir === 'up' && sellScore > buyScore) {

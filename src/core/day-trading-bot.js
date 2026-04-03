@@ -89,12 +89,12 @@ let state = {
 const riskConfig = {
     maxDailyLossPct: 3,
     maxDailyTrades: 1000,
-    slAtrMultiplier: 1.5,          // SL = ATR * 1.5
-    tpAtrMultiplier: 2.0,          // Trailing TP activates at ATR * 2.0
-    trailingPct: 0.2,              // Trail 0.2% from peak
-    fallbackStopLossPct: 0.3,      // Fallback when no ATR data
-    fallbackTakeProfitPct: 0.5,    // Fallback when no ATR data
-    maxStopLossPct: 1.0,           // Cap ATR-based SL to 1% max (prevents oversized losses on volatile coins)
+    slAtrMultiplier: 2.5,          // SL = ATR * 2.5 (wider to avoid noise stop-outs)
+    tpAtrMultiplier: 2.5,          // Trailing TP activates at ATR * 2.5
+    trailingPct: 0.3,              // Trail 0.3% from peak (slightly wider)
+    fallbackStopLossPct: 0.5,      // Fallback when no ATR data (0.3→0.5)
+    fallbackTakeProfitPct: 0.7,    // Fallback when no ATR data (0.5→0.7)
+    maxStopLossPct: 1.5,           // Cap ATR-based SL to 1.5% max (was 1%, too tight for most coins)
     pauseDurationMs: 300000,       // 5 min pause
     pauseThresholdPct: 0.5,        // 0.5% loss in window triggers pause
     pauseWindowMs: 1800000,        // 30 min window
@@ -191,7 +191,7 @@ function saveDailyStats() {
 
 // === Core Trading Logic ===
 
-const MIN_COIN_PRICE = 100; // Exclude coins below 100 KRW (tick size makes scalping impossible)
+const MIN_COIN_PRICE = 500; // Exclude coins below 500 KRW (low-price coins have huge tick-size spreads)
 
 /**
  * Select the best market to trade based on 5m volatility and KRW volume.
@@ -213,6 +213,13 @@ function selectMarket(markets) {
         // Filter out very cheap coins — tick size distortion makes them unsuitable
         const lastPrice = candles5m[candles5m.length - 1].close;
         if (lastPrice < MIN_COIN_PRICE) continue;
+
+        // Check orderbook spread — skip coins with wide spreads (>0.5%)
+        const ob = wsClient ? wsClient.getOrderbook(market) : null;
+        if (ob && ob.bidPrice > 0 && ob.askPrice > 0) {
+            const spreadPct = (ob.askPrice - ob.bidPrice) / ob.bidPrice;
+            if (spreadPct > 0.005) continue; // Skip if spread > 0.5%
+        }
 
         // Score = volatility * KRW volume (volume in KRW, not coin units)
         const recent = candles5m.slice(-10);
@@ -502,7 +509,7 @@ async function runAnalysis() {
         } else if (state.assetHeld !== 'CASH' && signal.action === 'SELL') {
             // Check if current P&L covers round-trip fees before strategy sell
             // Stop-loss exits (handled by RiskManager above) bypass this check
-            const MIN_PROFIT_TO_SELL = 0.15; // Must exceed 0.15% to cover 0.1% fees + margin
+            const MIN_PROFIT_TO_SELL = 0.05; // Lowered: let strategy exit early rather than wait for stop-loss
             const currentPrice = candleManager.getLatestPrice(activeMarket) || wsClient.getPrice(activeMarket);
             const pnlPct = state.entryPrice && currentPrice > 0
                 ? ((currentPrice - state.entryPrice) / state.entryPrice) * 100
